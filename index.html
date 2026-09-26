@@ -750,46 +750,592 @@ const defaultMusicTracks = [
   { id: "track-d", name: "曲D", pct: 25 }
 ];
 
-const calendarData = [
-  { year: "2026年", grade: "中学2年生", months: [
-    { m: "6月", stage: "p0", target: "🎸 バンドライブ鍵盤パート練習開始", events: ["学内ライブ準備（鍵盤）", "Amber i2・RAT2接続確認"], musSteps: ["mus-1", "mus-2"], pySteps: [] },
-    { m: "7月", stage: "p0", star: true, target: "🎤 ライブ本番ノーミス完奏 ＆ ギター基礎10分習慣化", events: ["7月：学内バンドライブ本番完奏！", "夏休み突入・開発環境セットアップ"], musSteps: ["mus-1", "mus-2"], pySteps: [] },
-    { m: "8月", stage: "p1", star: true, target: "🚀 ワンフェス作品8月末完走提出 ＆ 英会話スタート", events: ["8月末：ワンダーメイクフェス作品提出期限！", "オンライン英会話週2回開始"], musSteps: ["mus-3", "mus-4"], pySteps: ["py-1", "py-2", "py-3", "py-4", "py-5", "py-6"] },
-    { m: "9月", stage: "p1", star: true, target: "🛠️ デバッグ ＆ 2学期中間テスト対策（数学大問1・英語過去形）", events: ["10月ワンフェス展示準備・デバッグ", "2学期中間テスト対策開始"], musSteps: ["mus-4"], pySteps: ["py-6"] },
-    { m: "10月", stage: "p1", star: true, target: "🏆 ワンフェス本番発表大成功 ＆ GarageBand初オリジナル曲完成", events: ["10月：ワンダーメイクフェス本番発表！", "中間テスト本番（5科平均以上死守）"], musSteps: ["mus-4"], pySteps: ["py-6"] },
-    { m: "11月", stage: "p2", target: "🎛️ Chocolate Plus導入 ＆ 期末テスト内申点底上げ", events: ["2学期期末テスト本番", "Chocolate Plus USB接続実験"], musSteps: ["mus-5"], pySteps: ["py-7", "py-8", "py-9"] },
-    { m: "12月", stage: "p2", target: "🎛️ Moog EP-3ペダル速度連動 ＆ 中1〜2総復習", events: ["冬休み集中特訓（中1・2総復習）", "Moog EP-3ワウ/速度制御テスト"], musSteps: ["mus-5", "mus-6"], pySteps: ["py-10"] },
-  ]},
-  { year: "2027年", grade: "中学3年生", months: [
-    { m: "1月", stage: "p2", target: "💻 4画面分割レンダリング完成 ＆ 中2学年末テスト準備", events: ["中2・3学期始業式", "4画面並列描画プロトタイプ検証"], musSteps: ["mus-6"], pySteps: ["py-10"] },
-    { m: "2月", stage: "p2", target: "📚 学年末テスト：内申点「2」の完全撲滅達成", events: ["中2学年末テスト本番（内申2完全撲滅！）"], musSteps: [], pySteps: [] },
-    { m: "3月", stage: "p2", target: "📚 春休み：中1・2総復習薄型問題集1冊完成", events: ["中2修了式・春休み受験スタートダッシュ"], musSteps: ["mus-6"], pySteps: ["py-10"] },
-    { m: "4月", stage: "p3", target: "🏫 中3受験モード本格開始（換算43目標） ＆ 足型キック演出設計", events: ["中3始業式・志望校（都立武蔵丘高）確定", "足型キック衝突ベクトル設計"], musSteps: ["mus-7"], pySteps: ["py-11"] },
-    { m: "5月", stage: "p3", target: "💻 Chocolate Plus 4方向移動実装 ＆ 1学期中間満点化", events: ["中3・1学期中間テスト", "足元スイッチ連動4方向画面キック実装"], musSteps: ["mus-7"], pySteps: ["py-11", "py-12"] },
-    { m: "6月", stage: "p3", target: "📚 1学期末テスト（内申点最重要！換算43〜45確定へ）", events: ["1学期末テスト本番（都立推薦・一次内申の超要）"], musSteps: ["mus-7"], pySteps: ["py-12"] },
-    { m: "7月", stage: "p3", star: true, target: "🏅 英検3級〜準2級合格 ＆ フルスクリーン自動拡大完成", events: ["7月：英検挑戦（長文速読直結）", "夏休み都立集中特訓突入"], musSteps: ["mus-7"], pySteps: ["py-12"] },
-    { m: "8月", stage: "p4", star: true, target: "🔥 都立特化スパート：大問1・2満点トレーニング ＆ 息抜き作曲", events: ["都立共通過去問夏期特訓演習", "V模擬8月回挑戦"], musSteps: ["mus-8"], pySteps: [] },
-    { m: "9月", stage: "p4", target: "📝 V模擬・都立模試で安全圏B判定以上獲得", events: ["第1回 V模擬（大問1満点46点死守）", "2学期始業式"], musSteps: ["mus-8"], pySteps: [] },
-    { m: "10月", stage: "p4", target: "📚 2学期中間テスト ＆ 武蔵丘高校文化祭見学", events: ["武蔵丘高文化祭（白丘祭）見学・軽音部ライブ体感", "2学期中間テスト"], musSteps: ["mus-8"], pySteps: [] },
-    { m: "11月", stage: "p4", target: "📚 2学期末テスト（内申確定） ＆ 都立過去問演習開始", events: ["2学期期末テスト（都立提出用内申確定！）", "都立入試過去問演習本格化"], musSteps: ["mus-8"], pySteps: [] },
-    { m: "12月", stage: "p4", target: "📚 全Sランク・Aランク苦手完全制覇！", events: ["冬休み入試直前総仕上げ講習", "過去問5年分2周目完遂"], musSteps: ["mus-8"], pySteps: [] },
-  ]},
-  { year: "2028年", grade: "中3〜高1", months: [
-    { m: "1月", stage: "p4", target: "📚 都立入試直前仕上げ（制限時間マイナス10分演習）", events: ["都立推薦入試", "直前プレ模試・本番シミュレーション"], musSteps: ["mus-8"], pySteps: [] },
-    { m: "2月", stage: "p4", star: true, target: "🏫 ★ 都立武蔵丘高校 受験（合格目標点685点/1020点突破！）", events: ["2月下旬：都立一般入試本番！", "試験終了・全開放！"], musSteps: ["mus-8"], pySteps: [] },
-    { m: "3月", stage: "p5", target: "🎉 合格祝！Logic Pro ＆ HX Stomp XL導入・Moog流用", events: ["高校合格発表！", "Logic Pro導入＆HX Stomp XLセットアップ"], musSteps: ["mus-9"], pySteps: ["py-13", "py-14"] },
-    { m: "4月", stage: "p5", star: true, target: "🏫 ★ 武蔵丘高校入学 ＆ JBG音楽院入学 ＆ 軽音部入部", events: ["都立武蔵丘高校入学式！", "JBG音楽院スタンダードコース開講", "軽音楽部入部"], musSteps: ["mus-9"], pySteps: ["py-14"] },
-    { m: "5月〜7月", stage: "p5", target: "🎸 軽音部バンド活動 ＆ JBG高度コード理論修得", events: ["軽音部定期校内ライブ出演", "JBGバークリーコードプログレッション修得"], musSteps: ["mus-9"], pySteps: ["py-14"] },
-    { m: "8月", stage: "p5", star: true, target: "💻 HX Stomp XL Command Center統合 ＆ 月1〜2曲制作", events: ["高校軽音部夏合宿", "HX Stomp XL MIDI Command Center統合"], musSteps: ["mus-9"], pySteps: ["py-14"] },
-    { m: "9月〜12月", stage: "p5", target: "🎤 武蔵丘高軽音部でライブハウス初出演！", events: ["都内ライブハウス外部イベント初出演！", "Logic Pro本格アレンジ楽曲制作"], musSteps: ["mus-9"], pySteps: ["py-14"] },
-  ]},
-  { year: "2029〜2030年", grade: "高校2〜3年生", months: [
-    { m: "2029年3月", stage: "p5", star: true, target: "📂 Mountain of Sound 完全版 GitHub公開完了 ＆ JBG修了", events: ["JBG音楽院修了制作提出・卒業", "Mountain of Sound GitHubリポジトリ公開"], musSteps: ["mus-9"], pySteps: ["py-15"] },
-    { m: "2029年4月〜8月", stage: "p6", star: true, target: "🎯 国内大学総合型選抜対策具体化 ＆ 30曲作品集マスタリング", events: ["慶應SFC・明治FMS・洗足音大オープンキャンパス", "出願ポートフォリオ30曲マスタリング"], musSteps: ["mus-10"], pySteps: ["py-15"] },
-    { m: "2029年10〜11月", stage: "p6", star: true, target: "🎓 ★ 国内大学 総合型選抜/AO 出願・面接本番", events: ["総合型選抜出願提出", "プレゼン面接・実機デモ実演！"], musSteps: ["mus-10"], pySteps: ["py-15"] },
-    { m: "2030年4月〜", stage: "p7", star: true, target: "🎓 ★★ 国内大学進学 ➔ 22歳でGoldsmiths大学院へ！", events: ["大学入学式！", "世界水準Creative Computing探求開始"], musSteps: [], pySteps: [] },
-  ]}
+const monthPlans = [
+  {
+    "date": "2026-10",
+    "target": "新期間の開始・ワンフェス発表・学校の現在地確認",
+    "events": [
+      "10月以降の予定を本人と確認",
+      "以前の未完了課題は削除せず持ち越す"
+    ],
+    "musSteps": [
+      "mus-1",
+      "mus-2",
+      "mus-3",
+      "mus-4"
+    ],
+    "pySteps": [
+      "py-1",
+      "py-2",
+      "py-3",
+      "py-4",
+      "py-5",
+      "py-6"
+    ]
+  },
+  {
+    "date": "2026-11",
+    "target": "音声とMIDIの接続・中2定期テスト対策",
+    "events": [
+      "学校ワーク・チェック表の苦手を確認",
+      "機材導入は所有状況に合わせて調整"
+    ],
+    "musSteps": [
+      "mus-5"
+    ],
+    "pySteps": [
+      "py-7",
+      "py-8"
+    ]
+  },
+  {
+    "date": "2026-12",
+    "target": "中2の学び直し・制作の基礎を継続",
+    "events": [
+      "冬休みに必要な単元を選ぶ",
+      "作品に必要な音と数値の関係を試す"
+    ],
+    "musSteps": [
+      "mus-6"
+    ],
+    "pySteps": [
+      "py-9"
+    ]
+  },
+  {
+    "date": "2027-01",
+    "target": "新学期の学校学習・波形プロトタイプ改善",
+    "events": [
+      "学校の進度を確認",
+      "MIDI操作と画面表示を試す"
+    ],
+    "musSteps": [
+      "mus-6"
+    ],
+    "pySteps": [
+      "py-10"
+    ]
+  },
+  {
+    "date": "2027-02",
+    "target": "学年末テスト・苦手の再確認",
+    "events": [
+      "学校ワークと実問題を使う",
+      "次の学年へ残す苦手を確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-03",
+    "target": "中2の振り返り・中3への準備",
+    "events": [
+      "未完了課題を整理",
+      "学校・部活・制作に使える時間を再確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-04",
+    "target": "中3スタート・高校受験の基礎診断",
+    "events": [
+      "内申に関わる学校課題を確認",
+      "目標校の条件は該当年度の資料で更新"
+    ],
+    "musSteps": [
+      "mus-7"
+    ],
+    "pySteps": [
+      "py-11"
+    ]
+  },
+  {
+    "date": "2027-05",
+    "target": "学校の学びとゲーム操作演出の両立",
+    "events": [
+      "定期テスト・提出物を確認",
+      "足元コントローラーの動作を試す"
+    ],
+    "musSteps": [],
+    "pySteps": [
+      "py-12"
+    ]
+  },
+  {
+    "date": "2027-06",
+    "target": "中3の定期テスト・制作状況の確認",
+    "events": [
+      "学校ワークを優先",
+      "作品の実装範囲を実際の進捗で調整"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-07",
+    "target": "夏休み計画・英語資格の到達度を確認",
+    "events": [
+      "英検は現在の英語力に合わせて受験可否を判断",
+      "演奏・作品も記録する"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-08",
+    "target": "高校受験に必要な基礎の集中補強",
+    "events": [
+      "長期休みの学習合宿は本人の予定と結果に応じて調整"
+    ],
+    "musSteps": [
+      "mus-8"
+    ],
+    "pySteps": []
+  },
+  {
+    "date": "2027-09",
+    "target": "学校・模試・制作を見ながら計画を再調整",
+    "events": [
+      "模試を受けた場合は誤答の原因を記録",
+      "音楽の継続時間も確保"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-10",
+    "target": "定期テストと高校の情報収集",
+    "events": [
+      "学校の評定に関わる課題を優先",
+      "志望校の学校行事は公式日程を確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-11",
+    "target": "学校の学習・都立入試問題の演習",
+    "events": [
+      "提出物と定期テストを確認",
+      "既習範囲を中心に過去問を使う"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-12",
+    "target": "苦手の優先順位を再設定・冬休み演習",
+    "events": [
+      "入試までの残り時間から問題の種類と練習回数を見直す"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-01",
+    "target": "都立高校入試直前の確認",
+    "events": [
+      "該当年度の入試日程に合わせて調整",
+      "睡眠と休憩を確保"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-02",
+    "target": "高校受験・これまでの学びの確認",
+    "events": [
+      "都立入試の日程と結果は該当年度の公式発表に従う"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-03",
+    "target": "中学卒業・高校生活の準備",
+    "events": [
+      "進学先が確定したら通学・部活・学習時間を組み直す"
+    ],
+    "musSteps": [
+      "mus-9"
+    ],
+    "pySteps": [
+      "py-13"
+    ]
+  },
+  {
+    "date": "2028-04",
+    "target": "高校生活スタート・音楽制作環境の整理",
+    "events": [
+      "軽音活動と学校の学習を確認",
+      "JBG受講は費用・予定を相談"
+    ],
+    "musSteps": [
+      "mus-9"
+    ],
+    "pySteps": [
+      "py-14"
+    ]
+  },
+  {
+    "date": "2028-05",
+    "target": "高校の授業とバンド・開発の習慣づくり",
+    "events": [
+      "高校の教科書・ワークを登録",
+      "演奏と開発の実績を残す"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-06",
+    "target": "高校の定期テストと作品制作を両立",
+    "events": [
+      "学校のテスト範囲・提出物を先に確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-07",
+    "target": "高1前半の振り返り・夏の制作計画",
+    "events": [
+      "無理のない制作・学習時間を本人と相談"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-08",
+    "target": "夏休みの演奏・録音・プログラミング",
+    "events": [
+      "制作の集中期間と休息を両立",
+      "作品のデモを保存"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-09",
+    "target": "学校生活に合わせた制作習慣の再調整",
+    "events": [
+      "部活・ライブ日程に合わせて週間計画を更新"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-10",
+    "target": "楽曲とゲームの制作記録を蓄積",
+    "events": [
+      "録音・コード・機材設定を作品に関連付ける"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-11",
+    "target": "高1の定期テスト・英語基礎の継続",
+    "events": [
+      "学校の進度を優先",
+      "英会話は負担に合わせて調整"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-12",
+    "target": "冬の作品レビューと学校学習の確認",
+    "events": [
+      "年内に作った作品と学習履歴を振り返る"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-01",
+    "target": "高校の学習と制作の進捗点検",
+    "events": [
+      "必要な基礎学習を絞り直す"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-02",
+    "target": "高1学年末の確認・作品の整理",
+    "events": [
+      "学年末テスト・提出物を優先",
+      "公開できる作品を選ぶ"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-03",
+    "target": "高1の振り返り・Mountain of Soundの公開準備",
+    "events": [
+      "公開版の動作・権利・説明資料を確認"
+    ],
+    "musSteps": [
+      "mus-11"
+    ],
+    "pySteps": [
+      "py-15"
+    ]
+  },
+  {
+    "date": "2029-04",
+    "target": "高2スタート・国内外の進学条件を調べる",
+    "events": [
+      "洗足・Goldsmiths等のコースと出願経路を一次情報で確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-05",
+    "target": "作品の改善・高校の授業を継続",
+    "events": [
+      "学校課題と制作目標の時間配分を見直す"
+    ],
+    "musSteps": [
+      "mus-11"
+    ],
+    "pySteps": []
+  },
+  {
+    "date": "2029-06",
+    "target": "音楽制作と開発の技術的な課題を整理",
+    "events": [
+      "楽曲とプログラムの未解決事項を記録"
+    ],
+    "musSteps": [],
+    "pySteps": [
+      "py-16"
+    ]
+  },
+  {
+    "date": "2029-07",
+    "target": "進路相談・英語力の到達度を確認",
+    "events": [
+      "英検・IELTSの受験時期は志望先と本人の現状から判断"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-08",
+    "target": "夏の作品制作・進学先を比較する",
+    "events": [
+      "オープンキャンパス等は公式日程を確認",
+      "作品の改善に集中"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-09",
+    "target": "演奏・制作・学習の実績をまとめる",
+    "events": [
+      "学校の学習とポートフォリオ素材を整理"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-10",
+    "target": "高2の定期テスト・音楽作品のレビュー",
+    "events": [
+      "学校の評価に必要な課題を確認",
+      "作品の第三者評価も検討"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-11",
+    "target": "作品説明の練習・進学条件の再確認",
+    "events": [
+      "国内総合型と海外出願で必要な資料を比較"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-12",
+    "target": "高2後半の学力・作品を振り返る",
+    "events": [
+      "冬の集中学習は必要な単元だけに絞る"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-01",
+    "target": "高2の学習と進路資料の更新",
+    "events": [
+      "公式要項の公開状況を確認",
+      "高校の学年末課題を進める"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-02",
+    "target": "学年末テスト・次年度の制作計画",
+    "events": [
+      "評価結果で高3の学習と制作時間を見積もる"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-03",
+    "target": "高2の振り返り・出願準備の棚卸し",
+    "events": [
+      "作品・英語力・学力・費用・入学資格の確認事項を整理"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-04",
+    "target": "高3スタート・出願方式別の準備",
+    "events": [
+      "国内の一般・総合型・推薦と海外出願を別々に管理"
+    ],
+    "musSteps": [
+      "mus-12"
+    ],
+    "pySteps": [
+      "py-17"
+    ]
+  },
+  {
+    "date": "2030-05",
+    "target": "志望コースの募集要項・作品要件を確認",
+    "events": [
+      "該当年度の公式要項に従って必要資料を更新"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-06",
+    "target": "学校の学習・作品とプレゼンの改善",
+    "events": [
+      "作品の第三者評価と実問題による学力確認を並行"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-07",
+    "target": "出願用作品の候補を絞る",
+    "events": [
+      "英語試験は出願期限と必要スコアから受験日を検討"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-08",
+    "target": "夏の制作・学科・面接の集中準備",
+    "events": [
+      "作品と学校の学習の配分を本人と調整"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-09",
+    "target": "国内外の出願書類・日程を確認",
+    "events": [
+      "学校推薦の条件も在籍高校へ確認",
+      "未確定の日程は固定しない"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-10",
+    "target": "作品・志望理由・選抜方式ごとの演習",
+    "events": [
+      "提出・面接日程は志望先の公式発表に合わせる"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-11",
+    "target": "出願状況・学習進捗に応じて計画を更新",
+    "events": [
+      "選抜方式ごとに必要な学習と作品作業を再配分"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-12",
+    "target": "学力と作品の最終調整・次の選抜に備える",
+    "events": [
+      "未完了の必要要件を確認",
+      "休息時間も守る"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2031-01",
+    "target": "出願・選抜・学校生活の予定を再確認",
+    "events": [
+      "国内外の該当年度の選抜日程と必要書類を確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2031-02",
+    "target": "進学先の選抜状況に沿って準備",
+    "events": [
+      "結果が未確定の進路を合格済みと扱わない"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2031-03",
+    "target": "高校卒業・進学先と必要手続きの確認",
+    "events": [
+      "進学先が決まったら学習・音楽・開発の次の予定を立てる"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2031-04",
+    "target": "進学後の生活と制作環境へ移行",
+    "events": [
+      "進学先は本人の意思と実際の選抜結果に基づいて設定"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  }
 ];
+const monthPlanByDate = Object.fromEntries(monthPlans.map(entry => [entry.date, entry]));
+const yearGrade = { 2026: "中学2年生", 2027: "中2〜中3", 2028: "中3〜高1", 2029: "高1〜高2", 2030: "高2〜高3", 2031: "高3〜進学" };
+const calendarData = [2026,2027,2028,2029,2030,2031].map(year => ({
+  year: String(year) + "年", grade: yearGrade[year],
+  months: allGanttMonthLabels.filter(m => m.year === year).map(month => {
+    const note = monthPlanByDate[month.date];
+    const stage = Object.keys(stageDateRanges).find(key => stageDateRanges[key].start <= month.date && month.date <= stageDateRanges[key].end);
+    return { m: month.m + "月", date: month.date, stage, target: note.target, events: note.events,
+      musSteps: note.musSteps, pySteps: note.pySteps,
+      star: ["2026-10","2028-02","2028-04","2030-09","2031-04"].includes(month.date) };
+  })
+}));
 
 const ganttTasks = [
   { nameLines: ["🏆 ワンダーメイクフェス", "現在地・発表と振り返り"], stage: "p1", start: "2026-10", end: "2026-10" },
@@ -2129,59 +2675,66 @@ function App() {
         )
       ),
 
-      /* GANTT TAB */
-      tab === "gantt" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+      /* GANTT TAB — two date-accurate bands, preserving 2028-02 entrance exam */
+      tab === "gantt" && h('div', { style: { display: "flex", flexDirection: "column", gap: "16px" } },
         h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "14px" } },
-          h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" } },
-            h('div', { style: { fontSize: "15px", fontWeight: 900 } }, "全体スケジュール（各バーをクリックして該当ステージへジャンプ）"),
-            h('div', { style: { fontSize: "12px", color: C.muted } }, "※各項目の詳細進捗は「音楽」「開発」「学習」タブで確認できます")
-          ),
-          h('div', { style: { width: "100%", overflow: "hidden" } },
-            h('div', { style: { display: "flex", borderBottom: "2px solid #007AFF", paddingBottom: "6px", marginBottom: "8px" } },
-              h('div', { style: { width: "140px", flexShrink: 0, fontSize: "11px", fontWeight: 900, color: "#1C1C1E" } }, "プロジェクト"),
-              h('div', { style: { flex: 1, display: "flex", width: "100%" } },
-                allGanttMonthLabels.map((ml, idx) => h('div', {
-                  key: idx,
-                  style: {
-                    flex: 1, textAlign: "center", fontSize: "9.5px",
-                    fontWeight: ml.m === 1 ? 900 : 800,
-                    color: ml.m === 1 ? "#007AFF" : "#1C1C1E"
-                  }
-                }, ml.label))
-              )
-            ),
-            ganttTasks.map((t, idx) => {
-              const startOff = getMonthOffset(t.start);
-              const endOff = getMonthOffset(t.end);
-              const monthDuration = endOff - startOff + 1;
-              const leftPct = (startOff / TOTAL_GANTT_MONTHS) * 100;
-              const widthPct = Math.max((monthDuration / TOTAL_GANTT_MONTHS) * 100, 3.5);
-              const sInfo = stageInfo[t.stage] || {};
-
-              return h('div', {
-                key: idx,
-                onClick: () => { setTab("stage"); },
-                style: {
-                  display: "flex", alignItems: "center", padding: "6px 0",
-                  borderBottom: "1px solid #F2F2F7", cursor: "pointer"
-                }
-              },
-                h('div', { style: { width: "140px", flexShrink: 0, paddingRight: "6px" } },
-                  t.nameLines.map((line, li) => h('div', { key: li, style: { fontSize: "11.5px", fontWeight: 800, lineHeight: 1.25 } }, line))
-                ),
-                h('div', { style: { flex: 1, position: "relative", height: "26px", background: "#F2F2F7", borderRadius: "5px" } },
-                  h('div', {
-                    style: {
-                      position: "absolute", left: `${leftPct}%`, width: `${widthPct}%`,
-                      top: "2px", bottom: "2px", background: sInfo.color || C.study,
-                      borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#FFFFFF", fontSize: "10.5px", fontWeight: 900, boxShadow: "0 1px 3px rgba(0,0,0,0.15)"
-                    }
-                  }, sInfo.shortLabel || "St")
+          h('div', { style: { fontSize: "15px", fontWeight: 900, marginBottom: "6px" } }, "全体スケジュール（2026年10月〜2031年4月）"),
+          h('div', { style: { fontSize: "12px", color: C.muted, marginBottom: "12px" } },
+            "二段表示。横幅が足りない画面では各段を左右にスクロールできます。バーを押すとステージタブに移ります。"),
+          GANTT_ROWS.map((row) => {
+            const trackWidth = row.months.length * GANTT_MONTH_WIDTH;
+            const examIndex = row.months.findIndex(month => month.date === "2028-02");
+            return h('div', { key: row.start, style: { marginBottom: "18px" } },
+              h('div', { style: { fontSize: "13px", fontWeight: 900, marginBottom: "6px", color: C.studyText } }, row.title),
+              h('div', { style: { overflowX: "auto", paddingBottom: "6px" } },
+                h('div', { style: { position: "relative", width: GANTT_LABEL_WIDTH + trackWidth + "px" } },
+                  h('div', { style: { display: "flex", borderBottom: "2px solid #007AFF", paddingBottom: "8px", marginBottom: "7px" } },
+                    h('div', { style: { width: GANTT_LABEL_WIDTH + "px", flexShrink: 0, fontSize: "11px", fontWeight: 900 } }, "プロジェクト"),
+                    h('div', { style: { display: "flex", width: trackWidth + "px" } },
+                      row.months.map(m => h('div', { key: m.date, title: m.date,
+                        style: { width: GANTT_MONTH_WIDTH + "px", flexShrink: 0, textAlign: "center", fontSize: "10px",
+                          color: m.m === 1 ? "#007AFF" : C.text, fontWeight: m.m === 1 ? 900 : 700 }
+                      }, m.label))
+                    )
+                  ),
+                  ganttTasks.map((task, idx) => {
+                    const left = Math.max(0, getMonthOffset(task.start, row.start));
+                    const end = Math.min(row.months.length - 1, getMonthOffset(task.end, row.start));
+                    if (end < left) return null;
+                    const info = stageInfo[task.stage] || {};
+                    return h('div', { key: task.nameLines.join("-") + row.start,
+                      onClick: () => setTab("stage"),
+                      style: { display: "flex", alignItems: "center", padding: "6px 0",
+                        borderBottom: "1px solid #F2F2F7", cursor: "pointer", minHeight: "43px" } },
+                      h('div', { style: { width: GANTT_LABEL_WIDTH + "px", flexShrink: 0, paddingRight: "6px" } },
+                        task.nameLines.map((line, li) => h('div', { key: li, style: { fontSize: "11px", fontWeight: 800, lineHeight: 1.25 } }, line))
+                      ),
+                      h('div', { style: { width: trackWidth + "px", flexShrink: 0, position: "relative",
+                        height: "28px", background: "#F2F2F7", borderRadius: "5px" } },
+                        h('div', { title: task.start + "〜" + task.end,
+                          style: { position: "absolute", left: left * GANTT_MONTH_WIDTH + 2 + "px",
+                            width: Math.max(26, (end - left + 1) * GANTT_MONTH_WIDTH - 4) + "px",
+                            top: "2px", bottom: "2px", background: info.color || C.study,
+                            borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center",
+                            color: "#FFFFFF", fontSize: "10px", fontWeight: 900 }
+                        }, info.shortLabel || "St")
+                      )
+                    );
+                  }),
+                  examIndex >= 0 && h('div', { "aria-label": "2028年2月 高校受験マイルストーン",
+                    style: { position: "absolute",
+                      left: (GANTT_LABEL_WIDTH + (examIndex + 0.5) * GANTT_MONTH_WIDTH) + "px",
+                      top: "32px", bottom: "0", borderLeft: "2px dashed #B91C1C",
+                      pointerEvents: "none", zIndex: 2 } },
+                    h('span', { style: { position: "absolute", top: "3px", left: "4px",
+                      background: "rgba(255,255,255,0.9)", color: "#991B1B",
+                      writingMode: "vertical-rl", textOrientation: "upright",
+                      fontSize: "12px", fontWeight: 900, padding: "3px 1px", borderRadius: "3px" } }, "高校受験")
+                  )
                 )
-              );
-            })
-          )
+              )
+            );
+          })
         )
       ),
 
