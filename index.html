@@ -1146,7 +1146,7 @@ const monthPlans = [
       "公開版の動作・権利・説明資料を確認"
     ],
     "musSteps": [
-      "mus-11"
+      "mus-9"
     ],
     "pySteps": [
       "py-15"
@@ -1387,8 +1387,8 @@ const monthPlans = [
     "events": [
       "進学先は本人の意思と実際の選抜結果に基づいて設定"
     ],
-    "musSteps": [],
-    "pySteps": []
+    "musSteps": ["mus-13"],
+    "pySteps": ["py-18"]
   }
 ];
 const monthPlanByDate = Object.fromEntries(monthPlans.map(entry => [entry.date, entry]));
@@ -1989,11 +1989,28 @@ function App() {
   const pyPct = totalPySubtasks > 0 ? Math.round((checkedPySubtasks / totalPySubtasks) * 100) : 0;
 
   const todaySched = schedules[schedType] || schedules.club;
-  const completedSchedCount = todaySched.items.filter(it => checkedItems[it.id]).length;
+  const todayDateKey = [currentTime.getFullYear(), String(currentTime.getMonth() + 1).padStart(2, "0"), String(currentTime.getDate()).padStart(2, "0")].join("-");
+  const scheduleCheckKey = (id) => "sched@" + todayDateKey + ":" + schedType + ":" + id;
+  const completedSchedCount = todaySched.items.filter(it => checkedItems[scheduleCheckKey(it.id)]).length;
 
   const currentMonthKey = String(currentTime.getFullYear()) + "-" + String(currentTime.getMonth() + 1).padStart(2, "0");
   const currentStageKey = Object.keys(stageInfo).find(k => checkIsCurrentStage(k, currentTime)) || (currentMonthKey < PLAN_START ? "p1" : "p8");
 
+  // 今月の期限と未完了状態から課題候補を選ぶ。本人が今日の予定を確定するまでは自動決定しない。
+  const todayStudySuggestions = allStudyUnits
+    .filter(unit => unit.targetPeriod <= currentMonthKey && !checkedItems[unit.id])
+    .sort((a, b) => {
+      const aNow = a.targetPeriod === currentMonthKey ? 0 : 1;
+      const bNow = b.targetPeriod === currentMonthKey ? 0 : 1;
+      const ranks = { S: 0, A: 1, B: 2 };
+      return aNow - bNow || (ranks[a.rank] ?? 3) - (ranks[b.rank] ?? 3) || a.targetPeriod.localeCompare(b.targetPeriod);
+    });
+  const todayMusicSuggestions = musicSteps
+    .filter(step => stageDateRanges[step.stage].start <= currentMonthKey && step.subtasks.some(task => !checkedItems[task.id]))
+    .sort((a, b) => Number(b.stage.slice(1)) - Number(a.stage.slice(1)));
+  const todayCodeSuggestions = pythonSteps
+    .filter(step => stageDateRanges[step.stage].start <= currentMonthKey && step.subtasks.some(task => !checkedItems[task.id]))
+    .sort((a, b) => Number(b.stage.slice(1)) - Number(a.stage.slice(1)));
   const daysJa = ["日", "月", "火", "水", "木", "金", "土"];
   const formattedDateStr = `${currentTime.getFullYear()}年${currentTime.getMonth() + 1}月${currentTime.getDate()}日 (${daysJa[currentTime.getDay()]})`;
 
@@ -2551,7 +2568,7 @@ function App() {
           openTodaySched && h('div', { style: { padding: "0 14px 14px" } },
             h('div', { style: { display: "flex", flexDirection: "column", gap: "6px" } },
               todaySched.items.map((item, idx) => {
-                const isChecked = !!checkedItems[item.id];
+                const isChecked = !!checkedItems[scheduleCheckKey(item.id)];
                 const isCurrent = checkIsCurrentTimeSlot(item.t, currentTime);
                 const [startPart, endPart] = item.t.includes("〜") ? item.t.split("〜") : [item.t, ""];
 
@@ -2568,7 +2585,7 @@ function App() {
                     type: "checkbox",
                     className: "custom-checkbox-interactive",
                     checked: isChecked,
-                    onChange: () => toggleCheck(item.id)
+                    onChange: () => toggleCheck(scheduleCheckKey(item.id))
                   }),
                   !isEditingSchedule
                     ? h('div', { style: { fontSize: "12.5px", fontWeight: 800, color: isCurrent ? "#854D0E" : C.muted, minWidth: "90px" } }, item.t)
@@ -2648,7 +2665,7 @@ function App() {
             h('div', { style: { display: "flex", alignItems: "center", gap: "8px" } },
               h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.studyText } }, "📚 今日の学習"),
               h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#DC2626", background: "#FEE2E2", padding: "2px 7px", borderRadius: "4px" } },
-                `Sランク達成 ${checkedSRankUnits}/${totalSRankUnits}`
+                `Sランク確認 ${checkedSRankUnits}/${totalSRankUnits}`
               )
             ),
             h('span', { style: { fontSize: "12px", color: C.muted } }, openTodayStudy ? "▲" : "▼")
@@ -2659,17 +2676,17 @@ function App() {
                 fontSize: "13px", fontWeight: 800, color: "#1D4ED8", background: "#EFF6FF",
                 padding: "8px 12px", borderRadius: "6px", marginBottom: "10px"
               }
-            }, "⏱️ 今日の50分黄金配分: 【Sランク即効枠 25分】+【学校ワーク定着 15分】+【暗記10分】"),
+            }, "⏱️ 今日の学習候補：期限と未完了を基に表示。時間配分は時間割と本人の予定で調整してください。"),
 
-            allStudyUnits.filter(u => u.rank === "S").slice(0, 3).map(u => {
+            todayStudySuggestions.filter(u => u.rank === "S").slice(0, 3).map(u => {
               const subObj = studySubjectsData.find(s => s.units.some(x => x.id === u.id)) || {};
               return renderStudyTaskCard(u, subObj, "study");
             }),
 
             h('div', { style: { fontSize: "13.5px", fontWeight: 900, color: C.sub, margin: "14px 0 8px" } },
-              "その他の本日の推奨学習（A/Bランク・定着確認）"
+              "その他の学習候補（A/Bランク・定着確認）"
             ),
-            allStudyUnits.filter(u => u.rank !== "S").slice(0, 3).map(u => {
+            todayStudySuggestions.filter(u => u.rank !== "S").slice(0, 3).map(u => {
               const subObj = studySubjectsData.find(s => s.units.some(x => x.id === u.id)) || {};
               return renderStudyTaskCard(u, subObj, "study");
             })
@@ -2685,11 +2702,11 @@ function App() {
               justifyContent: "space-between", alignItems: "center", cursor: "pointer"
             }
           },
-            h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.musicText } }, "🎸 今日の音楽"),
+            h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.musicText } }, "🎸 今日の音楽候補"),
             h('span', { style: { fontSize: "12px", color: C.muted } }, openTodayMusic ? "▲" : "▼")
           ),
           openTodayMusic && h('div', { style: { padding: "0 14px 14px" } },
-            musicSteps.slice(0, 2).map(s => h('div', {
+            todayMusicSuggestions.slice(0, 2).map(s => h('div', {
               key: s.id,
               style: {
                 background: C.musicBg, border: `1px solid ${C.musicBorder}`, borderRadius: "8px",
@@ -2718,11 +2735,11 @@ function App() {
               justifyContent: "space-between", alignItems: "center", cursor: "pointer"
             }
           },
-            h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.codeText } }, "💻 今日の開発"),
+            h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.codeText } }, "💻 今日の開発候補"),
             h('span', { style: { fontSize: "12px", color: C.muted } }, openTodayCode ? "▲" : "▼")
           ),
           openTodayCode && h('div', { style: { padding: "0 14px 14px" } },
-            pythonSteps.slice(0, 2).map(s => h('div', {
+            todayCodeSuggestions.slice(0, 2).map(s => h('div', {
               key: s.id,
               style: {
                 background: C.codeBg, border: `1px solid ${C.codeBorder}`, borderRadius: "8px",
@@ -3469,7 +3486,7 @@ function App() {
               },
                 h('input', {
                   type: "checkbox", className: "custom-checkbox-interactive",
-                  checked: !!checkedItems[item.id], onChange: () => toggleCheck(item.id)
+                  checked: !!checkedItems[scheduleCheckKey(item.id)], onChange: () => toggleCheck(scheduleCheckKey(item.id))
                 }),
                 !isEditingSchedule
                   ? h('div', { style: { minWidth: "90px", fontSize: "12.5px", fontWeight: 800, color: C.muted } }, item.t)
