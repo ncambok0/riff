@@ -403,6 +403,29 @@ const musicSteps = [
       { id: "mus-10-1", text: "慶應SFC・洗足音大・明治FMSの出願に向け、これまで制作したオリジナル楽曲からベストテイクを選定" },
       { id: "mus-10-2", text: "Logic Proのプロ用プラグインとHX Stomp XLのプロトーンを用いて商業基準の音圧・音質にマスタリング" }
     ]
+  },
+  {
+    id: "mus-11", stage: "p6", stepNum: 11, rank: "A",
+    title: "高校2年：録音・作曲・演奏の成長を作品別に振り返る",
+    subtasks: [
+      { id: "mus-11-1", text: "過去の録音と新しい演奏を聴き比べ、次の作品で改善したい点を真自身が選ぶ" },
+      { id: "mus-11-2", text: "楽曲の制作意図・使用機材・改善履歴を記録し、公開可能なデモを整理する" }
+    ]
+  },
+  {
+    id: "mus-12", stage: "p7", stepNum: 12, rank: "A",
+    title: "高校3年：志望コースに合わせた作品・演奏・説明資料を準備する",
+    subtasks: [
+      { id: "mus-12-1", text: "国内大学とGoldsmithsそれぞれの該当年度の要項を確認し、提出できる作品形式を整理する" },
+      { id: "mus-12-2", text: "候補作品を選び、音源・演奏動画・制作過程・本人による説明を整える" }
+    ]
+  },
+  {
+    id: "mus-13", stage: "p8", stepNum: 13, rank: "A",
+    title: "2031年4月：新しい環境で続けたい音楽活動を選ぶ",
+    subtasks: [
+      { id: "mus-13-1", text: "実際の進学先・生活時間・使える機材を確認し、続けたい制作と演奏を本人が選ぶ" }
+    ]
   }
 ];
 
@@ -525,6 +548,29 @@ const pythonSteps = [
     subtasks: [
       { id: "py-15-1", text: "Pythonコードのコメント整理・クラス構造のモジュール化・READMEとアーキテクチャ設計図を作成する" },
       { id: "py-15-2", text: "実機デモ動画とGitHubリンクを整備し、大学総合型選抜（慶應SFC・明治FMS等）出願ポートフォリオの主力武器とする" }
+    ]
+  },
+  {
+    id: "py-16", stage: "p6", stepNum: 16, rank: "A",
+    title: "高校2年：作品の技術課題を整理し、音響解析と操作感を改善する",
+    subtasks: [
+      { id: "py-16-1", text: "Mountain of Soundの現行版で再現する不具合を記録し、改善の優先順位を選ぶ" },
+      { id: "py-16-2", text: "必要な数学・理科を学校の進度と別に学び、音とゲームの挙動を実験で確認する" }
+    ]
+  },
+  {
+    id: "py-17", stage: "p7", stepNum: 17, rank: "A",
+    title: "高校3年：公開版・ポートフォリオ用の動作と説明を整える",
+    subtasks: [
+      { id: "py-17-1", text: "README・実機デモ・ソースの公開範囲を確認し、本人が開発判断を説明できるようにする" },
+      { id: "py-17-2", text: "出願先の要項に応じてデモ動画や作品説明を準備し、受験形式と切り分けて管理する" }
+    ]
+  },
+  {
+    id: "py-18", stage: "p8", stepNum: 18, rank: "A",
+    title: "2031年4月：開発環境の移行と次の制作目標を整理する",
+    subtasks: [
+      { id: "py-18-1", text: "進学先の授業・端末環境を踏まえ、コードと制作記録のバックアップを確認する" }
     ]
   }
 ];
@@ -679,6 +725,27 @@ const studySubjectsData = [
     ]
   }
 ];
+
+
+// 高校進学後の学習は志望校・教材未確定のため、本人の評価を付けずに登録する。
+const futureStudyUnits = [
+  { subject:"math", id:"m-28", stage:"p5", stepNum:28, grade:"高1", unit:"高校数学の基礎", item:"進学先の授業進度と理解状況を確認し、制作に必要な関数・数値処理を先取りできるようにする", rank:"A", level:"未評価", targetPeriod:"2028-05", timeAlloc:"要相談", textbookRef:"進学先の学校配布教材（入学後に確定）", memo:"学校の進度と作品開発に必要な先取りを分けて記録する。" },
+  { subject:"eng", id:"e-21", stage:"p5", stepNum:21, grade:"高1", unit:"英語の基礎と実践", item:"学校英語を理解し、自分の音楽と作品を短い英語で説明してみる", rank:"A", level:"未評価", targetPeriod:"2028-06", timeAlloc:"要相談", textbookRef:"学校配布教材・本人が選ぶ英会話教材", memo:"英検は本人の到達度に合わせ、学校英語と共通の基礎を使う。" },
+  { subject:"sci", id:"s-32", stage:"p5", stepNum:32, grade:"高1", unit:"作品のための先取り", item:"音の振動・周波数・波形とプログラムの関係を実験で確かめる", rank:"A", level:"未評価", targetPeriod:"2028-08", timeAlloc:"要相談", textbookRef:"学校の理科教材・自作プログラム", memo:"未履修でも作品に必要な内容は、目的に合わせて先取りする。" },
+  { subject:"math", id:"m-29", stage:"p6", stepNum:29, grade:"高2", unit:"学力と開発の接続", item:"学校の数学と音響・ゲームの座標計算を結び付けて理解を確認する", rank:"A", level:"未評価", targetPeriod:"2029-06", timeAlloc:"要相談", textbookRef:"学校配布教材・Mountain of Soundのソース", memo:"入試で必要な範囲と開発の先取り内容を分けて管理する。" },
+  { subject:"eng", id:"e-22", stage:"p6", stepNum:22, grade:"高2", unit:"進学要件の確認", item:"Goldsmithsなどの最新の出願条件を確認し、英語の現在地と必要な学習を整理する", rank:"A", level:"未評価", targetPeriod:"2029-07", timeAlloc:"要相談", textbookRef:"学校配布教材・志望先の公式要項", memo:"IELTSの受験時期は出願時期と結果利用期間を確認して決める。" },
+  { subject:"jpn", id:"j-15", stage:"p6", stepNum:15, grade:"高2", unit:"文章・作品説明", item:"制作意図と改善した点を、本人の言葉で文章にまとめる", rank:"A", level:"未評価", targetPeriod:"2029-11", timeAlloc:"要相談", textbookRef:"学校配布教材・本人の制作記録", memo:"国内の総合型選抜・海外の作品説明に共通する表現を育てる。" },
+  { subject:"sci", id:"s-33", stage:"p7", stepNum:33, grade:"高3", unit:"作品の技術説明", item:"音響・信号処理の実験結果を再現可能な方法で説明する", rank:"A", level:"未評価", targetPeriod:"2030-06", timeAlloc:"要相談", textbookRef:"学校配布教材・制作記録", memo:"本人の実際の制作経験に基づき説明する。" },
+  { subject:"eng", id:"e-23", stage:"p7", stepNum:23, grade:"高3", unit:"出願に向けた英語", item:"志望先の要件に沿って必要な英語技能と資格試験の準備を確認する", rank:"A", level:"未評価", targetPeriod:"2030-07", timeAlloc:"要相談", textbookRef:"学校配布教材・公式の試験資料", memo:"英検とIELTSの学習を重複させず、形式別対策を追加する。" },
+  { subject:"math", id:"m-30", stage:"p7", stepNum:30, grade:"高3", unit:"選抜方式別の学習", item:"志望先の学科試験要件と現在地から、数学の必要範囲を確認する", rank:"A", level:"未評価", targetPeriod:"2030-08", timeAlloc:"要相談", textbookRef:"学校配布教材・該当年度の公式入試問題", memo:"入試に使わない内容を一律に優先しない。" },
+  { subject:"jpn", id:"j-16", stage:"p7", stepNum:16, grade:"高3", unit:"志望理由と面接", item:"出願先の選抜方式に合わせ、志望理由と制作経験を説明する練習をする", rank:"A", level:"未評価", targetPeriod:"2030-10", timeAlloc:"要相談", textbookRef:"該当年度の公式募集要項・本人の作品履歴", memo:"第三者の評価を得ても、本人の考えと事実を優先する。" },
+  { subject:"eng", id:"e-24", stage:"p8", stepNum:24, grade:"進学後", unit:"新しい環境の英語", item:"進学先の授業や制作に必要な英語の学び方を確認する", rank:"A", level:"未評価", targetPeriod:"2031-04", timeAlloc:"要相談", textbookRef:"進学先の教材（確定後）", memo:"進学先や必要な英語水準は事前に決めつけない。" }
+];
+futureStudyUnits.forEach(unit => {
+  const { subject, ...task } = unit;
+  const subjectData = studySubjectsData.find(item => item.id === subject);
+  if (subjectData) subjectData.units.push(task);
+});
 
 const defaultSchedulesData = {
   club: {
