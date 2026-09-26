@@ -1630,7 +1630,7 @@ const schoolCardsData = [
         learn: [
           "Creative Computing / Music Computing（Python/C++による音響システム開発、ライブコーディング、インタラクティブアート）"
         ],
-        advantages: "国内大学の4年間で専門実績と英語（IELTS 6.5）を蓄え、22歳から大学院生（Master's）として進学する世界的拠点！",
+        advantages: "武蔵丘高校卒業後の学士課程への進学を希望。国内大学を経た大学院進学も別経路として残し、必要な入学資格・英語・費用を公式に確認する。",
         teachers: ["Prof. Mick Grierson（Creative Computing学科長）", "Dr. Rebecca Fiebrink（『Wekinator』開発者）"],
         alumni: "Damon Albarn 氏（Gorillaz / Blur 創始者）、James Blake 氏（グラミー賞音楽家）",
         otherPoints: "英国政府Chevening奨学金等の対象校。音楽×ITの領域で世界最高のブランド力。"
@@ -1661,7 +1661,7 @@ const recommendationRankingData = {
   higher: [
     { rank: "第1位", name: "慶應義塾大学 SFC / 明治大学 FMS", merit: "IT×音楽表現の最高峰、AO入試で自作アプリ完全評価。" },
     { rank: "第2位", name: "洗足学園音楽大学", merit: "E.ギター実技＋演出テクノロジーが両立。" },
-    { rank: "第3位", name: "Goldsmiths（大学院進学）", merit: "音楽×プログラミングで世界最強のブランド力。" },
+    { rank: "第3位", name: "Goldsmiths（学士課程・将来の大学院も検討）", merit: "音楽×プログラミングで世界最強のブランド力。" },
     { rank: "4位", name: "国立音楽大学（音楽デザイン専修）", merit: "通学ストレスゼロ、アカデミックな音響デザイン。" },
     { rank: "5位", name: "東京工科大学 メディア学部", merit: "プロ仕様のサウンドスタジオ・ゲーム開発環境。" }
   ]
@@ -1924,7 +1924,8 @@ function App() {
   const todaySched = schedules[schedType] || schedules.club;
   const completedSchedCount = todaySched.items.filter(it => checkedItems[it.id]).length;
 
-  const currentStageKey = Object.keys(stageInfo).find(k => checkIsCurrentStage(k, currentTime)) || "p1";
+  const currentMonthKey = String(currentTime.getFullYear()) + "-" + String(currentTime.getMonth() + 1).padStart(2, "0");
+  const currentStageKey = Object.keys(stageInfo).find(k => checkIsCurrentStage(k, currentTime)) || (currentMonthKey < PLAN_START ? "p1" : "p8");
 
   const daysJa = ["日", "月", "火", "水", "木", "金", "土"];
   const formattedDateStr = `${currentTime.getFullYear()}年${currentTime.getMonth() + 1}月${currentTime.getDate()}日 (${daysJa[currentTime.getDay()]})`;
@@ -2386,7 +2387,7 @@ function App() {
                 color: "#E5E5EA",
                 letterSpacing: "0.02em"
               }
-            }, "真のクリエイターロードマップ 2026～2030")
+            }, "真のクリエイターロードマップ 2026～2031")
           ),
           h('div', {
             style: {
@@ -2425,10 +2426,10 @@ function App() {
           h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } },
             h('div', null,
               h('div', { style: { fontSize: "16px", fontWeight: 900, color: "#FFFFFF", marginBottom: "2px" } },
-                "🎯 都立武蔵丘高 合格戦略: 大問1満点化 ＋ 内申44獲得"
+                "🎯 都立武蔵丘高校を目標に、学習・音楽・開発を続ける"
               ),
               h('div', { style: { fontSize: "12px", color: "#D1D1D6" } },
-                "🛸 毎日の種火ライン：ギター10分 ＋ コード1行 ＋ 大問1問"
+                "🛸 学習・音楽・開発の一歩を、今日の予定に合わせて選ぶ"
               )
             ),
             h('span', {
@@ -2437,7 +2438,7 @@ function App() {
                 background: "rgba(254, 240, 138, 0.15)", padding: "4px 9px", borderRadius: "6px",
                 border: "1px solid rgba(254, 240, 138, 0.3)"
               }
-            }, "現在地: ステージ1（中2秋・基礎固め期）")
+            }, "現在地: " + stageInfo[currentStageKey].label + "（" + stageInfo[currentStageKey].period + "）")
           )
         ),
 
@@ -3201,7 +3202,7 @@ function App() {
           openStudyVisionCard && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.15)" } },
             h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" } },
               h('div', { style: { fontSize: "14px", fontWeight: 900, color: "#FEF08A" } }, "🎯 都立武蔵丘高校 合格目標・マイルストーン計画"),
-              h('span', { style: { fontSize: "11px", fontWeight: 900, background: "#EF4444", color: "#FFF", padding: "2px 8px", borderRadius: "10px" } }, "🔥 連続学習: 12日達成中！")
+              h('span', { style: { fontSize: "11px", fontWeight: 900, background: "#475569", color: "#FFF", padding: "2px 8px", borderRadius: "10px" } }, "連続学習: 実績記録の導入後に集計")
             ),
             h('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "8px" } },
               h('div', { style: { background: "rgba(255,255,255,0.08)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
@@ -3210,14 +3211,14 @@ function App() {
                 h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } }, "換算内申44 (5科オール3+実技4) + 当日360点 (72%)")
               ),
               h('div', { style: { background: "rgba(255,255,255,0.08)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
-                h('div', { style: { fontSize: "11px", color: "#FDE047", fontWeight: 800, marginBottom: "2px" } }, "📅 今月の重点テーマ (9月)"),
-                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } }, "Sランク絶対死守 ＆ 学校ワーク3周"),
+                h('div', { style: { fontSize: "11px", color: "#FDE047", fontWeight: 800, marginBottom: "2px" } }, "📅 今月の重点テーマ (" + (currentTime.getMonth() + 1) + "月)"),
+                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } }, "学校の予定と苦手項目を確認して今週の学習を選ぶ"),
                 h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } }, "数英の基本計算・文法を毎日ルーティン化して内申点UP")
               ),
               h('div', { style: { background: "rgba(255,255,255,0.08)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
                 h('div', { style: { fontSize: "11px", color: "#86EFAC", fontWeight: 800, marginBottom: "2px" } }, "⚡ 今週のスプリント (週間目標 300分)"),
-                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } }, "今週の実績: 210 / 300分 (70%)"),
-                h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } }, "1日50分×6日。Sランク未完了から最優先で消化！")
+                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } }, "今週の学習時間: 実績記録の導入後に集計"),
+                h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } }, "学習時間の実績は現在未計測です。予定と実績は分けて管理します。")
               )
             )
           )
@@ -3469,7 +3470,7 @@ function App() {
             "🎯【進路のビジョン】中学〜大学院まで一貫した「音楽×プログラミング」のクリエイター進路ロードマップ"
           ),
           h('div', { style: { fontSize: "12px", color: "#D1D1D6" } },
-            "都立武蔵丘高（軽音）➔ 慶應SFC/明治FMS（総合型選抜）➔ 将来ロンドン大学Goldsmithsへ"
+            "武蔵丘高校を目標に、洗足学園音楽大学とGoldsmiths学士課程への進学可能性を並行して検討。ほかの候補も比較する。"
           )
         ),
         schoolCardsData.map(sec => {
