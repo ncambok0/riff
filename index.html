@@ -1,0 +1,3341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>真くんのクリエイターロードマップ 2026～2030</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: #F2F2F7;
+    color: #1C1C1E;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #E5E5EA; }
+  ::-webkit-scrollbar-thumb { background: #AEAEB2; border-radius: 3px; }
+
+  button, textarea, input, select {
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .fixed-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  }
+
+  .custom-checkbox-interactive {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #007AFF;
+    flex-shrink: 0;
+    border-radius: 5px;
+    border: 2px solid #007AFF;
+    background-color: #FFFFFF;
+    transition: all 0.15s ease-in-out;
+  }
+  .custom-checkbox-interactive:checked {
+    background-color: #007AFF;
+    border-color: #007AFF;
+    transform: scale(1.05);
+  }
+
+  .badge-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    line-height: 1.3;
+    padding: 2.5px 7px;
+    border-radius: 4px;
+    cursor: default;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .chip-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 11px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.16s ease;
+    user-select: none;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  .chip-switch:hover { transform: translateY(-1px); }
+
+  .btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 3.5px 9px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    line-height: 1.3;
+    cursor: pointer;
+    transition: all 0.16s ease;
+    border: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    text-decoration: none;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .btn-action:hover { transform: translateY(-1px); }
+
+  .accordion-trigger {
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease;
+    user-select: none;
+  }
+  .accordion-trigger:hover { background: rgba(0, 0, 0, 0.02); }
+
+  .nav-tabs-container {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding-bottom: 6px;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .nav-tab-btn {
+    flex: 1 1 10%;
+    min-width: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #636366;
+    padding: 6px 1px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    border-radius: 6px;
+    transition: all 0.14s ease;
+  }
+  .nav-tab-btn.is-active {
+    background: #FFFFFF;
+    border-color: rgba(0, 0, 0, 0.08);
+    color: #007AFF;
+    font-weight: 900;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .dark-card-banner {
+    background: linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%);
+    color: #FFFFFF;
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+  }
+
+  .time-input-inline {
+    padding: 3px 6px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid #C7C7CC;
+    border-radius: 6px;
+    background: #FFFFFF;
+    color: #1C1C1E;
+  }
+
+  .star-rating-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 2px 4px;
+    transition: transform 0.1s ease;
+  }
+  .star-rating-btn:hover {
+    transform: scale(1.15);
+  }
+
+  .respondent-pill {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1.5px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const { useState, useEffect, createElement: h } = React;
+
+const APP_VERSION = "v2.1.0";
+
+const C = {
+  music: "#7C3AED", musicBg: "#FAF5FF", musicBorder: "#C4B5FD", musicText: "#5B21B6",
+  code: "#059669", codeBg: "#ECFDF5", codeBorder: "#6EE7B7", codeText: "#065F46",
+  study: "#007AFF", studyBg: "#EFF6FF", studyBorder: "#BFDBFE", studyText: "#1D4ED8",
+  dark: {
+    bg: "#1C1C1E", card: "#2C2C2E", border: "rgba(255, 255, 255, 0.14)", text: "#FFFFFF", sub: "#E5E5EA", muted: "#98989D",
+    musicText: "#C4B5FD", musicBg: "rgba(124, 58, 237, 0.22)", musicBorder: "rgba(196, 181, 253, 0.35)",
+    codeText: "#6EE7B7", codeBg: "rgba(5, 150, 105, 0.22)", codeBorder: "rgba(110, 231, 183, 0.35)",
+    studyText: "#93C5FD", studyBg: "rgba(0, 122, 255, 0.22)", studyBorder: "rgba(147, 197, 253, 0.35)"
+  },
+  bg: "#F2F2F7", card: "#FFFFFF", cardAlt: "#F8FAFC",
+  border: "rgba(0, 0, 0, 0.08)", text: "#1C1C1E", muted: "#8E8E93", sub: "#48484A"
+};
+
+const TIME_OPTIONS = [];
+for (let h_idx = 6; h_idx <= 24; h_idx++) {
+  for (let m_idx = 0; m_idx < 60; m_idx += 10) {
+    const hh = String(h_idx % 24).padStart(2, '0');
+    const mm = String(m_idx).padStart(2, '0');
+    TIME_OPTIONS.push(`${hh}:${mm}`);
+  }
+}
+TIME_OPTIONS.push("24:00");
+
+const stageInfo = {
+  p0: { label: "ステージ 0", shortLabel: "St0", title: "ライブ決戦 & 基地調整", period: "2026年6〜7月", color: "#E02424", bg: "#FEF2F2", border: "#FCA5A5", text: "#991B1B" },
+  p1: { label: "ステージ 1", shortLabel: "St1", title: "ワンフェス開発 & 本格スタート", period: "2026年8〜10月", color: C.code, bg: C.codeBg, border: C.codeBorder, text: C.codeText },
+  p2: { label: "ステージ 2", shortLabel: "St2", title: "Chocolate Plus ＆ Moog EP-3連動プロトタイプ", period: "2026年11月〜2027年3月", color: "#D97706", bg: "#FFFBEB", border: "#FCD34D", text: "#92400E" },
+  p3: { label: "ステージ 3", shortLabel: "St3", title: "足型キック演出 & 中3前半・英検", period: "2027年4〜7月", color: C.study, bg: C.studyBg, border: C.studyBorder, text: C.studyText },
+  p4: { label: "ステージ 4", shortLabel: "St4", title: "完全受験モード（都立武蔵丘高合格へ）", period: "2027年8月〜2028年2月", color: "#B91C1C", bg: "#FEF2F2", border: "#FCA5A5", text: "#7F1D1D" },
+  p5: { label: "ステージ 5", shortLabel: "St5", title: "高校1年本格始動（Logic Pro導入・HX Stomp XL・JBG入学）", period: "2028年3月〜2029年3月", color: C.music, bg: C.musicBg, border: C.musicBorder, text: C.musicText },
+  p6: { label: "ステージ 6", shortLabel: "St6", title: "ポートフォリオ完成 & 国内大学総合型選抜", period: "2029年4月〜2030年3月", color: "#047857", bg: "#ECFDF5", border: "#6EE7B7", text: "#064E3B" },
+  p7: { label: "ステージ 7", shortLabel: "St7", title: "国内大学進学 ➔ 将来Goldsmiths大学院へ", period: "2030年4月〜", color: "#6D28D9", bg: "#F5F3FF", border: "#C4B5FD", text: "#4C1D95" },
+};
+
+const stageDateRanges = {
+  p0: { start: "2026-06", end: "2026-07" },
+  p1: { start: "2026-08", end: "2026-10" },
+  p2: { start: "2026-11", end: "2027-03" },
+  p3: { start: "2027-04", end: "2027-07" },
+  p4: { start: "2027-08", end: "2028-02" },
+  p5: { start: "2028-03", end: "2029-03" },
+  p6: { start: "2029-04", end: "2030-03" },
+  p7: { start: "2030-04", end: "2099-12" },
+};
+
+const getMonthOffset = (dateStr) => {
+  if (!dateStr) return 0;
+  const [y, m] = dateStr.split("-").map(Number);
+  return (y - 2026) * 12 + (m - 6);
+};
+
+const TOTAL_GANTT_MONTHS = (2030 - 2026) * 12 + (4 - 6) + 1;
+
+const checkIsCurrentStage = (sKey, targetDate = new Date()) => {
+  const range = stageDateRanges[sKey];
+  if (!range) return false;
+  const targetOffset = getMonthOffset(`${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`);
+  const startOff = getMonthOffset(range.start);
+  const endOff = getMonthOffset(range.end);
+  return targetOffset >= startOff && targetOffset <= endOff;
+};
+
+const checkIsCurrentTimeSlot = (timeRangeStr, targetDate = new Date()) => {
+  if (!timeRangeStr || !timeRangeStr.includes("〜")) return false;
+  const parts = timeRangeStr.split("〜");
+  const parseMin = (s) => {
+    const p = s.trim().split(":");
+    if (p.length < 2) return null;
+    return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+  };
+  const startMin = parseMin(parts[0]);
+  let endMin = parseMin(parts[1]);
+  if (startMin === null) return false;
+  const curMin = targetDate.getHours() * 60 + targetDate.getMinutes();
+  if (endMin === null) return Math.abs(curMin - startMin) < 15;
+  return curMin >= startMin && curMin < endMin;
+};
+
+const isCurrentMonth = (yrStr, mStr, targetDate = new Date()) => {
+  if (!yrStr || !mStr) return false;
+  const curY = `${targetDate.getFullYear()}年`;
+  const curM = `${targetDate.getMonth() + 1}月`;
+  return yrStr.includes(curY) && (mStr === curM || mStr.startsWith(curM));
+};
+
+const musicSteps = [
+  {
+    id: "mus-1", stage: "p0", stepNum: 1, rank: "S",
+    title: "ギター音出し・Amber i2 Hi-Z設定・RAT2ゲイン調整の確立",
+    subtasks: [
+      { id: "mus-1-1", text: "Amber i2前面のINPUT選択ボタンを順次押し、LCD画面でHI-Zモード表示を確認する（MIC→MIC+48V→LINE→HI-Z）" },
+      { id: "mus-1-2", text: "RAT2背面・側面の刻印を見て、ギター（IN）とAmber i2（OUT）のシールド接続位置を実機確認する" },
+      { id: "mus-1-3", text: "Amber i2のGAINノブを回しながら強くギターを弾き、LCDメーターが緑〜オレンジに収まる適正ゲインを記録（赤クリップ厳禁）" },
+      { id: "mus-1-4", text: "Mac本体スピーカーの遅延を避けるため、必ずAmber i2前面のヘッドホン端子へ直接ヘッドホンを接続してモニタリングする" },
+      { id: "mus-1-5", text: "GarageBandで新規トラック作成時、「I want to hear my instrument as I play and record（入力モニタリング）」をONにして音が出ることを確認" }
+    ]
+  },
+  {
+    id: "mus-2", stage: "p0", stepNum: 2, rank: "S",
+    title: "RAT2実機＋GarageBandアンプシミュレーターの二重歪み防止セッティング",
+    subtasks: [
+      { id: "mus-2-1", text: "GarageBandのAmp Designerでクリーン系モデル（Tweed CombosやBritish Stacksの低歪みモデル）を選択する" },
+      { id: "mus-2-2", text: "歪みは実機のRAT2で作り、GarageBand側アンプをクリーンに保つことで音痩せ・濁り（二重歪み）を徹底防止する" },
+      { id: "mus-2-3", text: "RAT2のFilterノブを時計回りに回すと高域がカットされ暗い音になる（一般的なトーンと逆特性）動作を耳で体感する" },
+      { id: "mus-2-4", text: "Pocket Ampを使ってリビングや部屋で毎日サッとギターを弾く10分基礎練習ルーティンを開始する" }
+    ]
+  },
+  {
+    id: "mus-3", stage: "p1", stepNum: 3, rank: "S",
+    title: "「音の道（Audio）」と「操作の道（MIDI）」の理解とMIDI信号の可視化",
+    subtasks: [
+      { id: "mus-3-1", text: "ノートに「音の道（Les Paul→RAT2→Amber i2→GarageBand）」と「操作の道（MiniLab 3/Chocolate→Mac）」の分離図を描く" },
+      { id: "mus-3-2", text: "「MIDIの中にギターの音は一切入っておらず、0〜127の操作数字に過ぎない」ことを理解する" },
+      { id: "mus-3-3", text: "Snoize MIDI Monitorを起動し、MiniLab 3の鍵盤（Note On/Off）とノブ/フェーダー（CC）の数字変化を確認する" },
+      { id: "mus-3-4", text: "GarageBandでギターオーディオを1トラック録音し、別トラックでMiniLab 3からピアノ音源を鳴らして両者の違いを体感する" }
+    ]
+  },
+  {
+    id: "mus-4", stage: "p1", stepNum: 4, rank: "A",
+    title: "Mountain of Soundゲーム用ギターパートの録音・ミックス（GarageBand）",
+    subtasks: [
+      { id: "mus-4-1", text: "ゲームの波形生成元となるギターリフ・バッキングパートをGarageBandで正確なテンポで録音する" },
+      { id: "mus-4-2", text: "MDR-CD900STヘッドホンで音量バランス・EQを整え、Python読み込み用の高音質WAV/AIFFファイルとして書き出す" },
+      { id: "mus-4-3", text: "GarageBandで思考負担を抑えたシンプルな第1号オリジナル曲のコード進行（3〜4コード）を構築する" }
+    ]
+  },
+  {
+    id: "mus-5", stage: "p2", stepNum: 5, rank: "S",
+    title: "MainStageの導入とM-VAVE Chocolate Plus足元コントロールサーフェス構築",
+    subtasks: [
+      { id: "mus-5-1", text: "GarageBandには外部MIDIでプラグインをON/OFFするMIDI Learn機能がないことを確認し、MainStage（約29.99ドル）をセットアップ" },
+      { id: "mus-5-2", text: "M-VAVE Chocolate PlusをUSB有線接続し、MIDI Monitorで4つのスイッチ（A/B/C/D）が送信するCC/PCメッセージを確認" },
+      { id: "mus-5-3", text: "MainStageのLayout/Edit画面にて、スイッチA/Bをディストーションやディレイのバイパス（ON/OFF）にアサイン（Assign & Map）する" },
+      { id: "mus-5-4", text: "Moog EP-3エクスプレッションペダル（1.18kg安定操作）を接続し、MainStageのワウまたはボリュームに連動させる" }
+    ]
+  },
+  {
+    id: "mus-6", stage: "p2", stepNum: 6, rank: "A",
+    title: "なみぴーさんとのコード進行理論分析 ＆ アコギ×エレキマルチトラック録音",
+    subtasks: [
+      { id: "mus-6-1", text: "LITALICO立川にて、なみぴーさんとダイアトニックコードと代理コードの響きの違いをGarageBand上で実験" },
+      { id: "mus-6-2", text: "Recording KingアコースティックギターとEpiphoneレスポールの音色を重ねたマルチトラックアンサンブルを制作" },
+      { id: "mus-6-3", text: "ライブ＆長時間セッション前の「11項目点検チェックリスト（電源・ゲイン・MIDI・レイテンシー）」を実機で実施" }
+    ]
+  },
+  {
+    id: "mus-7", stage: "p3", stepNum: 7, rank: "A",
+    title: "ゲーム用BGM・効果音制作 ＆ 自宅スタジオ音響最適化（BX5）",
+    subtasks: [
+      { id: "mus-7-1", text: "Mountain of Soundのゲームオーバー音・クリアファンファーレ・環境SEをシンセ音源で自作" },
+      { id: "mus-7-2", text: "M-AUDIO Studiophile BX5モニタースピーカーの設置角度と高さを調整し、正確な定位でミックスを確認" },
+      { id: "mus-7-3", text: "制作した楽曲をSoundCloudの非公開/限定公開プレイリストにアーカイブし進捗を可視化" }
+    ]
+  },
+  {
+    id: "mus-8", stage: "p4", stepNum: 8, rank: "S",
+    title: "高校受験期の種火維持：1日10分Pocket Ampギター演奏 ＆ 息抜き作曲",
+    subtasks: [
+      { id: "mus-8-1", text: "受験勉強の合間にPocket AmpでPCを起動せずサッとギターを持ち、指の運動能力（クロマチック・スケール）を維持" },
+      { id: "mus-8-2", text: "頭に浮かんだメロディやリフをGarageBandに10分以内でスケッチ録音し、創作意欲をキープ" }
+    ]
+  },
+  {
+    id: "mus-9", stage: "p5", stepNum: 9, rank: "S",
+    title: "高校合格祝い！Logic Pro導入・Line 6 HX Stomp XLプロ機材統合・JBG音楽院入学",
+    subtasks: [
+      { id: "mus-9-1", text: "高校合格と同時にLogic Proを導入し、中学生時代にGarageBandで作った全プロジェクトデータを100%完全引き継ぎ" },
+      { id: "mus-9-2", text: "Line 6 HX Stomp XLを導入し、中学生時代に買ったMoog EP-3をEXP端子に直挿し（オートエンゲージワウとして追加0円で100%流用）" },
+      { id: "mus-9-3", text: "Chocolate Plusを売却（約3,000円回収）またはLogic Pro専用フットスイッチとして再配置" },
+      { id: "mus-9-4", text: "JBG音楽院スタンダードコース（1年制）に入学し、バークリーメソッドによる本格的な作編曲理論を修得" }
+    ]
+  },
+  {
+    id: "mus-10", stage: "p6", stepNum: 10, rank: "S",
+    title: "総合型選抜出願ポートフォリオ用 代表曲ミックス・マスタリング完成",
+    subtasks: [
+      { id: "mus-10-1", text: "慶應SFC・洗足音大・明治FMSの出願に向け、これまで制作したオリジナル楽曲からベストテイクを選定" },
+      { id: "mus-10-2", text: "Logic Proのプロ用プラグインとHX Stomp XLのプロトーンを用いて商業基準の音圧・音質にマスタリング" }
+    ]
+  }
+];
+
+const pythonSteps = [
+  {
+    id: "py-1", stage: "p1", stepNum: 1, rank: "S",
+    title: "sounddevice ＆ NumPyによるギター音声波形のリアルタイム取得",
+    subtasks: [
+      { id: "py-1-1", text: "Amber i2からのギター入力Audio信号をsounddeviceコールバックでバッファリングする" },
+      { id: "py-1-2", text: "NumPy配列を用いて振幅の二乗平均平方根（RMS）と基本周波数をリアルタイム計算する" }
+    ]
+  },
+  {
+    id: "py-2", stage: "p1", stepNum: 2, rank: "S",
+    title: "dequeリングバッファを用いた動的オーディオ波形のPygame描画",
+    subtasks: [
+      { id: "py-2-1", text: "仮のcos波形描画処理を削除し、最新2048サンプルの波形データを取り出すdequeキューを構築する" },
+      { id: "py-2-2", text: "波形振幅をPygameウィンドウのY座標へマッピングし、滑らかな連続折れ線を描画する" }
+    ]
+  },
+  {
+    id: "py-3", stage: "p1", stepNum: 3, rank: "S",
+    title: "音声再生スレッドと画面スクロール物理演算の非同期同期化",
+    subtasks: [
+      { id: "py-3-1", text: "threading.Lockを導入し、音声入力スレッドと描画メインループのデータ競合クラッシュを防止する" },
+      { id: "py-3-2", text: "フレームレート（60FPS）と波形スクロール速度（SCROLL_SPEED）の連動タイミングを固定する" }
+    ]
+  },
+  {
+    id: "py-4", stage: "p1", stepNum: 4, rank: "S",
+    title: "波の上を滑走するキャラクター(Man)の接地物理演算と当たり判定",
+    subtasks: [
+      { id: "py-4-1", text: "波形ポリライン上のX座標に対応するY座標を線形補間し、キャラクターの足元接地点を算出する" },
+      { id: "py-4-2", text: "重力加速度とジャンプ時の放物線物理ベクトル演算をPygameループへ組み込む" }
+    ]
+  },
+  {
+    id: "py-5", stage: "p1", stepNum: 5, rank: "S",
+    title: "周波数帯域に応じた障害物の動的生成とステージクリア・ゲームオーバー判定",
+    subtasks: [
+      { id: "py-5-1", text: "ギター演奏の音抜け（無音判定）または障害物接触時の即ゲームオーバーシーケンスを実装する" },
+      { id: "py-5-2", text: "楽曲終了までキャラクターが生存した際のリザルト画面とクリアファンファーレ演出を構築する" }
+    ]
+  },
+  {
+    id: "py-6", stage: "p1", stepNum: 6, rank: "S",
+    title: "ワンダーメイクフェス作品提出用パッケージング（8月末完走）",
+    subtasks: [
+      { id: "py-6-1", text: "きゃぷてんさんと最終デバッグを行い、展示PC上でクラッシュしないスタンドアロン版をビルドする" },
+      { id: "py-6-2", text: "ワンダーメイクフェス出展用の操作マニュアルとプレゼンテーションスライドを準備・提出する" }
+    ]
+  },
+  {
+    id: "py-7", stage: "p2", stepNum: 7, rank: "S",
+    title: "Midoライブラリ導入とMIDI機器ポート自動認識スクリプトの作成",
+    subtasks: [
+      { id: "py-7-1", text: "python3 -m pip install 'mido[ports-rtmidi]' を実行し正常にインポートできることを確認する" },
+      { id: "py-7-2", text: "mido.get_input_names() でMacに接続されたMiniLab 3やChocolate Plusの正確なポート名を出力・取得する" }
+    ]
+  },
+  {
+    id: "py-8", stage: "p2", stepNum: 8, rank: "S",
+    title: "値変換関数 map_midi(val, min, max) によるゲーム変数スケール変換",
+    subtasks: [
+      { id: "py-8-1", text: "def map_midi(value, out_min, out_max) 関数を定義し、MIDIの0〜127を浮動小数点比率で安全変換する" },
+      { id: "py-8-2", text: "MiniLab 3のノブを回して、SCROLL_SPEED（5〜40）や振幅倍率（100〜600）がリアルタイムに滑らかに変動することをテストする" }
+    ]
+  },
+  {
+    id: "py-9", stage: "p2", stepNum: 9, rank: "S",
+    title: "SimpleQueue ＆ callback によるPygame画面フリーズ防止非同期受信",
+    subtasks: [
+      { id: "py-9-1", text: "ブロッキング受信（for msg in port:）を禁止し、midi_callback内でSimpleQueue.put(msg)する非同期受信用スレッドを起動する" },
+      { id: "py-9-2", text: "Pygameのメインループ内で毎フレーム update_midi() を呼び出し、get_nowait()で画面停止なくMIDIを取り出す" }
+    ]
+  },
+  {
+    id: "py-10", stage: "p2", stepNum: 10, rank: "S",
+    title: "1画面から4画面（4分割Pygame Surface）への動的レンダリング切替",
+    subtasks: [
+      { id: "py-10-1", text: "メインウィンドウを4分割（左上・右上・左下・右下）のサブサーフェスとして定義する" },
+      { id: "py-10-2", text: "各サブサーフェスへ同一の音声波形アニメーションを並列レンダリングするマルチビューモードを実装する" }
+    ]
+  },
+  {
+    id: "py-11", stage: "p3", stepNum: 11, rank: "S",
+    title: "Chocolate Plus 4スイッチ連動 4方向キャラ移動 ＆ 巨大足型キック演出",
+    subtasks: [
+      { id: "py-11-1", text: "Chocolate PlusのスイッチA/B/C/Dが押下された瞬間、画面外から巨大な足型スプライトが勢いよくフレームインする" },
+      { id: "py-11-2", text: "足型がキャラクターをインパクトした瞬間に衝突ベクトルを与え、指定した隣の画面へ蹴り飛ばして着地させる" }
+    ]
+  },
+  {
+    id: "py-12", stage: "p3", stepNum: 12, rank: "S",
+    title: "キャラ移動先画面のフルスクリーン自動拡大レンダリングとトグル復帰",
+    subtasks: [
+      { id: "py-12-1", text: "キャラクターが蹴り飛ばされた移動先の画面を瞬時に全画面（フルウィンドウ）へとズームイン拡大描画する" },
+      { id: "py-12-2", text: "スイッチの再押下により再び4分割画面へシームレスに戻るUIステートマシンロジックを完成させる" }
+    ]
+  },
+  {
+    id: "py-13", stage: "p5", stepNum: 13, rank: "A",
+    title: "Mac内蔵 IAC Driver を用いた Python ➔ MainStage/Logic へのMIDI送信検証",
+    subtasks: [
+      { id: "py-13-1", text: "MacのAudio MIDI設定でIAC Driverバスを有効化し、Pythonからmido.open_output()で仮想MIDIポートを開く" },
+      { id: "py-13-2", text: "ゲーム内でキャラクターがピンチになると、IAC Driver経由でMainStageへCCを送信しギターエフェクトを自動ファズ化する" }
+    ]
+  },
+  {
+    id: "py-14", stage: "p5", stepNum: 14, rank: "S",
+    title: "Line 6 HX Stomp XL Command Center による統合MIDI制御プロトコル対応",
+    subtasks: [
+      { id: "py-14-1", text: "HX Stomp XLの8つの高精度フットスイッチからのCommand Center送信MIDIコマンドをPythonで直接受信する" },
+      { id: "py-14-2", text: "ギターのプロ音色切り替えとゲームのシーン遷移・視点切り替えを1台のフットコントローラーで完全統合する" }
+    ]
+  },
+  {
+    id: "py-15", stage: "p5", stepNum: 15, rank: "S",
+    title: "Mountain of Sound 完全版のGitHubリポジトリ完全公開",
+    subtasks: [
+      { id: "py-15-1", text: "Pythonコードのコメント整理・クラス構造のモジュール化・READMEとアーキテクチャ設計図を作成する" },
+      { id: "py-15-2", text: "実機デモ動画とGitHubリンクを整備し、大学総合型選抜（慶應SFC・明治FMS等）出願ポートフォリオの主力武器とする" }
+    ]
+  }
+];
+
+const studySubjectsData = [
+  {
+    id: "math", name: "数学", icon: "📐", publisher: "東京書籍『新しい数学 1〜3』",
+    color: "#0284C7", bg: "#F0F9FF", border: "#7DD3FC", text: "#0369A1",
+    units: [
+      { id: "m-1", stage: "p1", stepNum: 1, grade: "中1", unit: "数と計算", item: "正負の数（四則計算・累乗・かっこの処理）", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "東書『新しい数学1』第1章 p.14〜48", memo: "都立大問1[問1]。途中式を書き符号ミスをゼロに！毎日1問解いて満点を自動化。" },
+      { id: "m-2", stage: "p1", stepNum: 2, grade: "中1", unit: "数と計算", item: "文字と式（代入・式の計算・関係を表す式）", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "東書『新しい数学1』第2章 p.56〜88", memo: "都立大問1[問2]。分数を含む文字式の通分ミスを完全に防止。" },
+      { id: "m-3", stage: "p2", stepNum: 3, grade: "中1", unit: "方程式", item: "1次方程式の計算（小数・分数を含む方程式）", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『新しい数学1』第3章 p.94〜112", memo: "都立大問1[問3]。両辺を10倍・最小公倍数倍して整数にする移項の型を反復。" },
+      { id: "m-4", stage: "p2", stepNum: 4, grade: "中1", unit: "方程式の利用", item: "1次方程式の文章題（代金・過不足・速さ）", rank: "A", level: "少し苦手", targetPeriod: "2026-12", timeAlloc: "15分", textbookRef: "東書『新しい数学1』第3章 p.113〜126", memo: "何をxとおくかを1行目に明記。「左辺＝右辺」の等量関係を表で整理。" },
+      { id: "m-5", stage: "p2", stepNum: 5, grade: "中1", unit: "関数", item: "比例・反比例（式の決定・変域・グラフの読解）", rank: "A", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『新しい数学1』第4章 p.130〜164", memo: "y=ax, y=a/x(xy=a一定)の基本特性。座標を代入してaを即求める。" },
+      { id: "m-6", stage: "p2", stepNum: 6, grade: "中1", unit: "平面図形", item: "基本作図（垂直二等分線・角の二等分線・垂線）", rank: "S", level: "普通", targetPeriod: "2026-12", timeAlloc: "10分", textbookRef: "東書『新しい数学1』第5章 p.170〜192", memo: "都立大問1[問9]で毎年5点必出！3大作図のコンパス使いを身体で覚える。" },
+      { id: "m-7", stage: "p2", stepNum: 7, grade: "中1", unit: "図形の計量", item: "おうぎ形の弧の長さと面積・中心角の計算", rank: "A", level: "少し苦手", targetPeriod: "2026-12", timeAlloc: "15分", textbookRef: "東書『新しい数学1』第5章 p.193〜204", memo: "中心角/360の比率処理。公式を呪文のように暗記し、πのつけ忘れ防止。" },
+      { id: "m-8", stage: "p2", stepNum: 8, grade: "中1", unit: "空間図形", item: "立体の見方・表面積と体積・展開図", rank: "A", level: "少し苦手", targetPeriod: "2027-01", timeAlloc: "15分", textbookRef: "東書『新しい数学1』第6章 p.208〜236", memo: "角錐・円錐の体積(×1/3)と円錐側面積公式(母線×半径×π)を武器化。" },
+      { id: "m-9", stage: "p2", stepNum: 9, grade: "中1", unit: "データの活用", item: "度数分布表・ヒストグラム・代表値・相対度数", rank: "S", level: "得意", targetPeriod: "2026-11", timeAlloc: "5分", textbookRef: "東書『新しい数学1』第7章 p.240〜262", memo: "都立大問1[問8]候補。平均値・中央値(メジアン)・最頻値(モード)の定義整理。" },
+      { id: "m-10", stage: "p2", stepNum: 10, grade: "中2", unit: "数と計算", item: "連立方程式の計算（加減法・代入法）", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『新しい数学2』第2章 p.34〜48", memo: "都立大問1[問4]。符号の引き算ミス防止のため、符号を変えて足す加減法を徹底。" },
+      { id: "m-11", stage: "p2", stepNum: 11, grade: "中2", unit: "方程式の利用", item: "連立方程式の文章題（速さ・割合・食塩水）", rank: "A", level: "苦手", targetPeriod: "2026-12", timeAlloc: "20分", textbookRef: "東書『新しい数学2』第2章 p.49〜62", memo: "都立大問2の主役！表を作って数量関係を整理すれば式は自然に立つ。" },
+      { id: "m-12", stage: "p2", stepNum: 12, grade: "中2", unit: "1次関数", item: "1次関数の変化の割合・直線の式・交点の座標", rank: "S", level: "少し苦手", targetPeriod: "2027-01", timeAlloc: "15分", textbookRef: "東書『新しい数学2』第3章 p.66〜88", memo: "都立大問3[問1]で配点5点！傾きaと切片bの求め方、連立での交点算出を定着。" },
+      { id: "m-13", stage: "p2", stepNum: 13, grade: "中2", unit: "1次関数の利用", item: "1次関数の利用（グラフと三角形の面積）", rank: "B", level: "苦手", targetPeriod: "2027-03", timeAlloc: "20分", textbookRef: "東書『新しい数学2』第3章 p.89〜104", memo: "都立大問3[問2]。底辺×高さ÷2の座標計算。難解な動点(問3)は飛ばしてOK。" },
+      { id: "m-14", stage: "p2", stepNum: 14, grade: "中2", unit: "図形の性質", item: "平行線と角・多角形の内角と外角の和", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『新しい数学2』第4章 p.108〜122", memo: "外角の和＝360°の利用、対頂角・錯角・同位角を色ペンで囲む練習。" },
+      { id: "m-15", stage: "p2", stepNum: 15, grade: "中2", unit: "図形の合同", item: "三角形の合同条件と合同の証明記述", rank: "A", level: "苦手", targetPeriod: "2027-02", timeAlloc: "20分", textbookRef: "東書『新しい数学2』第4章 p.123〜144", memo: "都立大問4[問1]記述7点！「△ABCと△DEFにおいて」から結論までの定型文を暗記。" },
+      { id: "m-16", stage: "p2", stepNum: 16, grade: "中2", unit: "特別な図形", item: "二等辺三角形・直角三角形・平行四辺形の性質", rank: "A", level: "少し苦手", targetPeriod: "2027-03", timeAlloc: "15分", textbookRef: "東書『新しい数学2』第5章 p.148〜174", memo: "定義（言葉の意味）と定理（性質・条件）の区別。図に等しい辺・角を記入。" },
+      { id: "m-17", stage: "p2", stepNum: 17, grade: "中2", unit: "確率", item: "確率の求め方（さいころ・玉・樹形図と表）", rank: "S", level: "普通", targetPeriod: "2027-01", timeAlloc: "10分", textbookRef: "東書『新しい数学2』第6章 p.178〜196", memo: "都立大問1[問7]で5点必出！さいころ2個は必ず「6×6のマス目表」を書いて数える。" },
+      { id: "m-18", stage: "p2", stepNum: 18, grade: "中2", unit: "データの比較", item: "四分位数と箱ひげ図の読解", rank: "S", level: "得意", targetPeriod: "2027-02", timeAlloc: "5分", textbookRef: "東書『新しい数学2』第7章 p.200〜214", memo: "都立大問1新傾向。箱ひげ図の最大・最小・四分位範囲の読み取りはボーナス問題。" },
+      { id: "m-19", stage: "p3", stepNum: 19, grade: "中3", unit: "数と計算", item: "多項式の展開・因数分解の公式と計算", rank: "S", level: "少し苦手", targetPeriod: "2027-05", timeAlloc: "15分", textbookRef: "東書『新しい数学3』第1章 p.14〜38", memo: "都立大問1[問2]。共通因数のくくり出し忘れに注意。大問1満点の必須条件。" },
+      { id: "m-20", stage: "p3", stepNum: 20, grade: "中3", unit: "平方根の計算・有理化・近似値", rank: "S", level: "普通", targetPeriod: "2027-06", timeAlloc: "10分", textbookRef: "東書『新しい数学3』第2章 p.44〜68", memo: "都立大問1[問3]。√の中を小さくする素因数分解と分母の有理化の徹底。" },
+      { id: "m-21", stage: "p3", stepNum: 21, grade: "中3", unit: "2次方程式", item: "2次方程式の解き方（因数分解・解の公式）", rank: "S", level: "普通", targetPeriod: "2027-07", timeAlloc: "10分", textbookRef: "東書『新しい数学3』第3章 p.74〜94", memo: "都立大問1[問4]。因数分解型を優先し、無理なら解の公式へ即座に切り替える。" },
+      { id: "m-22", stage: "p4", stepNum: 22, grade: "中3", unit: "2次関数", item: "2次関数 y=ax² のグラフ・変域・変化の割合", rank: "S", level: "少し苦手", targetPeriod: "2027-09", timeAlloc: "15分", textbookRef: "東書『新しい数学3』第4章 p.98〜122", memo: "x変域が0を挟むときの最小値y=0注意。変化の割合の裏技公式 a(p+q) を修得。" },
+      { id: "m-23", stage: "p4", stepNum: 23, grade: "中3", unit: "関数の融合", item: "1次関数と2次関数の融合問題（交点と面積）", rank: "B", level: "苦手", targetPeriod: "2027-11", timeAlloc: "20分", textbookRef: "東書『新しい数学3』第4章 p.123〜134", memo: "都立大問3の小問(1)の座標決定だけ確実に取る。難解な(2)(3)は捨てる勇気。" },
+      { id: "m-24", stage: "p4", stepNum: 24, grade: "中3", unit: "図形の相似", item: "相似条件・平行線と線分の比・相似の証明", rank: "A", level: "苦手", targetPeriod: "2027-10", timeAlloc: "20分", textbookRef: "東書『新しい数学3』第5章 p.138〜168", memo: "都立大問4の相似証明。2組の角が等しいを見抜けば合同証明と同じ型で書ける。" },
+      { id: "m-25", stage: "p4", stepNum: 25, grade: "中3", unit: "相似の利用", item: "相似比と面積比・体積比の計量", rank: "B", level: "少し苦手", targetPeriod: "2027-11", timeAlloc: "15分", textbookRef: "東書『新しい数学3』第5章 p.169〜182", memo: "相似比m:n → 面積比m²:n² の基本公式の利用。" },
+      { id: "m-26", stage: "p4", stepNum: 26, grade: "中3", unit: "円の性質", item: "円周角の定理とその逆・接線", rank: "S", level: "普通", targetPeriod: "2027-11", timeAlloc: "10分", textbookRef: "東書『新しい数学3』第6章 p.186〜204", memo: "都立大問1[問5]候補。直径に対する円周角90°と中心角＝2×円周角。" },
+      { id: "m-27", stage: "p4", stepNum: 27, grade: "中3", unit: "三平方の定理", item: "三平方の定理の計算と直角三角形の抜き出し", rank: "A", level: "苦手", targetPeriod: "2027-12", timeAlloc: "20分", textbookRef: "東書『新しい数学3』第7章 p.208〜230", memo: "都立大問5[問1]。1:1:√2, 1:2:√3の比。立体から直角三角形を平面的に抜き出す。" }
+    ]
+  },
+  {
+    id: "eng", name: "英語", icon: "🇬🇧", publisher: "東京書籍『NEW HORIZON 1〜3』",
+    color: "#7C3AED", bg: "#F5F3FF", border: "#C4B5FD", text: "#5B21B6",
+    units: [
+      { id: "e-1", stage: "p1", stepNum: 1, grade: "中1", unit: "文法基礎", item: "be動詞と一般動詞の区別・三人称単数現在形(-s)", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "東書『NEW HORIZON 1』Unit 1〜4 p.10〜46", memo: "英作文で減点されないための基本中の基本。主語がhe/she/単数なら動詞に-s。" },
+      { id: "e-2", stage: "p1", stepNum: 2, grade: "中1", unit: "時制", item: "過去形（不規則変化動詞の完全暗記）", rank: "S", level: "普通", targetPeriod: "2026-10", timeAlloc: "10分", textbookRef: "東書『NEW HORIZON 1』Unit 7〜8 p.70〜90", memo: "went, saw, bought 等の不規則動詞スペルを即書けるようにする。" },
+      { id: "e-3", stage: "p1", stepNum: 3, grade: "中1", unit: "疑問詞", item: "疑問詞(who, what, when, where, why, how)", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "東書『NEW HORIZON 1』Unit 5〜6 p.50〜68", memo: "長文の設問文の先頭を見逃さない。Whyで聞かれたらBecause〜で答える。" },
+      { id: "e-4", stage: "p2", stepNum: 4, grade: "中1", unit: "助動詞", item: "助動詞(can, will, must, should, have to)", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『NEW HORIZON 1』Unit 9〜10 / 2 Unit 2", memo: "助動詞の後ろは動詞の原形！must＝have to, will＝be going toの書き換え。" },
+      { id: "e-5", stage: "p1", stepNum: 5, grade: "中1-2", unit: "進行形", item: "現在進行形・過去進行形(be動詞 + ~ing)", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "東書『NEW HORIZON 1』Unit 11 / 2 Unit 1", memo: "ingの付け方ミス（making, running）を防ぐ。" },
+      { id: "e-6", stage: "p2", stepNum: 6, grade: "中2", unit: "不定詞", item: "不定詞の3用法（名詞的・副詞的・形容詞的用法）", rank: "A", level: "苦手", targetPeriod: "2026-12", timeAlloc: "20分", textbookRef: "東書『NEW HORIZON 2』Unit 4 p.44〜54", memo: "「〜すること」「〜するために」「〜するための」。文末からの修飾構造。" },
+      { id: "e-7", stage: "p2", stepNum: 7, grade: "中2", unit: "動名詞", item: "動名詞(~ing)と不定詞(to do)の使い分け", rank: "S", level: "少し苦手", targetPeriod: "2026-12", timeAlloc: "15分", textbookRef: "東書『NEW HORIZON 2』Unit 5 p.56〜66", memo: "enjoy, finish, stop の後ろは動名詞！want, hope の後ろはto不定詞。" },
+      { id: "e-8", stage: "p2", stepNum: 8, grade: "中2", unit: "比較", item: "比較級・最上級・原級(as ... as / more / most)", rank: "A", level: "普通", targetPeriod: "2027-01", timeAlloc: "10分", textbookRef: "東書『NEW HORIZON 2』Unit 6 p.68〜78", memo: "than の後ろ、in(場所・範囲)とof(同類・数字)の使い分け。" },
+      { id: "e-9", stage: "p2", stepNum: 9, grade: "中2", unit: "受動態", item: "受動態（be動詞 + 過去分詞）と能動態の書き換え", rank: "S", level: "少し苦手", targetPeriod: "2027-02", timeAlloc: "15分", textbookRef: "東書『NEW HORIZON 2』Unit 7 p.80〜92", memo: "by 〜の省略、be surprised at などの熟語前置詞。" },
+      { id: "e-10", stage: "p2", stepNum: 10, grade: "中2", unit: "接続詞", item: "接続詞(that, when, if, because)と文の構成", rank: "S", level: "普通", targetPeriod: "2027-01", timeAlloc: "10分", textbookRef: "東書『NEW HORIZON 2』Unit 3 p.32〜42", memo: "長文でカンマの位置を見て主節と従属節をスラッシュで区切る。" },
+      { id: "e-11", stage: "p3", stepNum: 11, grade: "中3", unit: "現在完了", item: "現在完了形（継続・経験・完了結果）", rank: "A", level: "苦手", targetPeriod: "2027-05", timeAlloc: "20分", textbookRef: "東書『NEW HORIZON 3』Unit 1〜2 p.10〜30", memo: "have/has + 過去分詞。since, for, already, yet, have been to の判別。" },
+      { id: "e-12", stage: "p3", stepNum: 12, grade: "中3", unit: "語法構文", item: "want A to do / ask A to do / tell A to do", rank: "S", level: "少し苦手", targetPeriod: "2027-06", timeAlloc: "15分", textbookRef: "東書『NEW HORIZON 3』Unit 3 p.32〜44", memo: "都立英作文で超使える構文！「人に〜してほしい/頼む/言う」。" },
+      { id: "e-13", stage: "p3", stepNum: 13, grade: "中3", unit: "語法構文", item: "It is ... (for A) to do / too ... to do", rank: "A", level: "普通", targetPeriod: "2027-06", timeAlloc: "10分", textbookRef: "東書『NEW HORIZON 3』Unit 4 p.46〜56", memo: "仮主語構文。「〜することは大切だ」の英作文テンプレート。" },
+      { id: "e-14", stage: "p4", stepNum: 14, grade: "中3", unit: "修飾表現", item: "分詞の後置修飾（現在分詞・過去分詞）", rank: "A", level: "少し苦手", targetPeriod: "2027-09", timeAlloc: "15分", textbookRef: "東書『NEW HORIZON 3』Unit 5 p.58〜68", memo: "名詞の後ろから説明をつける日本語と逆の語順感覚に慣れる。" },
+      { id: "e-15", stage: "p4", stepNum: 15, grade: "中3", unit: "関係代名詞", item: "関係代名詞（who, which, that / 目的格の省略）", rank: "A", level: "苦手", targetPeriod: "2027-10", timeAlloc: "20分", textbookRef: "東書『NEW HORIZON 3』Unit 6 p.70〜84", memo: "都立長文の最重要骨格！修飾のカタマリ括弧で囲み、先行詞を見失わない。" },
+      { id: "e-16", stage: "p4", stepNum: 16, grade: "中3", unit: "間接疑問文", item: "間接疑問文（疑問詞 + 主語 + 動詞の平叙文語順）", rank: "A", level: "少し苦手", targetPeriod: "2027-11", timeAlloc: "15分", textbookRef: "東書『NEW HORIZON 3』Unit 7 p.86〜96", memo: "I know where he lives. 疑問文語順（does he live）にしない。" },
+      { id: "e-17", stage: "p4", stepNum: 17, grade: "全般", unit: "英単語・熟語", item: "高校入試必須1800語の暗記と前置詞熟語", rank: "S", level: "普通", targetPeriod: "2027-08", timeAlloc: "10分", textbookRef: "教科書巻末単語集 ＆ 『でる順ターゲット1800』", memo: "毎日寝る前10分で20語ずつ回転。単語力＝長文速読のガソリン。" },
+      { id: "e-18", stage: "p4", stepNum: 18, grade: "全般", unit: "都立長文読解", item: "対話文・説明文の速読と設問スキャン", rank: "A", level: "少し苦手", targetPeriod: "2027-11", timeAlloc: "20分", textbookRef: "都立過去問 大問3・大問4", memo: "本文を読む前に設問を先読み！該当キーワードを本文から逆引きする。" },
+      { id: "e-19", stage: "p4", stepNum: 19, grade: "全般", unit: "英作文", item: "都立条件英作文（大問2：配点12点・3文構成）", rank: "S", level: "苦手", targetPeriod: "2027-12", timeAlloc: "20分", textbookRef: "都立過去問 大問2[問2]・英作文型プリント", memo: "第1文:主張、第2文:理由(Because)、第3文:具体例(For example)の型で12点満点！" },
+      { id: "e-20", stage: "p3", stepNum: 20, grade: "全般", unit: "リスニング", item: "都立リスニング（配点20点・メモ取り訓練）", rank: "S", level: "得意", targetPeriod: "2027-07", timeAlloc: "10分", textbookRef: "都立過去問リスニング音源・QRコード音声", memo: "都立の20点は全問正解できる！選択肢の先読みと数字・場所のメモ取り。" }
+    ]
+  },
+  {
+    id: "sci", name: "理科", icon: "🧪", publisher: "東京書籍『新しい理科 1〜3』",
+    color: "#059669", bg: "#ECFDF5", border: "#6EE7B7", text: "#065F46",
+    units: [
+      { id: "s-1", stage: "p2", stepNum: 1, grade: "中1", unit: "物理", item: "光の反射・屈折・凸レンズの実像と虚像の作図", rank: "A", level: "苦手", targetPeriod: "2026-11", timeAlloc: "20分", textbookRef: "東書『新しい理科1』第1分野 p.138〜160", memo: "焦点距離の2倍で同じ大きさの実像。焦点の内側で正立の虚像。" },
+      { id: "s-2", stage: "p1", stepNum: 2, grade: "中1", unit: "物理", item: "音の性質（振幅・振動数とオシロスコープ）", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "東書『新しい理科1』第1分野 p.161〜172", memo: "振幅＝大きさ、波の数(振動数)＝高さ。音速340m/s計算。" },
+      { id: "s-3", stage: "p2", stepNum: 3, grade: "中1", unit: "物理", item: "力と圧力・水圧と浮力の計算", rank: "B", level: "苦手", targetPeriod: "2026-12", timeAlloc: "20分", textbookRef: "東書『新しい理科1』第1分野 p.173〜198", memo: "圧力(Pa)=N/m²。浮力＝水中の体積。難解な複雑計算は後回しでOK。" },
+      { id: "s-4", stage: "p1", stepNum: 4, grade: "中1", unit: "化学", item: "身の回りの物質・気体の発生方法と収集法", rank: "S", level: "普通", targetPeriod: "2026-10", timeAlloc: "10分", textbookRef: "東書『新しい理科1』第1分野 p.54〜78", memo: "酸素(過酸化水素+二酸化マンガン)、水素、二酸化炭素、アンモニアの集め方。" },
+      { id: "s-5", stage: "p2", stepNum: 5, grade: "中1", unit: "化学", item: "水溶液の濃度計算・溶解度曲線・再結晶", rank: "A", level: "少し苦手", targetPeriod: "2026-11", timeAlloc: "15分", textbookRef: "東書『新しい理科1』第1分野 p.79〜100", memo: "質量パーセント濃度(%)＝溶質/(溶質+溶媒)×100。引き算で結晶析出量。" },
+      { id: "s-6", stage: "p1", stepNum: 6, grade: "中1", unit: "化学", item: "状態変化と融点・沸点・蒸留実験", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "東書『新しい理科1』第1分野 p.101〜124", memo: "状態変化で質量は不変、体積は変化。エタノールの沸点の違い。" },
+      { id: "s-7", stage: "p1", stepNum: 7, grade: "中1", unit: "生物", item: "植物の分類（種子植物・維管束・葉の構造）", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "東書『新しい理科1』第2分野 p.16〜50", memo: "被子・裸子、単子葉(平行脈・ひげ根)・双子葉(網状脈・主根側根)。" },
+      { id: "s-8", stage: "p2", stepNum: 8, grade: "中1", unit: "生物", item: "光合成・呼吸・蒸散と対照実験", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『新しい理科1』第2分野 p.24〜40", memo: "BTB溶液の変色(酸性:黄, 中性:緑, アルカリ性:青)。二酸化炭素の増減。" },
+      { id: "s-9", stage: "p2", stepNum: 9, grade: "中1", unit: "地学", item: "火山と火成岩（火山岩・深成岩・鉱物）", rank: "S", level: "普通", targetPeriod: "2026-12", timeAlloc: "10分", textbookRef: "東書『新しい理科1』第2分野 p.64〜88", memo: "語呂合わせ「しんかんせんは刈り上げ」。斑状組織と等粒状組織。" },
+      { id: "s-10", stage: "p2", stepNum: 10, grade: "中1", unit: "地学", item: "地層の重なり・示相化石・示準化石・柱状図", rank: "S", level: "普通", targetPeriod: "2026-12", timeAlloc: "10分", textbookRef: "東書『新しい理科1』第2分野 p.89〜116", memo: "アサリ・サンゴ(示相：環境)、アンモナイト・三葉虫(示準：時代)。" },
+      { id: "s-11", stage: "p2", stepNum: 11, grade: "中1", unit: "地学", item: "地震の揺れ・初期微動継続時間と震源距離", rank: "A", level: "少し苦手", targetPeriod: "2027-01", timeAlloc: "15分", textbookRef: "東書『新しい理科1』第2分野 p.117〜134", memo: "P波(初期微動)とS波(主要動)。初期微動継続時間は震源距離に比例。" },
+      { id: "s-12", stage: "p2", stepNum: 12, grade: "中2", unit: "物理", item: "電流・電圧・オームの法則と回路計算", rank: "A", level: "苦手", targetPeriod: "2026-11", timeAlloc: "20分", textbookRef: "東書『新しい理科2』第1分野 p.166〜194", memo: "直列は電流一定、並列は電圧一定！V=IRのテントウムシ図で計算。" },
+      { id: "s-13", stage: "p2", stepNum: 13, grade: "中2", unit: "物理", item: "電力(W)・熱量(J)と電力量(Wh)の計算", rank: "A", level: "少し苦手", targetPeriod: "2026-12", timeAlloc: "15分", textbookRef: "東書『新しい理科2』第1分野 p.195〜208", memo: "電力(W)=V×A。熱量(J)=W×秒(s)。1Wh=3600Jの換算。" },
+      { id: "s-14", stage: "p2", stepNum: 14, grade: "中2", unit: "物理", item: "電流がつくる磁界・右ねじの法則・電磁誘導", rank: "A", level: "少し苦手", targetPeriod: "2027-01", timeAlloc: "15分", textbookRef: "東書『新しい理科2』第1分野 p.209〜236", memo: "右手親指ルール。磁界の向きと誘導電流の向きを矢印で作図。" },
+      { id: "s-15", stage: "p2", stepNum: 15, grade: "中2", unit: "化学", item: "原子記号・化学式・化学反応式の書き方", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『新しい理科2』第1分野 p.16〜44", memo: "基本20元素と代表的な反応式(2H2O→2H2+O2など)をカードで暗記。" },
+      { id: "s-16", stage: "p2", stepNum: 16, grade: "中2", unit: "化学", item: "酸化と還元・発熱反応と吸熱反応", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『新しい理科2』第1分野 p.45〜66", memo: "酸化銅＋炭素の還元実験。石灰水の白濁とピンチコックを閉じる理由。" },
+      { id: "s-17", stage: "p2", stepNum: 17, grade: "中2", unit: "化学", item: "質量保存の法則と化合の質量比グラフ", rank: "A", level: "少し苦手", targetPeriod: "2026-12", timeAlloc: "15分", textbookRef: "東書『新しい理科2』第1分野 p.67〜82", memo: "銅:酸素=4:1、マグネシウム:酸素=3:2 の比例比を暗記。" },
+      { id: "s-18", stage: "p2", stepNum: 18, grade: "中2", unit: "生物", item: "消化と吸収（消化酵素と柔毛の働き）", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『新しい理科2』第2分野 p.94〜114", memo: "だ液(アミラーゼ)、胃液(ペプシン)、すい液。ブドウ糖・アミノ酸。" },
+      { id: "s-19", stage: "p1", stepNum: 19, grade: "中2", unit: "生物", item: "血液循環・感覚器官と神経系（反射）", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "東書『新しい理科2』第2分野 p.115〜136", memo: "大脳を経由しない無意識の反応＝反射(脊髄)。心臓の部屋の構造。" },
+      { id: "s-20", stage: "p2", stepNum: 20, grade: "中2", unit: "地学", item: "気象観測・雲のでき方と湿度計算", rank: "A", level: "少し苦手", targetPeriod: "2027-01", timeAlloc: "15分", textbookRef: "東書『新しい理科2』第2分野 p.140〜164", memo: "湿度(%)=現在の水蒸気量/その気温の飽和水蒸気量×100。露点の意味。" },
+      { id: "s-21", stage: "p2", stepNum: 21, grade: "中2", unit: "地学", item: "前線と天気の変化（温暖前線・寒冷前線）", rank: "S", level: "普通", targetPeriod: "2027-02", timeAlloc: "10分", textbookRef: "東書『新しい理科2』第2分野 p.165〜192", memo: "通過後の気温変化と風向き変化。積乱雲(にわか雨)と乱層雲(おだやかな雨)。" },
+      { id: "s-22", stage: "p3", stepNum: 22, grade: "中3", unit: "化学", item: "水溶液とイオン・電離式・酸とアルカリ", rank: "A", level: "少し苦手", targetPeriod: "2027-06", timeAlloc: "15分", textbookRef: "東書『新しい理科3』第1分野 p.16〜48", memo: "H+(酸性)、OH-(アルカリ性)。リトマス紙とBTBの色の変化。" },
+      { id: "s-23", stage: "p4", stepNum: 23, grade: "中3", unit: "化学", item: "中和反応と塩・イオンの増減グラフ", rank: "A", level: "苦手", targetPeriod: "2027-09", timeAlloc: "20分", textbookRef: "東書『新しい理科3』第1分野 p.49〜72", memo: "都立大問の定番！中和点での温度最大・水溶液中のイオン数の変化グラフ。" },
+      { id: "s-24", stage: "p4", stepNum: 24, grade: "中3", unit: "化学", item: "化学変化と電池（ダニエル電池の仕組み）", rank: "A", level: "少し苦手", targetPeriod: "2027-10", timeAlloc: "15分", textbookRef: "東書『新しい理科3』第1分野 p.73〜92", memo: "亜鉛板(負極)から銅板(正極)への電子の移動。イオン化傾向。" },
+      { id: "s-25", stage: "p3", stepNum: 25, grade: "中3", unit: "物理", item: "物体の運動（等速直線運動・記録タイマー）", rank: "A", level: "少し苦手", targetPeriod: "2027-05", timeAlloc: "15分", textbookRef: "東書『新しい理科3』第1分野 p.128〜154", memo: "東日本(50Hz:5打点=0.1秒)のテープ計算。斜面を下る運動の速さ増加。" },
+      { id: "s-26", stage: "p3", stepNum: 26, grade: "中3", unit: "物理", item: "仕事と仕事率・動滑車と仕事の原理", rank: "A", level: "苦手", targetPeriod: "2027-07", timeAlloc: "20分", textbookRef: "東書『新しい理科3』第1分野 p.155〜178", memo: "仕事(J)=力(N)×距離(m)。動滑車は力1/2、引く距離2倍で仕事量は不変。" },
+      { id: "s-27", stage: "p4", stepNum: 27, grade: "中3", unit: "物理", item: "力学的エネルギー保存の法則", rank: "S", level: "普通", targetPeriod: "2027-09", timeAlloc: "10分", textbookRef: "東書『新しい理科3』第1分野 p.179〜196", memo: "位置エネルギー＋運動エネルギー＝一定。振り子の最高点と最下点。" },
+      { id: "s-28", stage: "p3", stepNum: 28, grade: "中3", unit: "生物", item: "細胞分裂（体細胞分裂・減数分裂）と生殖", rank: "S", level: "普通", targetPeriod: "2027-05", timeAlloc: "10分", textbookRef: "東書『新しい理科3』第2分野 p.102〜124", memo: "根の先端付近の観察手順。染色体の並びと無性生殖・有性生殖の比較。" },
+      { id: "s-29", stage: "p3", stepNum: 29, grade: "中3", unit: "生物", item: "遺伝の規則性（メンデルの法則・分離の法則）", rank: "A", level: "少し苦手", targetPeriod: "2027-06", timeAlloc: "15分", textbookRef: "東書『新しい理科3』第2分野 p.125〜146", memo: "丸(AA)とシワ(aa)の孫の代の比率 (3:1)。遺伝子型の表を作成する。" },
+      { id: "s-30", stage: "p4", stepNum: 30, grade: "中3", unit: "地学", item: "天体の動き（日周運動・年周運動）", rank: "A", level: "苦手", targetPeriod: "2027-11", timeAlloc: "20分", textbookRef: "東書『新しい理科3』第2分野 p.202〜230", memo: "日周(1時間に15°西へ)、年周(1ヶ月に30°西へ)。北極星を中心に反時計回り。" },
+      { id: "s-31", stage: "p4", stepNum: 31, grade: "中3", unit: "地学", item: "月の満ち欠けと金星の見え方", rank: "A", level: "苦手", targetPeriod: "2027-12", timeAlloc: "20分", textbookRef: "東書『新しい理科3』第2分野 p.231〜254", memo: "都立大問2頻出！夕方の西の空(よいの明星)と明け方の東の空(明けの明星)。" }
+    ]
+  },
+  {
+    id: "soc", name: "社会", icon: "🌍", publisher: "東京書籍『新しい社会』",
+    color: "#D97706", bg: "#FFFBEB", border: "#FCD34D", text: "#92400E",
+    units: [
+      { id: "so-1", stage: "p2", stepNum: 1, grade: "中1", unit: "世界地理", item: "世界の姿・緯度経度・時差の計算", rank: "A", level: "少し苦手", targetPeriod: "2026-11", timeAlloc: "15分", textbookRef: "東書『地理』第1編 第1章 p.6〜24", memo: "経度15度で1時間の時差。東経同士は引き算、東経と西経は足し算して15で割る。" },
+      { id: "so-2", stage: "p1", stepNum: 2, grade: "中1", unit: "世界地理", item: "世界の気候区分（雨温図の識別）", rank: "S", level: "普通", targetPeriod: "2026-10", timeAlloc: "10分", textbookRef: "東書『地理』第1編 第2章 p.26〜44", memo: "都立必出！地中海性気候(夏に雨が少ない)、西岸海洋性(年中平均)、熱帯・寒帯。" },
+      { id: "so-3", stage: "p2", stepNum: 3, grade: "中1", unit: "世界地理", item: "世界の諸地域の産業とプランテーション", rank: "A", level: "普通", targetPeriod: "2026-12", timeAlloc: "10分", textbookRef: "東書『地理』第2編 p.46〜118", memo: "モノカルチャー経済、アメリカ適地適作、中国の経済特区と沿海部発展。" },
+      { id: "so-4", stage: "p1", stepNum: 4, grade: "中1-2", unit: "日本地理", item: "日本の領域・排他的経済水域(EEZ)・領土", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "東書『地理』第3編 第1章 p.122〜136", memo: "北方領土(択捉・国後・色丹・歯舞)、竹島、尖閣諸島、沖ノ鳥島。" },
+      { id: "so-5", stage: "p2", stepNum: 5, grade: "中1-2", unit: "日本地理", item: "日本の気候区分と雨温図の判別", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『地理』第3編 第2章 p.138〜154", memo: "日本海側(冬に降雪多)、瀬戸内(年中少雨)、太平洋側(夏に降雨多)、中央高地。" },
+      { id: "so-6", stage: "p2", stepNum: 6, grade: "中1-2", unit: "日本地理", item: "日本の農業・水産業・工業地帯の統計グラフ", rank: "S", level: "少し苦手", targetPeriod: "2026-12", timeAlloc: "15分", textbookRef: "東書『地理』第3編 第3章 p.156〜178", memo: "促成栽培(高知・宮崎)と抑制栽培(長野)。中京(機械)・京浜・阪神の割合。" },
+      { id: "so-7", stage: "p2", stepNum: 7, grade: "中1-2", unit: "日本地理", item: "地方別地理（九州〜北海道の特色）", rank: "A", level: "普通", targetPeriod: "2027-01", timeAlloc: "10分", textbookRef: "東書『地理』第4編 p.182〜274", memo: "各地方の県庁所在地、伝統工芸品、過疎過密対策と交通網。" },
+      { id: "so-8", stage: "p1", stepNum: 8, grade: "中1", unit: "古代史", item: "縄文・弥生〜古墳時代（文明と大和政権）", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "東書『歴史』第1〜2章 p.14〜44", memo: "青銅器・鉄器、邪馬台国・卑弥呼、前方後円墳と渡来人。" },
+      { id: "so-9", stage: "p2", stepNum: 9, grade: "中1", unit: "古代史", item: "飛鳥・奈良・平安（律令国家と貴族政治）", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『歴史』第3章 p.46〜78", memo: "聖徳太子、大化の改新(645)、大宝律令(701)、聖武天皇(東大寺)、藤原氏摂関政治。" },
+      { id: "so-10", stage: "p2", stepNum: 10, grade: "中1-2", unit: "中世史", item: "鎌倉〜室町時代（武家政権と文化）", rank: "S", level: "普通", targetPeriod: "2026-12", timeAlloc: "10分", textbookRef: "東書『歴史』第4章 p.80〜114", memo: "御恩と奉公、元寇と徳政令、勘合貿易(日明貿易)、北山文化(金閣)・東山(銀閣)。" },
+      { id: "so-11", stage: "p2", stepNum: 11, grade: "中2", unit: "近世史", item: "安土桃山時代（信長・秀吉の全国統一）", rank: "S", level: "得意", targetPeriod: "2026-11", timeAlloc: "5分", textbookRef: "東書『歴史』第5章 p.116〜134", memo: "太閤検地・刀狩(兵農分離)、楽市楽座、南蛮貿易と桃山文化。" },
+      { id: "so-12", stage: "p2", stepNum: 12, grade: "中2", unit: "近世史", item: "江戸幕府の成立と大名統制・鎖国政策", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "東書『歴史』第5章 p.135〜156", memo: "参勤交代(武家諸法度)、キリスト教禁止(絵踏)、出島でのオランダ・中国貿易。" },
+      { id: "so-13", stage: "p2", stepNum: 13, grade: "中2", unit: "近世史", item: "江戸の三大改革（享保・寛政・天保）と田沼", rank: "A", level: "苦手", targetPeriod: "2026-12", timeAlloc: "20分", textbookRef: "東書『歴史』第5章 p.157〜178", memo: "都立頻出！吉宗(享保:目安箱)、田沼(株仲間)、松平定信(寛政)、水野忠邦(天保)。" },
+      { id: "so-14", stage: "p2", stepNum: 14, grade: "中2", unit: "近代史", item: "幕末〜明治維新（開国・不平等条約・富国強兵）", rank: "A", level: "苦手", targetPeriod: "2027-02", timeAlloc: "20分", textbookRef: "東書『歴史』第6章 p.182〜208", memo: "日米修好通商条約(領事裁判権・関税自主権)、地租改正(地価の3%現金)、学制・徴兵令。" },
+      { id: "so-15", stage: "p2", stepNum: 15, grade: "中2", unit: "近代史", item: "自由民権運動と大日本帝国憲法", rank: "A", level: "少し苦手", targetPeriod: "2027-03", timeAlloc: "15分", textbookRef: "東書『歴史』第6章 p.209〜224", memo: "板垣退助、伊藤博文、大日本帝国憲法(1889年天皇主権)、帝国議会開設。" },
+      { id: "so-16", stage: "p3", stepNum: 16, grade: "中2-3", unit: "近代史", item: "条約改正と日清・日露戦争・八幡製鉄所", rank: "S", level: "少し苦手", targetPeriod: "2027-04", timeAlloc: "15分", textbookRef: "東書『歴史』第6章 p.225〜244", memo: "陸奥宗光(治外法権撤廃)、小村寿太郎(関税自主権回復)。下関条約・ポーツマス条約。" },
+      { id: "so-17", stage: "p3", stepNum: 17, grade: "中3", unit: "近代史", item: "第一次世界大戦と大正デモクラシー・普通選挙", rank: "S", level: "普通", targetPeriod: "2027-05", timeAlloc: "10分", textbookRef: "東書『歴史』第7章 p.248〜264", memo: "1925年男子普通選挙法(満25歳以上男子)と治安維持法のセット暗記！" },
+      { id: "so-18", stage: "p3", stepNum: 18, grade: "中3", unit: "現代史", item: "世界恐慌〜第二次世界大戦と戦後改革", rank: "A", level: "少し苦手", targetPeriod: "2027-06", timeAlloc: "15分", textbookRef: "東書『歴史』第7章 p.265〜298", memo: "GHQの五大改革（財閥解体・農地改革・女性参政権・労働組合育成・教育基本法）。" },
+      { id: "so-19", stage: "p3", stepNum: 19, grade: "中3", unit: "現代史", item: "冷戦と日本の国際復帰・高度経済成長", rank: "S", level: "普通", targetPeriod: "2027-07", timeAlloc: "10分", textbookRef: "東書『歴史』第8章 p.300〜324", memo: "サンフランシスコ平和条約(1951)、日ソ共同宣言(国連加盟)、日中共同声明(1972)。" },
+      { id: "so-20", stage: "p4", stepNum: 20, grade: "中3", unit: "公民・憲法", item: "日本国憲法の三大原則と平和主義（第9条）", rank: "S", level: "普通", targetPeriod: "2027-09", timeAlloc: "10分", textbookRef: "東書『公民』第2章 p.34〜54", memo: "国民主権・基本的人権の尊重・平和主義。憲法改正手続き(総議員の2/3＋国民投票過半数)。" },
+      { id: "so-21", stage: "p4", stepNum: 21, grade: "中3", unit: "公民・人権", item: "基本的人権の種類（自由権・平等権・社会権）", rank: "S", level: "少し苦手", targetPeriod: "2027-09", timeAlloc: "15分", textbookRef: "東書『公民』第2章 p.55〜76", memo: "第25条生存権(健康で文化的な最低限度の生活)、労働基本権(団結権・団体交渉権・団体行動権)。" },
+      { id: "so-22", stage: "p4", stepNum: 22, grade: "中3", unit: "公民・政治", item: "三権分立（国会・内閣・裁判所の相互抑制）", rank: "S", level: "苦手", targetPeriod: "2027-10", timeAlloc: "20分", textbookRef: "東書『公民』第3章 p.80〜112", memo: "都立大問2の主役！内閣不信任決議、違憲立法審査権、弾劾裁判所の矢印図を完ぺきに。" },
+      { id: "so-23", stage: "p4", stepNum: 23, grade: "中3", unit: "公民・政治", item: "選挙制度（小選挙区比例代表並立制）と地方自治", rank: "A", level: "普通", targetPeriod: "2027-10", timeAlloc: "10分", textbookRef: "東書『公民』第3章 p.113〜132", memo: "一票の格差問題、直接請求権(条例制定改廃・監査請求・リコール)の署名数と請求先。" },
+      { id: "so-24", stage: "p4", stepNum: 24, grade: "中3", unit: "公民・経済", item: "市場経済と価格の決定（需要・供給曲線）", rank: "S", level: "少し苦手", targetPeriod: "2027-11", timeAlloc: "15分", textbookRef: "東書『公民』第4章 p.136〜158", memo: "均衡価格の決定グラフ。独占禁止法(公正取引委員会)、インフレとデフレ。" },
+      { id: "so-25", stage: "p4", stepNum: 25, grade: "中3", unit: "公民・経済", item: "日本銀行の金融政策（公開市場操作）と財政", rank: "A", level: "苦手", targetPeriod: "2027-11", timeAlloc: "20分", textbookRef: "東書『公民』第4章 p.159〜182", memo: "買いオペ(景気刺激で資金供給)と売りオペ。直接税と間接税、累進課税制度。" },
+      { id: "so-26", stage: "p4", stepNum: 26, grade: "中3", unit: "公民・国際", item: "国際連合の仕組み(安保理拒否権)と為替相場", rank: "S", level: "苦手", targetPeriod: "2027-12", timeAlloc: "20分", textbookRef: "東書『公民』第5章 p.186〜212", memo: "常任理事国5カ国の拒否権。円高・円安が輸出入企業に与える影響のパターン化。" }
+    ]
+  },
+  {
+    id: "jpn", name: "国語", icon: "📖", publisher: "光村図書『国語 1〜3』",
+    color: "#B91C1C", bg: "#FEF2F2", border: "#FCA5A5", text: "#7F1D1D",
+    units: [
+      { id: "j-1", stage: "p1", stepNum: 1, grade: "全般", unit: "知識事項", item: "漢字の読み取り（都立大問1：配点10点）", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "光村図書 各学年巻末「漢字の広場」", memo: "毎年5問(各2点)。過去問プリントで同音異義語・送り仮名を10点満点化。" },
+      { id: "j-2", stage: "p1", stepNum: 2, grade: "全般", unit: "知識事項", item: "漢字の書き取り（都立大問2：配点10点）", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "光村図書 各学年巻末「漢字の広場」", memo: "トメ・ハネ・ハライの減点をゼロに。10点満点死守が武蔵丘合格の基礎。" },
+      { id: "j-3", stage: "p2", stepNum: 3, grade: "中1-2", unit: "文法", item: "品詞の識別・用言の活用（動詞・形容詞）", rank: "A", level: "少し苦手", targetPeriod: "2026-11", timeAlloc: "15分", textbookRef: "光村『国語2』言葉の窓「用言の活用」", memo: "「ない」をつけて未然形の音(ア行＝五段、イ段＝上一段、エ段＝下一段)で判定。" },
+      { id: "j-4", stage: "p2", stepNum: 4, grade: "中1-2", unit: "文法", item: "敬語の識別（尊敬語・謙譲語・丁寧語）", rank: "S", level: "普通", targetPeriod: "2026-12", timeAlloc: "10分", textbookRef: "光村『国語1・2』言葉の窓「敬語の使い分け」", memo: "相手を高める「おっしゃる(尊敬)」と自分をへりくだる「申し上げる(謙譲)」の主語判定。" },
+      { id: "j-5", stage: "p1", stepNum: 5, grade: "中1-2", unit: "語彙", item: "慣用句・ことわざ・故事成語の意味", rank: "S", level: "得意", targetPeriod: "2026-10", timeAlloc: "5分", textbookRef: "光村『国語1・2』言葉の窓「言葉の力」", memo: "日常学習の息抜きに意味と例文をストック。" },
+      { id: "j-6", stage: "p2", stepNum: 6, grade: "中1-3", unit: "現代文", item: "論理的文章の指示語・接続語の把握", rank: "S", level: "普通", targetPeriod: "2026-11", timeAlloc: "10分", textbookRef: "光村『国語』説明文単元（論理の展開）", memo: "「しかし」「つまり」などの接続語に印をつけ、段落ごとの結論を素早く把握。" },
+      { id: "j-7", stage: "p2", stepNum: 7, grade: "中1-3", unit: "現代文", item: "論理的文章の要旨把握と選択肢消去法", rank: "A", level: "少し苦手", targetPeriod: "2027-01", timeAlloc: "15分", textbookRef: "光村『国語』説明的文章・評論文単元", memo: "本文に書いていないこと・言い過ぎ(〜のみ, 完全に)を含む選択肢を即消去。" },
+      { id: "j-8", stage: "p2", stepNum: 8, grade: "中1-3", unit: "現代文", item: "論理的文章の記述（理由・言い換え）", rank: "A", level: "少し苦手", targetPeriod: "2027-02", timeAlloc: "15分", textbookRef: "都立過去問 大問4論理文記述問", memo: "文末を「〜から。」「〜こと。」で統一。本文の該当キーワードを過不足なく結合。" },
+      { id: "j-9", stage: "p2", stepNum: 9, grade: "中1-3", unit: "文学的文章", item: "小説文の登場人物の心情変化と情景描写", rank: "S", level: "普通", targetPeriod: "2026-12", timeAlloc: "10分", textbookRef: "光村『国語』文学的文章（少年の日の思い出 等）", memo: "会話・表情・行動の直後に現れる心情語に線を引く。" },
+      { id: "j-10", stage: "p2", stepNum: 10, grade: "中1-3", unit: "文学的文章", item: "小説文の心情理由説明の記述", rank: "A", level: "少し苦手", targetPeriod: "2027-03", timeAlloc: "15分", textbookRef: "都立過去問 大問3小説記述問", memo: "【きっかけとなった出来事】＋【抱いた心情】を因果関係でつなぐ。" },
+      { id: "j-11", stage: "p2", stepNum: 11, grade: "中1-3", unit: "古典", item: "古文の基本（歴史的仮名遣い・基本古語）", rank: "S", level: "得意", targetPeriod: "2026-11", timeAlloc: "5分", textbookRef: "光村『国語1・2』古典への招待（竹取物語 等）", memo: "は行の「わ・い・う・え・お」、ゐ・ゑ・をの直し。都立大問3の小問で満点。" },
+      { id: "j-12", stage: "p3", stepNum: 12, grade: "中1-3", unit: "古典", item: "古文の読解（主語の補いと会話文の把握）", rank: "A", level: "苦手", targetPeriod: "2027-04", timeAlloc: "20分", textbookRef: "光村『国語2・3』平家物語・おくのほそ道", memo: "古文は主語が省略される！「て・で・ば」の前後で主語が変わるか確認し主語をメモ。" },
+      { id: "j-13", stage: "p3", stepNum: 13, grade: "中1-3", unit: "古典", item: "漢文の基礎（返り点・書き下し文）", rank: "S", level: "普通", targetPeriod: "2027-05", timeAlloc: "10分", textbookRef: "光村『国語2・3』漢詩・論語・矛盾", memo: "レ点・一二点・上下点の読む順序のルールさえ覚えればパズル感覚で即満点。" },
+      { id: "j-14", stage: "p3", stepNum: 14, grade: "全般", unit: "都立作文", item: "都立200字作文（大問2：配点10点・12分書き切り）", rank: "S", level: "苦手", targetPeriod: "2027-07", timeAlloc: "20分", textbookRef: "都立過去問 大問2作文用紙（光村『国語』作文単元）", memo: "第1段落(筆者の主張＋自分の体験)、第2段落(今後の展望)。減点ゼロの鉄板型で10点満点死守！" }
+    ]
+  }
+];
+
+const defaultSchedulesData = {
+  club: {
+    name: "部活あり", color: C.study, bg: C.studyBg, border: C.studyBorder, text: C.studyText,
+    items: [
+      { id: "sch-c1", t: "17:00〜17:10", a: "着替え・水分補給", hi: false },
+      { id: "sch-c2", t: "17:10〜17:20", a: "🎸 ギター基礎（Pocket Ampで即開始）クロマチック5分＋ミュート5分", hi: true },
+      { id: "sch-c3", t: "17:20〜19:00", a: "自由時間（休憩・ゲーム）", hi: false },
+      { id: "sch-c4", t: "19:00〜20:30", a: "夕食・入浴・休憩", hi: false },
+      { id: "sch-c5", t: "20:30〜20:55", a: "🇬🇧 英会話または英語学習（無理のないペースでOK）", hi: true },
+      { id: "sch-c6", t: "21:00〜21:50", a: "📚 学習50分枠：【Sランク/大問1即効枠 25分】+【学校ワーク定着 15分】+【暗記10分】", hi: true },
+      { id: "sch-c7", t: "21:50〜22:15", a: "💻 Mountain of Sound 開発（Chocolate Plus / Moog EP-3連動コード調整）", hi: true },
+      { id: "sch-c8", t: "22:15〜23:00", a: "就寝準備", hi: false },
+      { id: "sch-c9", t: "23:00〜23:30", a: "就寝", hi: false },
+    ]
+  },
+  noclub: {
+    name: "部活なし", color: C.code, bg: C.codeBg, border: C.codeBorder, text: C.codeText,
+    items: [
+      { id: "sch-nc1", t: "16:00〜17:00", a: "図書室等で宿題・復習（30〜60分）", hi: false },
+      { id: "sch-nc2", t: "17:00〜17:10", a: "着替え・水分補給", hi: false },
+      { id: "sch-nc3", t: "17:10〜17:40", a: "🎸 ギター練習　クロマチック10分＋コピー練習20分（Pocket Amp活用）", hi: true },
+      { id: "sch-nc4", t: "17:40〜19:00", a: "📚 学習前半（80分集中枠: 数学・英語のSランク苦手・大問別集中特訓）", hi: true },
+      { id: "sch-nc5", t: "19:00〜20:30", a: "夕食・入浴・休憩", hi: false },
+      { id: "sch-nc6", t: "20:30〜20:55", a: "🇬🇧 英会話または読書", hi: true },
+      { id: "sch-nc7", t: "21:00〜21:45", a: "📚 学習後半（45分枠: 理科・社会の一問一答暗記＆学校ワーク3周目）", hi: true },
+      { id: "sch-nc8", t: "21:45〜22:20", a: "🎵 DTMギターパート録音（Amber i2 / GarageBand活用）", hi: true },
+      { id: "sch-nc9", t: "22:20〜23:00", a: "就寝準備", hi: false },
+      { id: "sch-nc10", t: "23:00〜23:30", a: "就寝", hi: false },
+    ]
+  },
+  weekend: {
+    name: "週末スパート", color: "#FF9500", bg: "#FFFBEB", border: "#FDE68A", text: "#B45309",
+    items: [
+      { id: "sch-w1", t: "10:00〜12:00", a: "💻 Mountain of Sound 開発（Chocolate Plus 4方向 ＆ Moog EP-3連動）", hi: true },
+      { id: "sch-w2", t: "12:00〜13:00", a: "昼食・休憩", hi: false },
+      { id: "sch-w3", t: "13:00〜14:30", a: "📚 週末学習（90分特訓: 【弱点特訓40分】+【理社暗記30分】+【定着テスト20分】）", hi: true },
+      { id: "sch-w4", t: "14:30〜15:00", a: "🇬🇧 英語学習（単語総チェック・英作文添削・リスニング）", hi: true },
+      { id: "sch-w5", t: "15:00〜16:30", a: "🎸 ギター練習（本格版）GarageBand録音パート作成・Moog EP-3操作感確認", hi: true },
+      { id: "sch-w6", t: "16:30〜19:00", a: "自由時間", hi: false },
+    ]
+  },
+  exam: {
+    name: "テスト前", color: "#FF3B30", bg: "#FFF1F2", border: "#FECDD3", text: "#BE123C",
+    items: [
+      { id: "sch-e1", t: "17:10〜17:20", a: "🎸 ギター10分だけ（Pocket Ampで手軽に種火を守る）", hi: true },
+      { id: "sch-e2", t: "17:20〜19:00", a: "📚 学校の学習（テスト範囲苦手潰し・ワーク3周目完成・内申点死守）", hi: true },
+      { id: "sch-e3", t: "20:30〜20:55", a: "📚 暗記系チェック（理・社・漢字・英単語のテスト範囲完全暗記）", hi: true },
+      { id: "sch-e4", t: "21:00〜22:30", a: "📚 学校の学習（過去問演習・提出物完成・換算内申44以上へ）", hi: true },
+      { id: "sch-e5", t: "22:30〜23:00", a: "就寝", hi: false }
+    ]
+  },
+  juken: {
+    name: "受験中（中3）", color: "#B91C1C", bg: "#FEF2F2", border: "#FCA5A5", text: "#7F1D1D",
+    items: [
+      { id: "sch-j1", t: "17:10〜17:20", a: "🎸 ギター10分（Pocket Ampで種火を絶対維持）", hi: true },
+      { id: "sch-j2", t: "17:20〜19:00", a: "📚 都立高校受験対策（都立共通過去問演習・大問1満点トレーニング）", hi: true },
+      { id: "sch-j3", t: "20:30〜20:55", a: "📚 受験英語・単語1800・英作文テンプレート暗記", hi: true },
+      { id: "sch-j4", t: "21:00〜22:30", a: "📚 高校受験総仕上げ（都立過去問解き直し・ケアレスミス撲滅）", hi: true },
+      { id: "sch-j5", t: "22:30〜23:00", a: "就寝", hi: false }
+    ]
+  }
+};
+
+const defaultMusicTracks = [
+  { id: "track-a", name: "曲A", pct: 75 },
+  { id: "track-b", name: "曲B", pct: 50 },
+  { id: "track-c", name: "曲C", pct: 50 },
+  { id: "track-d", name: "曲D", pct: 25 }
+];
+
+const calendarData = [
+  { year: "2026年", grade: "中学2年生", months: [
+    { m: "6月", stage: "p0", target: "🎸 バンドライブ鍵盤パート練習開始", events: ["学内ライブ準備（鍵盤）", "Amber i2・RAT2接続確認"], musSteps: ["mus-1", "mus-2"], pySteps: [] },
+    { m: "7月", stage: "p0", star: true, target: "🎤 ライブ本番ノーミス完奏 ＆ ギター基礎10分習慣化", events: ["7月：学内バンドライブ本番完奏！", "夏休み突入・開発環境セットアップ"], musSteps: ["mus-1", "mus-2"], pySteps: [] },
+    { m: "8月", stage: "p1", star: true, target: "🚀 ワンフェス作品8月末完走提出 ＆ 英会話スタート", events: ["8月末：ワンダーメイクフェス作品提出期限！", "オンライン英会話週2回開始"], musSteps: ["mus-3", "mus-4"], pySteps: ["py-1", "py-2", "py-3", "py-4", "py-5", "py-6"] },
+    { m: "9月", stage: "p1", star: true, target: "🛠️ デバッグ ＆ 2学期中間テスト対策（数学大問1・英語過去形）", events: ["10月ワンフェス展示準備・デバッグ", "2学期中間テスト対策開始"], musSteps: ["mus-4"], pySteps: ["py-6"] },
+    { m: "10月", stage: "p1", star: true, target: "🏆 ワンフェス本番発表大成功 ＆ GarageBand初オリジナル曲完成", events: ["10月：ワンダーメイクフェス本番発表！", "中間テスト本番（5科平均以上死守）"], musSteps: ["mus-4"], pySteps: ["py-6"] },
+    { m: "11月", stage: "p2", target: "🎛️ Chocolate Plus導入 ＆ 期末テスト内申点底上げ", events: ["2学期期末テスト本番", "Chocolate Plus USB接続実験"], musSteps: ["mus-5"], pySteps: ["py-7", "py-8", "py-9"] },
+    { m: "12月", stage: "p2", target: "🎛️ Moog EP-3ペダル速度連動 ＆ 中1〜2総復習", events: ["冬休み集中特訓（中1・2総復習）", "Moog EP-3ワウ/速度制御テスト"], musSteps: ["mus-5", "mus-6"], pySteps: ["py-10"] },
+  ]},
+  { year: "2027年", grade: "中学3年生", months: [
+    { m: "1月", stage: "p2", target: "💻 4画面分割レンダリング完成 ＆ 中2学年末テスト準備", events: ["中2・3学期始業式", "4画面並列描画プロトタイプ検証"], musSteps: ["mus-6"], pySteps: ["py-10"] },
+    { m: "2月", stage: "p2", target: "📚 学年末テスト：内申点「2」の完全撲滅達成", events: ["中2学年末テスト本番（内申2完全撲滅！）"], musSteps: [], pySteps: [] },
+    { m: "3月", stage: "p2", target: "📚 春休み：中1・2総復習薄型問題集1冊完成", events: ["中2修了式・春休み受験スタートダッシュ"], musSteps: ["mus-6"], pySteps: ["py-10"] },
+    { m: "4月", stage: "p3", target: "🏫 中3受験モード本格開始（換算43目標） ＆ 足型キック演出設計", events: ["中3始業式・志望校（都立武蔵丘高）確定", "足型キック衝突ベクトル設計"], musSteps: ["mus-7"], pySteps: ["py-11"] },
+    { m: "5月", stage: "p3", target: "💻 Chocolate Plus 4方向移動実装 ＆ 1学期中間満点化", events: ["中3・1学期中間テスト", "足元スイッチ連動4方向画面キック実装"], musSteps: ["mus-7"], pySteps: ["py-11", "py-12"] },
+    { m: "6月", stage: "p3", target: "📚 1学期末テスト（内申点最重要！換算43〜45確定へ）", events: ["1学期末テスト本番（都立推薦・一次内申の超要）"], musSteps: ["mus-7"], pySteps: ["py-12"] },
+    { m: "7月", stage: "p3", star: true, target: "🏅 英検3級〜準2級合格 ＆ フルスクリーン自動拡大完成", events: ["7月：英検挑戦（長文速読直結）", "夏休み都立集中特訓突入"], musSteps: ["mus-7"], pySteps: ["py-12"] },
+    { m: "8月", stage: "p4", star: true, target: "🔥 都立特化スパート：大問1・2満点トレーニング ＆ 息抜き作曲", events: ["都立共通過去問夏期特訓演習", "V模擬8月回挑戦"], musSteps: ["mus-8"], pySteps: [] },
+    { m: "9月", stage: "p4", target: "📝 V模擬・都立模試で安全圏B判定以上獲得", events: ["第1回 V模擬（大問1満点46点死守）", "2学期始業式"], musSteps: ["mus-8"], pySteps: [] },
+    { m: "10月", stage: "p4", target: "📚 2学期中間テスト ＆ 武蔵丘高校文化祭見学", events: ["武蔵丘高文化祭（白丘祭）見学・軽音部ライブ体感", "2学期中間テスト"], musSteps: ["mus-8"], pySteps: [] },
+    { m: "11月", stage: "p4", target: "📚 2学期末テスト（内申確定） ＆ 都立過去問演習開始", events: ["2学期期末テスト（都立提出用内申確定！）", "都立入試過去問演習本格化"], musSteps: ["mus-8"], pySteps: [] },
+    { m: "12月", stage: "p4", target: "📚 全Sランク・Aランク苦手完全制覇！", events: ["冬休み入試直前総仕上げ講習", "過去問5年分2周目完遂"], musSteps: ["mus-8"], pySteps: [] },
+  ]},
+  { year: "2028年", grade: "中3〜高1", months: [
+    { m: "1月", stage: "p4", target: "📚 都立入試直前仕上げ（制限時間マイナス10分演習）", events: ["都立推薦入試", "直前プレ模試・本番シミュレーション"], musSteps: ["mus-8"], pySteps: [] },
+    { m: "2月", stage: "p4", star: true, target: "🏫 ★ 都立武蔵丘高校 受験（合格目標点685点/1020点突破！）", events: ["2月下旬：都立一般入試本番！", "試験終了・全開放！"], musSteps: ["mus-8"], pySteps: [] },
+    { m: "3月", stage: "p5", target: "🎉 合格祝！Logic Pro ＆ HX Stomp XL導入・Moog流用", events: ["高校合格発表！", "Logic Pro導入＆HX Stomp XLセットアップ"], musSteps: ["mus-9"], pySteps: ["py-13", "py-14"] },
+    { m: "4月", stage: "p5", star: true, target: "🏫 ★ 武蔵丘高校入学 ＆ JBG音楽院入学 ＆ 軽音部入部", events: ["都立武蔵丘高校入学式！", "JBG音楽院スタンダードコース開講", "軽音楽部入部"], musSteps: ["mus-9"], pySteps: ["py-14"] },
+    { m: "5月〜7月", stage: "p5", target: "🎸 軽音部バンド活動 ＆ JBG高度コード理論修得", events: ["軽音部定期校内ライブ出演", "JBGバークリーコードプログレッション修得"], musSteps: ["mus-9"], pySteps: ["py-14"] },
+    { m: "8月", stage: "p5", star: true, target: "💻 HX Stomp XL Command Center統合 ＆ 月1〜2曲制作", events: ["高校軽音部夏合宿", "HX Stomp XL MIDI Command Center統合"], musSteps: ["mus-9"], pySteps: ["py-14"] },
+    { m: "9月〜12月", stage: "p5", target: "🎤 武蔵丘高軽音部でライブハウス初出演！", events: ["都内ライブハウス外部イベント初出演！", "Logic Pro本格アレンジ楽曲制作"], musSteps: ["mus-9"], pySteps: ["py-14"] },
+  ]},
+  { year: "2029〜2030年", grade: "高校2〜3年生", months: [
+    { m: "2029年3月", stage: "p5", star: true, target: "📂 Mountain of Sound 完全版 GitHub公開完了 ＆ JBG修了", events: ["JBG音楽院修了制作提出・卒業", "Mountain of Sound GitHubリポジトリ公開"], musSteps: ["mus-9"], pySteps: ["py-15"] },
+    { m: "2029年4月〜8月", stage: "p6", star: true, target: "🎯 国内大学総合型選抜対策具体化 ＆ 30曲作品集マスタリング", events: ["慶應SFC・明治FMS・洗足音大オープンキャンパス", "出願ポートフォリオ30曲マスタリング"], musSteps: ["mus-10"], pySteps: ["py-15"] },
+    { m: "2029年10〜11月", stage: "p6", star: true, target: "🎓 ★ 国内大学 総合型選抜/AO 出願・面接本番", events: ["総合型選抜出願提出", "プレゼン面接・実機デモ実演！"], musSteps: ["mus-10"], pySteps: ["py-15"] },
+    { m: "2030年4月〜", stage: "p7", star: true, target: "🎓 ★★ 国内大学進学 ➔ 22歳でGoldsmiths大学院へ！", events: ["大学入学式！", "世界水準Creative Computing探求開始"], musSteps: [], pySteps: [] },
+  ]}
+];
+
+const ganttTasks = [
+  { nameLines: ["🎤 ライブ決戦・鍵盤", "バンド本番演奏完走"], stage: "p0", start: "2026-06", end: "2026-07" },
+  { nameLines: ["💻 Mountain of Sound", "基本音声波形開発"], stage: "p1", start: "2026-08", end: "2026-08" },
+  { nameLines: ["🏆 ワンフェス本番", "ゲーム発表＆展示"], stage: "p1", start: "2026-10", end: "2026-10" },
+  { nameLines: ["🎛️ Chocolate＆Moog", "4画面連動プロト"], stage: "p2", start: "2026-11", end: "2027-03" },
+  { nameLines: ["🦶 足型キック演出", "4方向足元制御実装"], stage: "p3", start: "2027-04", end: "2027-07" },
+  { nameLines: ["📝 武蔵丘高 受験全集中", "Sランク完全制覇期"], stage: "p4", start: "2027-08", end: "2028-02" },
+  { nameLines: ["🎹 Logic Pro＆HX Stomp", "プロ機材基地構築"], stage: "p5", start: "2028-03", end: "2028-04" },
+  { nameLines: ["🎓 JBG音楽院 1年制", "バークリー理論修得"], stage: "p5", start: "2028-04", end: "2029-03" },
+  { nameLines: ["🎸 武蔵丘高校 軽音部", "バンド活動・ライブ"], stage: "p5", start: "2028-04", end: "2029-08" },
+  { nameLines: ["📂 ゲーム完全版 公開", "GitHub完全公開"], stage: "p5", start: "2029-03", end: "2029-03" },
+  { nameLines: ["✍️ 国内大 総合型選抜", "出願・面接・プレゼン"], stage: "p6", start: "2029-04", end: "2029-11" },
+  { nameLines: ["🎓 国内大学進学", "22歳Goldsmithsへ"], stage: "p7", start: "2030-04", end: "2030-04" },
+];
+
+const allGanttMonthLabels = [];
+for (let y = 2026; y <= 2030; y++) {
+  const startM = y === 2026 ? 6 : 1;
+  const endM = y === 2030 ? 4 : 12;
+  for (let m = startM; m <= endM; m++) {
+    allGanttMonthLabels.push({
+      date: `${y}-${String(m).padStart(2, '0')}`,
+      year: y,
+      m: m,
+      label: m === 1 ? `'${String(y).slice(2)}/1` : (y === 2026 && m === 6 ? `'26/6` : String(m))
+    });
+  }
+}
+
+const schoolCardsData = [
+  {
+    key: "junior_high",
+    title: "🏫 1. 中学の選択（現在地・育成とギター指導環境）",
+    color: C.music,
+    badge: "中学期基盤",
+    group: [
+      {
+        name: "LITALICOワンダー 立川教室",
+        badge: "プログラミング＆DTM",
+        location: "東京都立川市柴崎町（立川駅南口 徒歩4分）",
+        url: "https://wonder.litalico.jp/classroom/tachikawa/",
+        learn: [
+          "Pythonプログラミング・Pygameゲーム制作・物理演算のマンツーマン直接指導",
+          "GarageBandを用いた楽曲録音・オーディオ編集・ミックス手法の習得",
+          "メンター（きゃぷてんさん＆なみぴーさん）による個別伴走指導体制"
+        ],
+        advantages: "真くんの『Mountain of Sound』のゲーム物理演算やMIDI信号処理をマンツーマンで最速実装できる最高のサポーター環境。",
+        teachers: ["きゃぷてんさん（Python・ゲームロジック担当）", "なみぴーさん（DTM・作編曲・音楽理論担当）"],
+        alumni: "ワンダーメイクフェス最優秀賞受賞者、若手アプリ開発エンジニア多数。",
+        otherPoints: "中3受験期は月1〜2回にペース調整しつつ、高校合格後はGitHub公開に向けた本格ブラッシュアップを継続。"
+      },
+      {
+        name: "ギター講師候補 Final Pool 7名（選定中）",
+        badge: "プロギター指導",
+        location: "自宅レッスン / 出張レッスン / 立川・吉祥寺音楽スタジオ",
+        url: "https://docs.google.com/spreadsheets/d/1qFHt3AN7h_Fv9dQEqQSKZGbm_D_onou3M3VL402faTI/edit?gid=1289552235#gid=1289552235",
+        learn: [
+          "Les Paul ＋ RAT2実機 ＋ Amber i2の適正ゲインマッチング・二重歪み防止指導",
+          "MainStageを用いた足元MIDIペダル（Chocolate Plus）アサイン＆音色切り替え",
+          "高校軽音楽部・バンドアンサンブル実戦（Marshall / JC-120アンプ対策）"
+        ],
+        advantages: "スプレッドシート（v3_project_summary）に基づき、アナログエフェクターとMac内蔵DAW/MainStageのハイブリッド指導ができるプロを厳選。",
+        teachers: ["Final Pool 7名（スプレッドシートにて指導方針・機材知見・立地を比較選定中）"],
+        alumni: "現役サポートギタリスト、音大・軽音強豪校進学ギタリスト多数。",
+        otherPoints: "高校軽音部での即戦力ギタリストを目指し、月2回（隔週）の実技レッスンを想定。"
+      }
+    ]
+  },
+  {
+    key: "prog",
+    title: "🚀 2. 中高生が挑戦できる育成プログラム",
+    color: C.music,
+    badge: "最高峰",
+    group: [
+      {
+        name: "未踏ジュニア（Mitou Junior / IPA・経済産業省系）",
+        badge: "17歳以下対象・最高峰",
+        location: "オンライン ＆ 都内合宿・成果報告会",
+        url: "https://jr.mitou.org/",
+        learn: [
+          "独創的なアイディアのプログラミング・ハードウェア作品開発（約50万円の開発資金補助）",
+          "トップクリエイターメンターによる1対1の技術・デザイン直接指導",
+          "成果発表、著作権・知的所有権の自身保持、未踏スーパークリエイター認定"
+        ],
+        advantages: "『Mountain of Sound』のような「音楽×ハードウェア×ゲーム」の独自プロダクトは未踏ジュニアの採択基準に極めて合致。採択されれば大学総合型選抜（慶應SFC等）で最強の実績になる。",
+        teachers: ["安川 要平 氏（未踏ジュニア統括 / ソフトウェアエンジニア）", "関 治之 氏（Code for Japan代表 / オープンイノベーション）", "※Python、音響信号処理、ゲーム演出に強みを持つエンジニアメンター陣が揃っています。"],
+        alumni: "矢倉 大夢 氏（Alpaca創業者）、山内 奏人 氏（WED創業者）など、天才中高生エンジニア多数。",
+        otherPoints: "中3または高1での応募を推奨。倍率は高いが応募書類作成自体が強力な自己分析になる。"
+      },
+      {
+        name: "UTokyoGSC-Next（東京大学グローバルサイエンスキャンパス）",
+        badge: "東大主催・高校生向け",
+        location: "東京大学本郷・駒場キャンパス ＆ オンライン",
+        url: "https://gsc.adm.s.u-tokyo.ac.jp/",
+        learn: [
+          "先端科学・情報技術の研究体験・フィールドワーク",
+          "音響・AI・情報科学における大学研究室レベルの基礎研究手法"
+        ],
+        advantages: "先端音響科学やHCI（ヒューマンコンピュータインタラクション）の基礎研究を高校時代に東大研究室で体験できる。",
+        teachers: ["東京大学情報理工学系研究科・教養学部の先端情報・音響科学研究者陣"],
+        alumni: "全国の難関大学研究者・先端IT起業家多数。",
+        otherPoints: "高校1年時の春に応募・選考。"
+      }
+    ]
+  },
+  {
+    key: "high",
+    title: "🏫 3. 高校の選択肢",
+    color: "#E02424",
+    badge: "高校本番",
+    group: [
+      {
+        name: "都立武蔵丘高等学校（第一本命・鷺ノ宮）",
+        badge: "第一目標候補・軽音超強豪",
+        location: "東京都中野区上鷺宮（西武新宿線「鷺ノ宮駅」徒歩12分 / 東村山より乗り換えなし約40分）",
+        url: "https://www.metro.ed.jp/musashigaoka-h/",
+        learn: [
+          "全国トップレベルの軽音楽部活動（85年の歴史、ライブ演出、ステージパフォーマンス、アンサンブル）",
+          "ギタリストとしての実戦経験と魅せ方"
+        ],
+        advantages: "武蔵丘高軽音部でのバンド活動を通じ、ギタリストとしての圧倒的なライブ表現力とステージ度胸を獲得できる。",
+        teachers: ["軽音楽部顧問・指導陣（全国レベルのバンドパフォーマンス指導力）"],
+        alumni: "浜田 麻里 氏（ミュージシャン）、窪田 晴男 氏（ギタリスト/プロデューサー・パール兄弟）、クジラ夜の街（ロックバンド）",
+        otherPoints: "東京都の就学支援金制度により学費が実質無償化。浮いた資金をJBGや機材・英語教育へ集中投資可能。"
+      },
+      {
+        name: "都立鷺宮高等学校（中野区若宮）",
+        badge: "アクセス至便・部活活発",
+        location: "東京都中野区若宮（西武新宿線「都立家政駅」徒歩3分 / 鷺ノ宮駅徒歩10分 / 東村山より約35分）",
+        url: "https://www.metro.ed.jp/saginomiya-h/",
+        learn: [
+          "活発な部活動（軽音楽部・運動部）、自主自立を重んじる校風",
+          "標準的な共通問題対策、バランスの取れた普通科カリキュラム"
+        ],
+        advantages: "西武新宿線沿線で通学ストレスが極めて低く、都立家政駅から徒歩3分。部活動が非常に盛んで、高校生活と課外活動（DTM・JBG）を両立しやすい。",
+        teachers: ["普通科教員・部活動顧問陣"],
+        alumni: "多くの卒業生が中堅〜上位私立大学（MARCH・成成明学等）や芸術系大学へ進学。",
+        otherPoints: "武蔵丘高校と同エリアに位置し、倍率や内申点状況に応じた現実的な併願・志望校候補。"
+      },
+      {
+        name: "都立多摩科学技術高等学校（武蔵小金井）",
+        badge: "理数・先端技術特化",
+        location: "東京都小金井市本町（JR中央線「武蔵小金井駅」徒歩10分 / 東村山よりバス・電車約35分）",
+        url: "https://www.metro.ed.jp/tamakagakugijutsu-h/",
+        learn: [
+          "情報科学・電子工作・プログラミング、学校課題研究での先端技術探求"
+        ],
+        advantages: "Pythonプログラミングやハードウェア制御（エフェクター信号処理等）を学校の課題研究で追及可能。",
+        teachers: ["情報科学科・課題研究担当教員"],
+        alumni: "理系国公立・難関私立大学（情報・工学系）進学者多数。",
+        otherPoints: "理系国公立大学や慶應SFC・明治FMS等の指定校推薦・総合型選抜にも強い。"
+      },
+      {
+        name: "JBG音楽院（スタンダードコース・高校並行1年制）",
+        badge: "本格音楽理論・高校ダブルスクール",
+        location: "東京都渋谷区代々木 / オンライン受講対応",
+        url: "https://www.jbg-music.com/",
+        learn: [
+          "バークリー音楽大学メソッドによる本格的な作編曲理論・和声学（コードプログレッション）",
+          "Logic Proを用いたコマーシャルクオリティのDTMレコーディング・ミキシング技術",
+          "プロミュージシャン・プロデューサーによる楽曲添削"
+        ],
+        advantages: "高校合格祝いとして入学。武蔵丘高校に通いながら土日・夜間に通学し、1年間で音大作曲科レベルの理論を完全修得。",
+        teachers: ["バークリー音楽大学出身のトップ作編曲家・現役プロデューサー陣"],
+        alumni: "メジャーアーティストへ楽曲提供を行うプロ作家、劇伴作曲家を多数輩出。",
+        otherPoints: "高校1年時に受講することで、高2〜3での大学総合型選抜（30曲ポートフォリオ）制作がプロ水準に跳ね上がる。"
+      }
+    ]
+  },
+  {
+    key: "kosen",
+    title: "🏛 4. 高等専門学校（高専・5年制）の選択肢",
+    color: C.study,
+    badge: "国立・5年制",
+    group: [
+      {
+        name: "国立東京高等専門学校（東京高専 / 八王子）",
+        badge: "国立・5年制高等教育",
+        location: "東京都八王子市椚田町（京王線「狭間駅」徒歩5分 / 東村山より電車約50分）",
+        url: "https://www.tokyo-ct.ac.jp/",
+        learn: [
+          "15歳からのプログラミング（Python, C/C++）",
+          "デジタル信号処理（DSP）、電気・電子回路設計、ハードウェア制御"
+        ],
+        advantages: "15歳からプログラミング、デジタル信号処理（DSP）、電気回路設計を大学レベルで学べる。",
+        teachers: ["情報工学科・電気工学科の教授陣（信号処理・回路・組み込みシステム専門）"],
+        alumni: "高専発ベンチャー起業家、筑波大学・東京工業大学等への国公立編入研究者多数。",
+        otherPoints: "5年卒業後は筑波大学・東京工業大学等の国公立大学3年次編入や海外大学編入ルートが極めて強固。"
+      }
+    ]
+  },
+  {
+    key: "domestic",
+    title: "🎓 5. 国内大学の選択候補（総合型選抜/AO活用）",
+    color: C.study,
+    badge: "国内大学",
+    group: [
+      {
+        name: "慶應義塾大学 総合政策学部 / 環境情報学部（SFC）",
+        badge: "IT×メディア系最高峰",
+        location: "神奈川県藤沢市（相鉄・東急直通線/小田急線「湘南台駅」よりバス15分）",
+        url: "https://www.sfc.keio.ac.jp/",
+        learn: [
+          "メディアアート、音響神経科学・身体科学、AI×音楽、Python/C++インタラクティブシステム開発"
+        ],
+        advantages: "総合型選抜（AO入試）で自作プロダクトと30曲作品集を100%評価。真くんの「音楽×Python」を最も歓迎。",
+        teachers: [
+          "藤井 進也 准教授（音楽神経科学・x-Musicラボ室長 / ドラマー研究者）",
+          "脇田 玲 教授（データドリブンアート・メディアアート）"
+        ],
+        alumni: "光藤 祐基 氏（ソニーAIアメリカ リードリサーチサイエンティスト / 音源分離技術権威）、野村 達雄 氏（『Pokémon GO』シニアプロデューサー）",
+        otherPoints: "研究資金・設備が日本最高峰。在学中の海外留学支援も極めて充実。"
+      },
+      {
+        name: "洗足学園音楽大学（溝の口）",
+        badge: "音大系本命候補",
+        location: "神奈川県川崎市高津区（東急田園都市線「溝の口駅」徒歩8分 / 東村山より約60分）",
+        url: "https://www.senzoku.ac.jp/",
+        learn: [
+          "コース選択：音楽音響クリエイティブ表現コース または 音楽・音響デザインコース",
+          "主科エレキギター実技レッスン（演奏表現・技術）",
+          "DAW（DTM）作編曲、音響工学、レコーディング技術、シンセサイザー理論",
+          "インタラクティブ音響演出、Max/MSP音響プログラミング（先端音楽表現研究所）"
+        ],
+        advantages: "E.ギター主科レッスンで演奏力を高めつつ、演出テクノロジーや録音技術を学べる国内唯一無二の環境。",
+        teachers: [
+          "森 威功 教授（先端音楽表現研究所長 / 電子音楽・音響プログラミング）",
+          "前田 康徳 教授（音楽環境創造 / メディアパフォーマンス）"
+        ],
+        alumni: "Saori 氏（SEKAI NO OWARI）、大間々 昂 氏（劇伴作曲家『機動戦士ガンダム 水星の魔女』）、山田 豊 氏（劇伴作曲家『東京喰種』）",
+        otherPoints: "選考のポイント（総合型選抜/AO入試）：伝統的な演奏試験だけでなく、自作DTM楽曲や自作ゲーム（Mountain of Sound）を持参し実技プレゼンするスタイルが正当評価されます。"
+      },
+      {
+        name: "東京藝術大学（音楽学部 音楽環境創造科）",
+        badge: "国立芸大・先端音響アート",
+        location: "東京都足立区千住（北千住駅 徒歩5分）",
+        url: "https://mce.geidai.ac.jp/",
+        learn: [
+          "音響空間デザイン、先端メディア表現、現代音楽創作、舞台音響・音響心理学",
+          "音楽・アート・テクノロジー・社会を結ぶ総合的な表現・研究探求"
+        ],
+        advantages: "日本の芸術系大学の最高峰。商業音楽の枠を超えたサウンドインスタレーションやインタラクティブアートの研究環境。",
+        teachers: ["音楽環境創造科の教授陣（現代音響工学・サウンドアート・先端芸術表現の世界的権威）"],
+        alumni: "世界で活躍するサウンドアーティスト、映画音響監督、先端メディアクリエイター多数。",
+        otherPoints: "小論文・作品面接・自己表現プレゼンが重視され、独創的な自作ソフトウェアと楽曲集が最大の強みになる。"
+      },
+      {
+        name: "国立音楽大学（玉川上水）",
+        badge: "通学至便・音楽デザイン専修",
+        location: "東京都立川市柏町（西武立川線・多摩モノレール「玉川上水駅」徒歩2分 / 東村山より約25分）",
+        url: "https://www.kunitachi.ac.jp/",
+        learn: [
+          "演奏・創作学科 音楽デザイン専修",
+          "コンピュータ音楽、クリエイティブコーディング、サウンドデザイン",
+          "録音技術、オーディオ工学、現代作曲法"
+        ],
+        advantages: "東村山から近く通学ストレスがゼロ。上品でアカデミックな音楽理論と音響技術を学べる。",
+        teachers: ["濵野 峻行 准教授（クリエイティブコーディング・音響プログラミング）"],
+        alumni: "小島 裕規 / Yaffle 氏（音楽プロデューサー / 藤井風等をプロデュース）、日向 萌 氏（劇伴作曲家）",
+        otherPoints: "アクセス抜群で集中して高度なサウンドデザインを追及できる。"
+      },
+      {
+        name: "明治大学 総合数理学部 先端メディアサイエンス学科（FMS）",
+        badge: "HCI・コンテンツIT名門",
+        location: "東京都中野区中野（JR中央線・東西線「中野駅」徒歩8分 / 東村山より西武線経由約35分）",
+        url: "https://www.meiji.ac.jp/ims/fms/",
+        learn: [
+          "ヒューマンコンピュータインタラクション（HCI）、コンテンツ・エンタテインメントプログラミング、音・身体・表現の拡張技術（Python/C++）"
+        ],
+        advantages: "自分でコードを書き、新しい音体験やゲーム体験を作る真くんのスタイルに完全にマッチ。",
+        teachers: [
+          "宮下 芳明 教授（人間表現能力のコンピュータ拡張・HCI権威）",
+          "渡邊 恵太 教授（インタラクションデザイン）"
+        ],
+        alumni: "CEDEC賞や学会賞を受賞したエンタメITエンジニア・研究者多数。",
+        otherPoints: "中野キャンパスで通学利便性が高く、先端エンタメIT業界への実績抜群。"
+      },
+      {
+        name: "東京工科大学 メディア学部（八王子）",
+        badge: "ゲームサウンド・メディア",
+        location: "東京都八王子市片倉町（JR横浜線「八王子みなみ野駅」徒歩13分）",
+        url: "https://www.teu.ac.jp/gakubu/media/",
+        learn: [
+          "音響エンジニアリング、ゲームサウンド制作（Unity/Unreal Engine）、サウンドプログラミング"
+        ],
+        advantages: "プロ仕様の録音スタジオやゲーム開発・サウンド演出設備が国内随一。",
+        teachers: ["吉岡 英樹 講師（ゲームサウンド制作・音響プログラミング）"],
+        alumni: "ゲーム会社サウンドクリエイター・エンジニア多数。",
+        otherPoints: "実務的なゲームサウンドプログラミングを徹底的に実践可能。"
+      }
+    ]
+  },
+  {
+    key: "overseas",
+    title: "🌏 6. 海外大学・大学院候補（将来の第一目標）",
+    color: "#6D28D9",
+    badge: "将来・海外",
+    group: [
+      {
+        name: "Goldsmiths, University of London",
+        badge: "世界最高峰Music Computing",
+        location: "英国ロンドン（London SE14 6NW）",
+        url: "https://www.gold.ac.uk/",
+        learn: [
+          "Creative Computing / Music Computing（Python/C++による音響システム開発、ライブコーディング、インタラクティブアート）"
+        ],
+        advantages: "国内大学の4年間で専門実績と英語（IELTS 6.5）を蓄え、22歳から大学院生（Master's）として進学する世界的拠点！",
+        teachers: ["Prof. Mick Grierson（Creative Computing学科長）", "Dr. Rebecca Fiebrink（『Wekinator』開発者）"],
+        alumni: "Damon Albarn 氏（Gorillaz / Blur 創始者）、James Blake 氏（グラミー賞音楽家）",
+        otherPoints: "英国政府Chevening奨学金等の対象校。音楽×ITの領域で世界最高のブランド力。"
+      },
+      {
+        name: "Berklee College of Music（米国ボストン・バークリー音楽大学）",
+        badge: "音楽×テクノロジー最高峰",
+        location: "米国マサチューセッツ州ボストン",
+        url: "https://www.berklee.edu/",
+        learn: [
+          "Electronic Production and Design (EPD)、ゲームスコアリング、シンセサイザー開発、Max/MSP、ギター実技"
+        ],
+        advantages: "JBG音楽院の親体メソッドであり、世界中のトップミュージシャン・エンジニアが集まる環境。",
+        teachers: ["Dr. Richard Boulanger（EPD教授 / Max/MSP・CSound世界的権威）"],
+        alumni: "John Mayer 氏（ギタリスト）、Charlie Puth 氏、上原 ひろみ 氏",
+        otherPoints: "世界最高レベルのポピュラー音楽＆テクノロジーのネットワーク。"
+      }
+    ]
+  }
+];
+
+const recommendationRankingData = {
+  junior: [
+    { rank: "第1位", name: "未踏ジュニア（IPA / 経済産業省系）", merit: "50万円の資金補助＋プロ講師指名。", demerit: "採択率数%の超難関。" },
+    { rank: "第2位", name: "都立武蔵丘高等学校（軽音楽部）", merit: "全国トップ級のステージ経験＋学費無償化。", demerit: "人気校で高倍率（要685点以上）。" },
+    { rank: "第3位", name: "LITALICOワンダー立川（キャプテンさん＆なみぴーさんタッグ）", merit: "Python×DTMの実装をマンツーマンで最速化。", demerit: "月謝が必要。" }
+  ],
+  higher: [
+    { rank: "第1位", name: "慶應義塾大学 SFC / 明治大学 FMS", merit: "IT×音楽表現の最高峰、AO入試で自作アプリ完全評価。" },
+    { rank: "第2位", name: "洗足学園音楽大学", merit: "E.ギター実技＋演出テクノロジーが両立。" },
+    { rank: "第3位", name: "Goldsmiths（大学院進学）", merit: "音楽×プログラミングで世界最強のブランド力。" },
+    { rank: "4位", name: "国立音楽大学（音楽デザイン専修）", merit: "通学ストレスゼロ、アカデミックな音響デザイン。" },
+    { rank: "5位", name: "東京工科大学 メディア学部", merit: "プロ仕様のサウンドスタジオ・ゲーム開発環境。" }
+  ]
+};
+
+const FEEDBACK_QUESTIONS = [
+  { id: "q1_general", text: "1. 全体のデザインや操作感はどう？", placeholder: "画面の見やすさ、色合い、文字サイズ、タブの使いやすさなど" },
+  { id: "q2_schedule", text: "2. 今日のタスク・時間割機能は役立っている？", placeholder: "予定の確認しやすさ、時間の過不足、ルーティンの使いやすさなど" },
+  { id: "q3_music", text: "3. 音楽（ギター・DTM）の進捗管理はどう？", placeholder: "練習のモチベーション、曲ごとの進み具合、ステップの分かりやすさなど" },
+  { id: "q4_python", text: "4. 開発（Mountain of Sound）の進捗管理はどう？", placeholder: "ステップの具体性、次やることが迷わず分かるか、メンター相談のしやすさなど" },
+  { id: "q5_study", text: "5. 学習（都立武蔵丘高・各教科）の進捗管理はどう？", placeholder: "Sランク単元のやりやすさ、毎日の負担感、大問1即効枠の活用状況など" },
+  { id: "q6_requests", text: "6. 次に追加・改善してほしい機能はある？", placeholder: "もっとこうしてほしい！こんな機能がほしい！という要望を何でも自由に" }
+];
+
+const createEmptyFeedbackForm = () => ({
+  ratings: {
+    q1_general: 5,
+    q2_schedule: 5,
+    q3_music: 5,
+    q4_python: 5,
+    q5_study: 5
+  },
+  comments: {
+    q1_general: "",
+    q2_schedule: "",
+    q3_music: "",
+    q4_python: "",
+    q5_study: "",
+    q6_requests: ""
+  },
+  editingFeedbackId: null
+});
+
+function App() {
+  const [tab, setTab] = useState("today");
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const isWeekend = currentTime.getDay() === 0 || currentTime.getDay() === 6;
+  const [schedType, setSchedType] = useState(isWeekend ? "weekend" : "club");
+
+  const [schedules, setSchedules] = useState(() => {
+    try {
+      const saved = window.localStorage ? localStorage.getItem("shin_schedules_v9") : null;
+      return saved ? JSON.parse(saved) : defaultSchedulesData;
+    } catch(e) {
+      return defaultSchedulesData;
+    }
+  });
+
+  const saveSchedules = (newScheds) => {
+    setSchedules(newScheds);
+    try {
+      if (window.localStorage) {
+        localStorage.setItem("shin_schedules_v9", JSON.stringify(newScheds));
+      }
+    } catch(e) {}
+  };
+
+  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
+  const [backupScheduleItems, setBackupScheduleItems] = useState(null);
+
+  const startEditSchedule = () => {
+    setBackupScheduleItems(JSON.parse(JSON.stringify(schedules[schedType].items)));
+    setIsEditingSchedule(true);
+  };
+
+  const cancelEditSchedule = () => {
+    if (backupScheduleItems) {
+      const updated = { ...schedules, [schedType]: { ...schedules[schedType], items: backupScheduleItems } };
+      saveSchedules(updated);
+    }
+    setIsEditingSchedule(false);
+    setBackupScheduleItems(null);
+  };
+
+  const finishEditSchedule = () => {
+    setIsEditingSchedule(false);
+    setBackupScheduleItems(null);
+  };
+
+  const moveScheduleItem = (type, index, direction) => {
+    const list = [...schedules[type].items];
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+    const temp = list[index];
+    list[index] = list[targetIdx];
+    list[targetIdx] = temp;
+    saveSchedules({ ...schedules, [type]: { ...schedules[type], items: list } });
+  };
+
+  const updateScheduleItemField = (type, index, field, value) => {
+    const list = [...schedules[type].items];
+    list[index] = { ...list[index], [field]: value };
+    saveSchedules({ ...schedules, [type]: { ...schedules[type], items: list } });
+  };
+
+  const updateScheduleItemTimeRange = (type, index, isStart, newVal) => {
+    const item = schedules[type].items[index];
+    let [s, e] = item.t.includes("〜") ? item.t.split("〜") : [item.t, ""];
+    if (isStart) s = newVal; else e = newVal;
+    const newRange = e ? `${s}〜${e}` : s;
+    updateScheduleItemField(type, index, "t", newRange);
+  };
+
+  const addScheduleItem = (type) => {
+    const list = [...schedules[type].items];
+    const newItem = { id: `sch-custom-${Date.now()}`, t: "17:00〜17:30", a: "新規やること", hi: false };
+    saveSchedules({ ...schedules, [type]: { ...schedules[type], items: [...list, newItem] } });
+  };
+
+  const duplicateScheduleTemplate = (type) => {
+    const cur = schedules[type];
+    const newKey = `custom_${Date.now()}`;
+    const newName = `${cur.name} コピー`;
+    const newScheds = {
+      ...schedules,
+      [newKey]: {
+        ...cur,
+        name: newName,
+        items: JSON.parse(JSON.stringify(cur.items))
+      }
+    };
+    saveSchedules(newScheds);
+    setSchedType(newKey);
+  };
+
+  const deleteScheduleTemplate = (type) => {
+    const keys = Object.keys(schedules);
+    if (keys.length <= 1) return;
+    const nextKey = keys.find(k => k !== type) || keys[0];
+    const newScheds = { ...schedules };
+    delete newScheds[type];
+    saveSchedules(newScheds);
+    setSchedType(nextKey);
+  };
+
+  const [checkedItems, setCheckedItems] = useState(() => {
+    try {
+      const saved = window.localStorage ? localStorage.getItem("shin_checks_v9") : null;
+      return saved ? JSON.parse(saved) : {};
+    } catch(e) {
+      return {};
+    }
+  });
+
+  const toggleCheck = (id) => {
+    setCheckedItems(prev => {
+      const updated = { ...prev, [id]: !prev[id] };
+      try {
+        if (window.localStorage) localStorage.setItem("shin_checks_v9", JSON.stringify(updated));
+      } catch(e) {}
+      return updated;
+    });
+  };
+
+  /* Accordions */
+  const [openTodaySched, setOpenTodaySched] = useState(true);
+  const [openTodayStudy, setOpenTodayStudy] = useState(true);
+  const [openTodayMusic, setOpenTodayMusic] = useState(true);
+  const [openTodayCode, setOpenTodayCode] = useState(true);
+  const [expandedDetailTasks, setExpandedDetailTasks] = useState({});
+
+  const toggleTaskDetail = (id) => {
+    setExpandedDetailTasks(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const [openMonths, setOpenMonths] = useState({});
+  const toggleMonth = (moKey) => {
+    setOpenMonths(prev => ({ ...prev, [moKey]: prev[moKey] === false ? true : false }));
+  };
+
+  const [openMonthSubGroups, setOpenMonthSubGroups] = useState({});
+  const toggleMonthSubGroup = (key) => {
+    setOpenMonthSubGroups(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const [openStageCards, setOpenStageCards] = useState({});
+  const toggleStageCard = (sKey) => {
+    setOpenStageCards(prev => ({ ...prev, [sKey]: !prev[sKey] }));
+  };
+
+  const [openStageMilestone, setOpenStageMilestone] = useState({});
+  const toggleStageMilestone = (sKey) => {
+    setOpenStageMilestone(prev => ({ ...prev, [sKey]: !prev[sKey] }));
+  };
+
+  const [openStageCategory, setOpenStageCategory] = useState({});
+  const toggleStageCategory = (key) => {
+    setOpenStageCategory(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const [openSchoolCards, setOpenSchoolCards] = useState({});
+  const toggleSchoolCard = (key) => {
+    setOpenSchoolCards(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const [openStudyVisionCard, setOpenStudyVisionCard] = useState(true);
+  const [openStudySubjects, setOpenStudySubjects] = useState({
+    math: true, eng: true, sci: true, soc: true, jpn: true
+  });
+  const toggleStudySubject = (subKey) => {
+    setOpenStudySubjects(prev => ({ ...prev, [subKey]: !prev[subKey] }));
+  };
+
+  /* Music tracks state with 5% step editable */
+  const [musicTracks, setMusicTracks] = useState(() => {
+    try {
+      const saved = window.localStorage ? localStorage.getItem("shin_music_tracks_v1") : null;
+      return saved ? JSON.parse(saved) : defaultMusicTracks;
+    } catch(e) {
+      return defaultMusicTracks;
+    }
+  });
+  const [isEditingTracks, setIsEditingTracks] = useState(false);
+
+  const updateTrackPct = (id, newPct) => {
+    const updated = musicTracks.map(t => t.id === id ? { ...t, pct: Number(newPct) } : t);
+    setMusicTracks(updated);
+    try {
+      if (window.localStorage) localStorage.setItem("shin_music_tracks_v1", JSON.stringify(updated));
+    } catch(e) {}
+  };
+
+  /* Study filters */
+  const [studyFilterRankS, setStudyFilterRankS] = useState(false);
+  const [studyFilterWeak, setStudyFilterWeak] = useState(false);
+  const [studyFilterSubjects, setStudyFilterSubjects] = useState({ math: false, eng: false, sci: false, soc: false, jpn: false });
+
+  const toggleSubjectFilter = (subKey) => {
+    setStudyFilterSubjects(prev => ({ ...prev, [subKey]: !prev[subKey] }));
+  };
+
+  /* Progress Calculations: Linking subtasks for Music & Python */
+  const allStudyUnits = studySubjectsData.flatMap(s => s.units);
+  const totalSRankUnits = allStudyUnits.filter(u => u.rank === "S").length;
+  const checkedSRankUnits = allStudyUnits.filter(u => u.rank === "S" && checkedItems[u.id]).length;
+  const sRankPct = Math.round((checkedSRankUnits / totalSRankUnits) * 100);
+
+  const totalStudyUnits = allStudyUnits.length;
+  const checkedStudyUnits = allStudyUnits.filter(u => checkedItems[u.id]).length;
+  const studyPct = Math.round((checkedStudyUnits / totalStudyUnits) * 100);
+
+  /* Music subtasks progress */
+  const allMusicSubtasks = musicSteps.flatMap(s => s.subtasks);
+  const totalMusSubtasks = allMusicSubtasks.length;
+  const checkedMusSubtasks = allMusicSubtasks.filter(st => checkedItems[st.id]).length;
+  const musPct = totalMusSubtasks > 0 ? Math.round((checkedMusSubtasks / totalMusSubtasks) * 100) : 0;
+
+  /* Python subtasks progress */
+  const allPythonSubtasks = pythonSteps.flatMap(s => s.subtasks);
+  const totalPySubtasks = allPythonSubtasks.length;
+  const checkedPySubtasks = allPythonSubtasks.filter(st => checkedItems[st.id]).length;
+  const pyPct = totalPySubtasks > 0 ? Math.round((checkedPySubtasks / totalPySubtasks) * 100) : 0;
+
+  const todaySched = schedules[schedType] || schedules.club;
+  const completedSchedCount = todaySched.items.filter(it => checkedItems[it.id]).length;
+
+  const currentStageKey = Object.keys(stageInfo).find(k => checkIsCurrentStage(k, currentTime)) || "p1";
+
+  const daysJa = ["日", "月", "火", "水", "木", "金", "土"];
+  const formattedDateStr = `${currentTime.getFullYear()}年${currentTime.getMonth() + 1}月${currentTime.getDate()}日 (${daysJa[currentTime.getDay()]})`;
+
+  /* ================== FEEDBACK STATE & LOGIC ================== */
+  const [feedbacks, setFeedbacks] = useState(() => {
+    try {
+      const saved = window.localStorage ? localStorage.getItem("shin_feedbacks_v1") : null;
+      return saved ? JSON.parse(saved) : [];
+    } catch(e) {
+      return [];
+    }
+  });
+
+  const saveFeedbacksToStorage = (list) => {
+    setFeedbacks(list);
+    try {
+      if (window.localStorage) {
+        localStorage.setItem("shin_feedbacks_v1", JSON.stringify(list));
+      }
+    } catch(e) {}
+  };
+
+  const [currentRespondent, setCurrentRespondent] = useState("真");
+
+  /* 回答者ごとの独立した入力状態（下書き・編集中データ）を保持 */
+  const [feedbackDrafts, setFeedbackDrafts] = useState(() => {
+    try {
+      const saved = window.localStorage ? localStorage.getItem("shin_feedback_drafts_v1") : null;
+      if (saved) return JSON.parse(saved);
+    } catch(e) {}
+    return {
+      "真": createEmptyFeedbackForm(),
+      "パパ": createEmptyFeedbackForm(),
+      "その他": createEmptyFeedbackForm()
+    };
+  });
+
+  const saveDraftsToStorage = (updatedDrafts) => {
+    setFeedbackDrafts(updatedDrafts);
+    try {
+      if (window.localStorage) {
+        localStorage.setItem("shin_feedback_drafts_v1", JSON.stringify(updatedDrafts));
+      }
+    } catch(e) {}
+  };
+
+  const currentForm = feedbackDrafts[currentRespondent] || createEmptyFeedbackForm();
+
+  const handleRespondentSwitch = (newRespondent) => {
+    setCurrentRespondent(newRespondent);
+    if (!feedbackDrafts[newRespondent]) {
+      const updated = { ...feedbackDrafts, [newRespondent]: createEmptyFeedbackForm() };
+      saveDraftsToStorage(updated);
+    }
+  };
+
+  const handleRatingChange = (qId, val) => {
+    const updated = {
+      ...feedbackDrafts,
+      [currentRespondent]: {
+        ...currentForm,
+        ratings: {
+          ...currentForm.ratings,
+          [qId]: val
+        }
+      }
+    };
+    saveDraftsToStorage(updated);
+  };
+
+  const handleCommentChange = (qId, val) => {
+    const updated = {
+      ...feedbackDrafts,
+      [currentRespondent]: {
+        ...currentForm,
+        comments: {
+          ...currentForm.comments,
+          [qId]: val
+        }
+      }
+    };
+    saveDraftsToStorage(updated);
+  };
+
+  const handleResetCurrentForm = () => {
+    const updated = {
+      ...feedbackDrafts,
+      [currentRespondent]: createEmptyFeedbackForm()
+    };
+    saveDraftsToStorage(updated);
+    setFeedbackSavedMessage("🔄 入力をリセットしました");
+    setTimeout(() => setFeedbackSavedMessage(""), 2500);
+  };
+
+  const [exportScope, setExportScope] = useState("latest"); // "latest" or "all"
+  const [feedbackSavedMessage, setFeedbackSavedMessage] = useState("");
+
+  const handleSaveFeedback = () => {
+    const now = new Date();
+    const formattedNow = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const recordId = currentForm.editingFeedbackId || `fb_${Date.now()}`;
+
+    const newRecord = {
+      feedback_id: recordId,
+      app_version: APP_VERSION,
+      respondent: currentRespondent,
+      submitted_at: now.toISOString(),
+      submitted_at_formatted: formattedNow,
+      answers: FEEDBACK_QUESTIONS.map(q => ({
+        question_id: q.id,
+        question_text: q.text,
+        rating: q.id === "q6_requests" ? null : (currentForm.ratings[q.id] || null),
+        comment: (currentForm.comments[q.id] || "").trim()
+      }))
+    };
+
+    let updatedList;
+    if (currentForm.editingFeedbackId) {
+      updatedList = feedbacks.map(item => item.feedback_id === currentForm.editingFeedbackId ? newRecord : item);
+    } else {
+      updatedList = [newRecord, ...feedbacks];
+    }
+
+    saveFeedbacksToStorage(updatedList);
+
+    // 保存後も入力内容・星の数をリセットせずそのまま残す
+    const updatedDrafts = {
+      ...feedbackDrafts,
+      [currentRespondent]: {
+        ...currentForm,
+        editingFeedbackId: recordId
+      }
+    };
+    saveDraftsToStorage(updatedDrafts);
+
+    setFeedbackSavedMessage(`✅ 【${currentRespondent}】の感想を保存しました！（入力内容は画面に残っています）`);
+    setTimeout(() => setFeedbackSavedMessage(""), 3500);
+  };
+
+  const startEditExistingFeedback = (fb) => {
+    let targetRespondent = fb.respondent || "真";
+    if (targetRespondent === "真くん") targetRespondent = "真";
+    if (targetRespondent === "お父様") targetRespondent = "パパ";
+    setCurrentRespondent(targetRespondent);
+
+    const newRatings = { ...createEmptyFeedbackForm().ratings };
+    const newComments = { ...createEmptyFeedbackForm().comments };
+
+    fb.answers.forEach(a => {
+      if (a.rating !== null) newRatings[a.question_id] = a.rating;
+      newComments[a.question_id] = a.comment || "";
+    });
+
+    const updatedDrafts = {
+      ...feedbackDrafts,
+      [targetRespondent]: {
+        ratings: newRatings,
+        comments: newComments,
+        editingFeedbackId: fb.feedback_id
+      }
+    };
+    saveDraftsToStorage(updatedDrafts);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setFeedbackSavedMessage(`✏️ 【${targetRespondent}】の過去回答を読み込みました`);
+    setTimeout(() => setFeedbackSavedMessage(""), 3000);
+  };
+
+  const deleteFeedback = (fbId) => {
+    const updated = feedbacks.filter(f => f.feedback_id !== fbId);
+    saveFeedbacksToStorage(updated);
+
+    if (currentForm.editingFeedbackId === fbId) {
+      handleResetCurrentForm();
+    }
+  };
+
+  const getTargetFeedbacksForExport = () => {
+    if (feedbacks.length === 0) return [];
+    if (exportScope === "latest") return [feedbacks[0]];
+    return feedbacks;
+  };
+
+  const copyFeedbackText = () => {
+    const targets = getTargetFeedbacksForExport();
+    if (targets.length === 0) {
+      setFeedbackSavedMessage("⚠️ 保存された感想がまだありません。「感想を保存する」を押してください。");
+      setTimeout(() => setFeedbackSavedMessage(""), 3000);
+      return;
+    }
+
+    let text = "【真のクリエイターロードマップ 利用者フィードバック】\n\n";
+    targets.forEach((fb, idx) => {
+      text += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      text += `■ 回答日時: ${fb.submitted_at_formatted}\n`;
+      text += `■ 回答者: ${fb.respondent}\n`;
+      text += `■ バージョン: ${fb.app_version}\n\n`;
+      fb.answers.forEach(ans => {
+        text += `${ans.question_text}\n`;
+        if (ans.rating !== null) {
+          text += `  [評価] ${"★".repeat(ans.rating)}${"☆".repeat(5 - ans.rating)} (${ans.rating}/5)\n`;
+        }
+        text += `  [コメント] ${ans.comment || "(特になし)"}\n\n`;
+      });
+      if (idx < targets.length - 1) text += "\n";
+    });
+
+    navigator.clipboard.writeText(text).then(() => {
+      setFeedbackSavedMessage("📋 クリップボードに回答をコピーしました！");
+      setTimeout(() => setFeedbackSavedMessage(""), 3000);
+    }).catch(() => {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setFeedbackSavedMessage("📋 クリップボードに回答をコピーしました！");
+      setTimeout(() => setFeedbackSavedMessage(""), 3000);
+    });
+  };
+
+  const exportFeedbackJSON = () => {
+    const targets = getTargetFeedbacksForExport();
+    if (targets.length === 0) {
+      setFeedbackSavedMessage("⚠️ 保存された感想がまだありません。");
+      setTimeout(() => setFeedbackSavedMessage(""), 3000);
+      return;
+    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(targets, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `riff_feedback_${exportScope}_${Date.now()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const exportFeedbackCSV = () => {
+    const targets = getTargetFeedbacksForExport();
+    if (targets.length === 0) {
+      setFeedbackSavedMessage("⚠️ 保存された感想がまだありません。");
+      setTimeout(() => setFeedbackSavedMessage(""), 3000);
+      return;
+    }
+
+    let csvContent = "\uFEFF"; // Excel用BOM (Byte Order Mark)
+    csvContent += "回答ID,回答日時,アプリバージョン,回答者,質問ID,質問文,星評価(5段階),コメント\n";
+
+    targets.forEach(fb => {
+      fb.answers.forEach(ans => {
+        const idSafe = `"${(fb.feedback_id || "").replace(/"/g, '""')}"`;
+        const dateSafe = `"${(fb.submitted_at_formatted || "").replace(/"/g, '""')}"`;
+        const verSafe = `"${(fb.app_version || "").replace(/"/g, '""')}"`;
+        const respSafe = `"${(fb.respondent || "").replace(/"/g, '""')}"`;
+        const qIdSafe = `"${(ans.question_id || "").replace(/"/g, '""')}"`;
+        const qTextSafe = `"${(ans.question_text || "").replace(/"/g, '""')}"`;
+        const rateSafe = ans.rating !== null ? ans.rating : "";
+        const commentSafe = `"${(ans.comment || "").replace(/"/g, '""')}"`;
+
+        csvContent += `${idSafe},${dateSafe},${verSafe},${respSafe},${qIdSafe},${qTextSafe},${rateSafe},${commentSafe}\n`;
+      });
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `riff_feedback_${exportScope}_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  /* Helper to jump to specific target tab */
+  const jumpToTask = (targetTab, taskId) => {
+    setTab(targetTab);
+    setExpandedDetailTasks(prev => ({ ...prev, [taskId]: true }));
+    setTimeout(() => {
+      const el = document.getElementById(taskId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  };
+
+  const renderStandardTaskTags = (u, subObj, targetTab = "study") => {
+    const stageObj = stageInfo[u.stage] || { label: "ステージ 1" };
+    
+    let levelBg = "#475569";
+    if (u.level === "得意") levelBg = "#059669";
+    else if (u.level === "少し苦手") levelBg = "#D97706";
+    else if (u.level === "苦手") levelBg = "#DC2626";
+
+    const subjectColor = subObj.color || C.study;
+
+    return h('div', {
+      onClick: () => toggleTaskDetail(u.id),
+      style: {
+        display: "flex", flexWrap: "wrap", alignItems: "center",
+        justifyContent: "space-between", gap: "6px", marginBottom: "4px", width: "100%",
+        cursor: "pointer"
+      }
+    },
+      h('div', { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "5px" } },
+        h('span', {
+          className: "badge-tag",
+          style: { color: "#FFFFFF", background: C.study, fontWeight: 600 }
+        }, `${stageObj.label.replace(" ", "")}ステップ${u.stepNum}`),
+
+        h('span', {
+          className: "badge-tag",
+          style: { color: "#FFFFFF", background: "#475569", fontWeight: 600, border: "none" }
+        }, u.grade),
+
+        h('span', {
+          className: "badge-tag",
+          style: {
+            color: "#FFFFFF",
+            background: u.rank === "S" ? "#DC2626" : (u.rank === "A" ? C.study : "#64748B"),
+            border: "none",
+            fontWeight: 600
+          }
+        }, `${u.rank}ランク`),
+
+        h('span', {
+          className: "badge-tag",
+          style: { color: "#FFFFFF", background: subjectColor, fontWeight: 600, border: "none" }
+        }, `${subObj.icon || "📚"} ${subObj.name || "教科"}`),
+
+        h('span', {
+          className: "badge-tag",
+          style: { color: "#FFFFFF", background: subjectColor, fontWeight: 600, border: "none" }
+        }, u.unit),
+
+        h('span', {
+          className: "badge-tag",
+          style: { color: "#FFFFFF", background: levelBg, fontWeight: 600, border: "none" }
+        }, u.level)
+      ),
+
+      h('div', { style: { display: "flex", alignItems: "center", gap: "5px", marginLeft: "auto" } },
+        h('span', {
+          className: "badge-tag",
+          style: { color: "#0F766E", background: "#F0FDFA", border: "1px solid #99F6E4", fontWeight: 600 }
+        }, `目安${u.timeAlloc}`),
+
+        h('span', {
+          className: "badge-tag",
+          style: { color: C.muted, background: "transparent", border: `1px solid ${C.border}`, fontWeight: 600 }
+        }, `期日: ${u.targetPeriod}`),
+
+        h('button', {
+          className: "btn-action",
+          onClick: (e) => { e.stopPropagation(); jumpToTask(targetTab, u.id); },
+          style: { color: "#FFFFFF", background: C.study, padding: "2.5px 8px", fontSize: "11.5px", fontWeight: 600, letterSpacing: "0.03em" }
+        }, "詳細 ↗")
+      )
+    );
+  };
+
+  /* Render structured study task item */
+  const renderStudyTaskCard = (u, subObj, targetTab = "study") => {
+    const isChecked = !!checkedItems[u.id];
+    const isExpanded = !!expandedDetailTasks[u.id];
+
+    return h('div', {
+      key: u.id,
+      id: u.id,
+      style: {
+        background: isChecked ? "#F8FAFC" : C.studyBg,
+        border: `1.5px solid ${isChecked ? "rgba(0,0,0,0.06)" : (u.rank === "S" ? "#FCA5A5" : C.studyBorder)}`,
+        borderRadius: "9px",
+        padding: "9px 12px",
+        marginBottom: "7px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+      }
+    },
+      h('div', { style: { display: "flex", gap: "10px", alignItems: "flex-start" } },
+        h('input', {
+          type: "checkbox",
+          className: "custom-checkbox-interactive",
+          checked: isChecked,
+          onChange: () => toggleCheck(u.id),
+          style: { marginTop: "3px" }
+        }),
+        h('div', { style: { flex: 1, minWidth: 0 } },
+          renderStandardTaskTags(u, subObj, targetTab),
+          h('div', {
+            onClick: () => toggleTaskDetail(u.id),
+            style: {
+              fontSize: "14px",
+              fontWeight: 800,
+              color: isChecked ? C.muted : C.text,
+              textDecoration: isChecked ? "line-through" : "none",
+              cursor: "pointer",
+              lineHeight: 1.4,
+              padding: "2px 0"
+            }
+          }, u.item),
+          isExpanded && h('div', {
+            style: {
+              marginTop: "6px",
+              paddingTop: "6px",
+              borderTop: "1px dashed rgba(0,0,0,0.1)",
+              fontSize: "12px",
+              color: C.sub,
+              lineHeight: 1.45
+            }
+          },
+            h('div', { style: { color: "#1D4ED8", fontWeight: 700, marginBottom: "3px" } }, `📖 教科書・ワーク対応: 【${u.textbookRef}】`),
+            h('div', { style: { color: C.sub } }, `🎯 都立大問攻略メモ: ${u.memo}`)
+          )
+        ),
+        h('button', {
+          onClick: () => toggleTaskDetail(u.id),
+          style: { background: "none", border: "none", color: C.muted, cursor: "pointer", padding: "4px", fontSize: "12px" }
+        }, isExpanded ? "▲" : "▼")
+      )
+    );
+  };
+
+  return h('div', { style: { minHeight: "100dvh", background: C.bg, color: C.text } },
+    h('div', { className: 'fixed-header' },
+      h('div', { style: { maxWidth: 880, margin: "0 auto", padding: "10px 14px 4px" } },
+        h('div', {
+          style: {
+            background: "linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%)",
+            borderRadius: "8px",
+            padding: "8px 12px",
+            marginBottom: "6px",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            flexWrap: "wrap",
+            gap: "8px"
+          }
+        },
+          h('div', { style: { display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" } },
+            h('span', {
+              style: {
+                display: "inline-block",
+                fontSize: "26px",
+                fontWeight: 700,
+                color: "#FFFFFF",
+                letterSpacing: "0.04em",
+                lineHeight: "1",
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+                transform: "scale(0.98, 1.22) skewX(-4deg)",
+                transformOrigin: "bottom left",
+                textShadow: "0 2px 8px rgba(0,0,0,0.5)"
+              }
+            }, "RIFF"),
+            h('span', {
+              style: {
+                fontSize: "14.5px",
+                fontWeight: 700,
+                color: "#E5E5EA",
+                letterSpacing: "0.02em"
+              }
+            }, "真のクリエイターロードマップ 2026～2030")
+          ),
+          h('div', {
+            style: {
+              fontSize: "11.8px",
+              fontWeight: 700,
+              color: "#D1D1D6"
+            }
+          }, formattedDateStr)
+        ),
+        h('div', { className: 'nav-tabs-container' },
+          [
+            { id: "today", label: "⚡今日" },
+            { id: "gantt", label: "📊計画" },
+            { id: "cal", label: "📅月別" },
+            { id: "stage", label: "🗺ステージ" },
+            { id: "music", label: "🎸音楽" },
+            { id: "python", label: "💻開発" },
+            { id: "study", label: "📚学習" },
+            { id: "sched", label: "⏰時間割" },
+            { id: "school", label: "🎯進路" },
+            { id: "feedback", label: "📝感想" },
+          ].map(t => h('button', {
+            key: t.id,
+            className: `nav-tab-btn ${tab === t.id ? "is-active" : ""}`,
+            onClick: () => setTab(t.id)
+          }, t.label))
+        )
+      )
+    ),
+
+    h('div', { style: { maxWidth: 880, margin: "0 auto", padding: "14px 14px 60px" } },
+
+      /* TODAY TAB */
+      tab === "today" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } },
+            h('div', null,
+              h('div', { style: { fontSize: "16px", fontWeight: 900, color: "#FFFFFF", marginBottom: "2px" } },
+                "🎯 都立武蔵丘高 合格戦略: 大問1満点化 ＋ 内申44獲得"
+              ),
+              h('div', { style: { fontSize: "12px", color: "#D1D1D6" } },
+                "🛸 毎日の種火ライン：ギター10分 ＋ コード1行 ＋ 大問1問"
+              )
+            ),
+            h('span', {
+              style: {
+                fontSize: "12px", fontWeight: 900, color: "#FEF08A",
+                background: "rgba(254, 240, 138, 0.15)", padding: "4px 9px", borderRadius: "6px",
+                border: "1px solid rgba(254, 240, 138, 0.3)"
+              }
+            }, "現在地: ステージ1（中2秋・基礎固め期）")
+          )
+        ),
+
+        /* 1. 今日のスケジュール（アコーディオン） */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" } },
+          h('div', {
+            style: {
+              padding: "12px 14px", background: "#FFFFFF", display: "flex",
+              justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px"
+            }
+          },
+            h('div', {
+              onClick: () => setOpenTodaySched(!openTodaySched),
+              style: { display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }
+            },
+              h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.text } }, "⏰ 今日のスケジュール"),
+              h('span', { style: { fontSize: "13px", fontWeight: 800, color: C.studyText } },
+                `完了 ${completedSchedCount}/${todaySched.items.length} (${Math.round((completedSchedCount/todaySched.items.length)*100)}%)`
+              ),
+              h('span', { style: { fontSize: "12px", color: C.muted } }, openTodaySched ? "▲" : "▼")
+            ),
+            h('div', { style: { display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" } },
+              !isEditingSchedule
+                ? h('button', {
+                    className: "btn-action",
+                    style: { color: "#FFFFFF", background: C.study },
+                    onClick: startEditSchedule
+                  }, "✏️ 編集")
+                : h('div', { style: { display: "flex", gap: "4px" } },
+                    h('button', {
+                      className: "btn-action",
+                      style: { color: "#48484A", background: "#E5E5EA" },
+                      onClick: cancelEditSchedule
+                    }, "キャンセル"),
+                    h('button', {
+                      className: "btn-action",
+                      style: { color: "#FFFFFF", background: "#34C759" },
+                      onClick: finishEditSchedule
+                    }, "完了")
+                  )
+            )
+          ),
+          openTodaySched && h('div', { style: { padding: "0 14px 14px" } },
+            h('div', { style: { display: "flex", flexDirection: "column", gap: "6px" } },
+              todaySched.items.map((item, idx) => {
+                const isChecked = !!checkedItems[item.id];
+                const isCurrent = checkIsCurrentTimeSlot(item.t, currentTime);
+                const [startPart, endPart] = item.t.includes("〜") ? item.t.split("〜") : [item.t, ""];
+
+                return h('div', {
+                  key: item.id,
+                  style: {
+                    display: "flex", gap: "9px", alignItems: "center", padding: "8px 10px",
+                    background: isCurrent ? "#FEF08A" : (item.hi ? todaySched.bg : "#F8FAFC"),
+                    border: `1px solid ${isCurrent ? "#EAB308" : (item.hi ? todaySched.border : C.border)}`,
+                    borderRadius: "8px"
+                  }
+                },
+                  h('input', {
+                    type: "checkbox",
+                    className: "custom-checkbox-interactive",
+                    checked: isChecked,
+                    onChange: () => toggleCheck(item.id)
+                  }),
+                  !isEditingSchedule
+                    ? h('div', { style: { fontSize: "12.5px", fontWeight: 800, color: isCurrent ? "#854D0E" : C.muted, minWidth: "90px" } }, item.t)
+                    : h('div', { style: { display: "flex", gap: "4px", alignItems: "center", flexWrap: "nowrap" } },
+                        h('input', {
+                          type: "text",
+                          className: "time-input-inline",
+                          style: { width: "54px", padding: "2px 4px" },
+                          value: startPart,
+                          onChange: (e) => updateScheduleItemTimeRange(schedType, idx, true, e.target.value)
+                        }),
+                        h('select', {
+                          className: "time-input-inline",
+                          style: { width: "24px", padding: "2px 0", textAlign: "center" },
+                          value: "",
+                          onChange: (e) => { if(e.target.value) updateScheduleItemTimeRange(schedType, idx, true, e.target.value); }
+                        },
+                          h('option', { value: "" }, "▼"),
+                          TIME_OPTIONS.map(opt => h('option', { key: opt, value: opt }, opt))
+                        ),
+                        h('span', { style: { fontSize: "12px", color: C.muted } }, "〜"),
+                        h('input', {
+                          type: "text",
+                          className: "time-input-inline",
+                          style: { width: "54px", padding: "2px 4px" },
+                          value: endPart,
+                          onChange: (e) => updateScheduleItemTimeRange(schedType, idx, false, e.target.value)
+                        }),
+                        h('select', {
+                          className: "time-input-inline",
+                          style: { width: "24px", padding: "2px 0", textAlign: "center" },
+                          value: "",
+                          onChange: (e) => { if(e.target.value) updateScheduleItemTimeRange(schedType, idx, false, e.target.value); }
+                        },
+                          h('option', { value: "" }, "▼"),
+                          TIME_OPTIONS.map(opt => h('option', { key: opt, value: opt }, opt))
+                        )
+                      ),
+                  !isEditingSchedule
+                    ? h('div', {
+                        style: {
+                          flex: 1, fontSize: "13.5px", fontWeight: item.hi ? 800 : 500,
+                          color: isChecked ? C.muted : (isCurrent ? "#713F12" : C.text),
+                          textDecoration: isChecked ? "line-through" : "none"
+                        }
+                      }, item.a)
+                    : h('input', {
+                        type: "text",
+                        value: item.a,
+                        onChange: (e) => updateScheduleItemField(schedType, idx, "a", e.target.value),
+                        style: { flex: 1, padding: "4px 8px", fontSize: "13px", border: "1px solid #CCC", borderRadius: "5px" }
+                      }),
+                  isEditingSchedule && h('div', { style: { display: "flex", gap: "3px" } },
+                    h('button', { onClick: () => moveScheduleItem(schedType, idx, -1), style: { padding: "2px 6px", fontSize: "11px" } }, "▲"),
+                    h('button', { onClick: () => moveScheduleItem(schedType, idx, 1), style: { padding: "2px 6px", fontSize: "11px" } }, "▼")
+                  )
+                );
+              })
+            ),
+            isEditingSchedule && h('button', {
+              className: "btn-action",
+              style: { marginTop: "10px", width: "100%", background: "#F2F2F7", color: C.text, border: `1px dashed ${C.border}` },
+              onClick: () => addScheduleItem(schedType)
+            }, "＋ スケジュール項目を追加")
+          )
+        ),
+
+        /* 2. 今日の学習（アコーディオン） */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" } },
+          h('div', {
+            onClick: () => setOpenTodayStudy(!openTodayStudy),
+            style: {
+              padding: "12px 14px", background: "#FFFFFF", display: "flex",
+              justifyContent: "space-between", alignItems: "center", cursor: "pointer"
+            }
+          },
+            h('div', { style: { display: "flex", alignItems: "center", gap: "8px" } },
+              h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.studyText } }, "📚 今日の学習"),
+              h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#DC2626", background: "#FEE2E2", padding: "2px 7px", borderRadius: "4px" } },
+                `Sランク達成 ${checkedSRankUnits}/${totalSRankUnits}`
+              )
+            ),
+            h('span', { style: { fontSize: "12px", color: C.muted } }, openTodayStudy ? "▲" : "▼")
+          ),
+          openTodayStudy && h('div', { style: { padding: "0 14px 14px" } },
+            h('div', {
+              style: {
+                fontSize: "13px", fontWeight: 800, color: "#1D4ED8", background: "#EFF6FF",
+                padding: "8px 12px", borderRadius: "6px", marginBottom: "10px"
+              }
+            }, "⏱️ 今日の50分黄金配分: 【Sランク即効枠 25分】+【学校ワーク定着 15分】+【暗記10分】"),
+
+            allStudyUnits.filter(u => u.rank === "S").slice(0, 3).map(u => {
+              const subObj = studySubjectsData.find(s => s.units.some(x => x.id === u.id)) || {};
+              return renderStudyTaskCard(u, subObj, "study");
+            }),
+
+            h('div', { style: { fontSize: "13.5px", fontWeight: 900, color: C.sub, margin: "14px 0 8px" } },
+              "その他の本日の推奨学習（A/Bランク・定着確認）"
+            ),
+            allStudyUnits.filter(u => u.rank !== "S").slice(0, 3).map(u => {
+              const subObj = studySubjectsData.find(s => s.units.some(x => x.id === u.id)) || {};
+              return renderStudyTaskCard(u, subObj, "study");
+            })
+          )
+        ),
+
+        /* 3. 今日の音楽（アコーディオン） */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" } },
+          h('div', {
+            onClick: () => setOpenTodayMusic(!openTodayMusic),
+            style: {
+              padding: "12px 14px", background: "#FFFFFF", display: "flex",
+              justifyContent: "space-between", alignItems: "center", cursor: "pointer"
+            }
+          },
+            h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.musicText } }, "🎸 今日の音楽"),
+            h('span', { style: { fontSize: "12px", color: C.muted } }, openTodayMusic ? "▲" : "▼")
+          ),
+          openTodayMusic && h('div', { style: { padding: "0 14px 14px" } },
+            musicSteps.slice(0, 2).map(s => h('div', {
+              key: s.id,
+              style: {
+                background: C.musicBg, border: `1px solid ${C.musicBorder}`, borderRadius: "8px",
+                padding: "8px 12px", marginBottom: "6px"
+              }
+            },
+              h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" } },
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
+                h('button', {
+                  className: "btn-action",
+                  onClick: () => jumpToTask("music", s.id),
+                  style: { color: "#FFFFFF", background: C.music, padding: "2px 7px", fontSize: "11px" }
+                }, "詳細 ↗")
+              ),
+              h('div', { style: { fontSize: "13.5px", fontWeight: 800, color: C.musicText } }, s.title)
+            ))
+          )
+        ),
+
+        /* 4. 今日の開発（アコーディオン） */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" } },
+          h('div', {
+            onClick: () => setOpenTodayCode(!openTodayCode),
+            style: {
+              padding: "12px 14px", background: "#FFFFFF", display: "flex",
+              justifyContent: "space-between", alignItems: "center", cursor: "pointer"
+            }
+          },
+            h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.codeText } }, "💻 今日の開発"),
+            h('span', { style: { fontSize: "12px", color: C.muted } }, openTodayCode ? "▲" : "▼")
+          ),
+          openTodayCode && h('div', { style: { padding: "0 14px 14px" } },
+            pythonSteps.slice(0, 2).map(s => h('div', {
+              key: s.id,
+              style: {
+                background: C.codeBg, border: `1px solid ${C.codeBorder}`, borderRadius: "8px",
+                padding: "8px 12px", marginBottom: "6px"
+              }
+            },
+              h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" } },
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
+                h('button', {
+                  className: "btn-action",
+                  onClick: () => jumpToTask("python", s.id),
+                  style: { color: "#FFFFFF", background: C.code, padding: "2px 7px", fontSize: "11px" }
+                }, "詳細 ↗")
+              ),
+              h('div', { style: { fontSize: "13.5px", fontWeight: 800, color: C.codeText } }, s.title)
+            ))
+          )
+        )
+      ),
+
+      /* GANTT TAB */
+      tab === "gantt" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "14px" } },
+          h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" } },
+            h('div', { style: { fontSize: "15px", fontWeight: 900 } }, "全体スケジュール（各バーをクリックして該当ステージへジャンプ）"),
+            h('div', { style: { fontSize: "12px", color: C.muted } }, "※各項目の詳細進捗は「音楽」「開発」「学習」タブで確認できます")
+          ),
+          h('div', { style: { width: "100%", overflow: "hidden" } },
+            h('div', { style: { display: "flex", borderBottom: "2px solid #007AFF", paddingBottom: "6px", marginBottom: "8px" } },
+              h('div', { style: { width: "140px", flexShrink: 0, fontSize: "11px", fontWeight: 900, color: "#1C1C1E" } }, "プロジェクト"),
+              h('div', { style: { flex: 1, display: "flex", width: "100%" } },
+                allGanttMonthLabels.map((ml, idx) => h('div', {
+                  key: idx,
+                  style: {
+                    flex: 1, textAlign: "center", fontSize: "9.5px",
+                    fontWeight: ml.m === 1 ? 900 : 800,
+                    color: ml.m === 1 ? "#007AFF" : "#1C1C1E"
+                  }
+                }, ml.label))
+              )
+            ),
+            ganttTasks.map((t, idx) => {
+              const startOff = getMonthOffset(t.start);
+              const endOff = getMonthOffset(t.end);
+              const monthDuration = endOff - startOff + 1;
+              const leftPct = (startOff / TOTAL_GANTT_MONTHS) * 100;
+              const widthPct = Math.max((monthDuration / TOTAL_GANTT_MONTHS) * 100, 3.5);
+              const sInfo = stageInfo[t.stage] || {};
+
+              return h('div', {
+                key: idx,
+                onClick: () => { setTab("stage"); },
+                style: {
+                  display: "flex", alignItems: "center", padding: "6px 0",
+                  borderBottom: "1px solid #F2F2F7", cursor: "pointer"
+                }
+              },
+                h('div', { style: { width: "140px", flexShrink: 0, paddingRight: "6px" } },
+                  t.nameLines.map((line, li) => h('div', { key: li, style: { fontSize: "11.5px", fontWeight: 800, lineHeight: 1.25 } }, line))
+                ),
+                h('div', { style: { flex: 1, position: "relative", height: "26px", background: "#F2F2F7", borderRadius: "5px" } },
+                  h('div', {
+                    style: {
+                      position: "absolute", left: `${leftPct}%`, width: `${widthPct}%`,
+                      top: "2px", bottom: "2px", background: sInfo.color || C.study,
+                      borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#FFFFFF", fontSize: "10.5px", fontWeight: 900, boxShadow: "0 1px 3px rgba(0,0,0,0.15)"
+                    }
+                  }, sInfo.shortLabel || "St")
+                )
+              );
+            })
+          )
+        )
+      ),
+
+      /* CALENDAR TAB */
+      tab === "cal" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        calendarData.map((yr, yi) => h('div', { key: yi, style: { display: "flex", flexDirection: "column", gap: "10px" } },
+          h('div', { style: { fontSize: "14px", fontWeight: 900, color: C.studyText, padding: "4px 8px", background: "#EFF6FF", borderRadius: "6px" } },
+            `${yr.year}（${yr.grade}）`
+          ),
+          yr.months.map((mo, mi) => {
+            const isCur = isCurrentMonth(yr.year, mo.m, currentTime);
+            const moKey = `${yr.year}_${mo.m}`;
+            const isMoOpen = openMonths[moKey] !== false;
+            const stageNum = mo.stage ? mo.stage.replace("p", "") : "1";
+            const sInfo = stageInfo[mo.stage] || {};
+
+            const moMusSteps = musicSteps.filter(s => mo.musSteps && mo.musSteps.includes(s.id));
+            const moPySteps = pythonSteps.filter(s => mo.pySteps && mo.pySteps.includes(s.id));
+            const yrNum = parseInt(yr.year.replace("年", ""), 10);
+            const moNum = parseInt(mo.m.replace("月", ""), 10);
+            const periodKey = `${yrNum}-${String(moNum).padStart(2, '0')}`;
+            const moStudyUnits = allStudyUnits.filter(u => u.targetPeriod === periodKey);
+
+            return h('div', {
+              key: mi,
+              style: {
+                background: isCur ? "#1C1C1E" : "#FFFFFF",
+                color: isCur ? "#FFFFFF" : C.text,
+                borderRadius: "10px",
+                border: isCur ? "2px solid #007AFF" : `1px solid ${C.border}`,
+                padding: "12px 14px",
+                boxShadow: isCur ? "0 4px 12px rgba(0,0,0,0.25)" : "none"
+              }
+            },
+              h('div', {
+                onClick: () => toggleMonth(moKey),
+                style: { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px", cursor: "pointer", marginBottom: isMoOpen ? "8px" : "0" }
+              },
+                h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                  h('span', { style: { fontSize: "16px", fontWeight: 900, color: isCur ? "#60A5FA" : "#007AFF" } }, mo.m),
+                  h('span', {
+                    style: {
+                      fontSize: "14px", fontWeight: 900,
+                      color: isCur ? "#FFFFFF" : sInfo.text || C.sub,
+                      background: isCur ? "rgba(255,255,255,0.18)" : sInfo.bg || "#F2F2F7",
+                      padding: "2px 8px", borderRadius: "6px",
+                      border: `1px solid ${isCur ? "rgba(255,255,255,0.3)" : sInfo.border || C.border}`
+                    }
+                  }, stageInfo[mo.stage].label),
+                  h('span', { style: { fontSize: "13px", fontWeight: 800, color: isCur ? "#FEF08A" : "#B45309" } }, `🎯 ${mo.target}`)
+                ),
+                h('div', { style: { display: "flex", alignItems: "center", gap: "6px" } },
+                  isCur && h('span', { style: { fontSize: "10.5px", fontWeight: 900, color: "#1C1C1E", background: "#FEF08A", padding: "2px 6px", borderRadius: "4px" } }, "⚡ 今月"),
+                  h('span', { style: { fontSize: "12px", color: isCur ? "#E5E5EA" : C.muted } }, isMoOpen ? "▲" : "▼")
+                )
+              ),
+
+              isMoOpen && h('div', null,
+                mo.events && mo.events.length > 0 && h('div', { style: { marginBottom: "8px", fontSize: "12px", color: isCur ? "#D1D1D6" : C.sub } },
+                  mo.events.map((ev, ei) => h('div', { key: ei, style: { display: "flex", alignItems: "center", gap: "5px" } },
+                    h('span', null, "•"), h('span', null, ev)
+                  ))
+                ),
+
+                h('div', { style: { display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px" } },
+                  moMusSteps.length > 0 && h('div', { style: { borderRadius: "6px", overflow: "hidden", border: isCur ? "1px solid rgba(255,255,255,0.15)" : "1px solid #E5E7EB" } },
+                    h('button', {
+                      className: "accordion-trigger",
+                      onClick: () => toggleMonthSubGroup(`${moKey}_mus`),
+                      style: {
+                        padding: "6px 10px", background: isCur ? "rgba(124, 58, 237, 0.2)" : C.musicBg,
+                        color: isCur ? "#C4B5FD" : C.musicText, fontSize: "12px", fontWeight: 800, display: "flex", justifyContent: "space-between"
+                      }
+                    },
+                      h('span', null, `🎸 音楽ステージ${stageNum}（${moMusSteps.length}件）`),
+                      h('span', null, openMonthSubGroups[`${moKey}_mus`] ? "▲" : "▼")
+                    ),
+                    openMonthSubGroups[`${moKey}_mus`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      moMusSteps.map(s => h('div', { key: s.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                        h('div', null,
+                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music, fontWeight: 600, marginRight: "6px" } }, `${(stageInfo[s.stage] ? stageInfo[s.stage].label : `ステージ${stageNum}`).replace(" ", "")}ステップ${s.stepNum}`),
+                          h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title)
+                        ),
+                        h('button', {
+                          className: "btn-action",
+                          onClick: () => jumpToTask("music", s.id),
+                          style: { color: "#FFFFFF", background: C.music, padding: "2px 7px", fontSize: "11px", fontWeight: 600, letterSpacing: "0.03em" }
+                        }, "詳細 ↗")
+                      ))
+                    )
+                  ),
+
+                  moPySteps.length > 0 && h('div', { style: { borderRadius: "6px", overflow: "hidden", border: isCur ? "1px solid rgba(255,255,255,0.15)" : "1px solid #E5E7EB" } },
+                    h('button', {
+                      className: "accordion-trigger",
+                      onClick: () => toggleMonthSubGroup(`${moKey}_py`),
+                      style: {
+                        padding: "6px 10px", background: isCur ? "rgba(5, 150, 105, 0.2)" : C.codeBg,
+                        color: isCur ? "#6EE7B7" : C.codeText, fontSize: "12px", fontWeight: 800, display: "flex", justifyContent: "space-between"
+                      }
+                    },
+                      h('span', null, `💻 開発ステージ${stageNum}（${moPySteps.length}件）`),
+                      h('span', null, openMonthSubGroups[`${moKey}_py`] ? "▲" : "▼")
+                    ),
+                    openMonthSubGroups[`${moKey}_py`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      moPySteps.map(s => h('div', { key: s.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                        h('div', null,
+                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code, fontWeight: 600, marginRight: "6px" } }, `${(stageInfo[s.stage] ? stageInfo[s.stage].label : `ステージ${stageNum}`).replace(" ", "")}ステップ${s.stepNum}`),
+                          h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title)
+                        ),
+                        h('button', {
+                          className: "btn-action",
+                          onClick: () => jumpToTask("python", s.id),
+                          style: { color: "#FFFFFF", background: C.code, padding: "2px 7px", fontSize: "11px", fontWeight: 600, letterSpacing: "0.03em" }
+                        }, "詳細 ↗")
+                      ))
+                    )
+                  ),
+
+                  moStudyUnits.length > 0 && h('div', { style: { borderRadius: "6px", overflow: "hidden", border: isCur ? "1px solid rgba(255,255,255,0.15)" : "1px solid #E5E7EB" } },
+                    h('button', {
+                      className: "accordion-trigger",
+                      onClick: () => toggleMonthSubGroup(`${moKey}_study`),
+                      style: {
+                        padding: "6px 10px", background: isCur ? "rgba(0, 122, 255, 0.2)" : C.studyBg,
+                        color: isCur ? "#93C5FD" : C.studyText, fontSize: "12px", fontWeight: 800, display: "flex", justifyContent: "space-between"
+                      }
+                    },
+                      h('span', null, `📚 学習ステージ${stageNum}（${moStudyUnits.length}単元）`),
+                      h('span', null, openMonthSubGroups[`${moKey}_study`] ? "▲" : "▼")
+                    ),
+                    openMonthSubGroups[`${moKey}_study`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      moStudyUnits.map(u => {
+                        const subObj = studySubjectsData.find(s => s.units.some(x => x.id === u.id)) || {};
+                        const stageObj = stageInfo[u.stage] || { label: `ステージ${stageNum}` };
+                        return h('div', { key: u.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", alignItems: "center", justifyContent: "space-between" } },
+                          h('div', { style: { display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" } },
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.study, fontWeight: 600 } }, `${stageObj.label.replace(" ", "")}ステップ${u.stepNum}`),
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: "#475569", fontWeight: 600 } }, u.grade),
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: u.rank === "S" ? "#DC2626" : C.study, fontWeight: 600 } }, `${u.rank}ランク`),
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: subObj.color || C.study, fontWeight: 600 } }, subObj.name || "教科"),
+                            h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, u.item)
+                          ),
+                          h('button', {
+                            className: "btn-action",
+                            onClick: () => jumpToTask("study", u.id),
+                            style: { color: "#FFFFFF", background: C.study, padding: "2px 7px", fontSize: "11px", fontWeight: 600, letterSpacing: "0.03em" }
+                          }, "詳細 ↗")
+                        );
+                      })
+                    )
+                  )
+                )
+              )
+            );
+          })
+        ))
+      ),
+
+      /* STAGE TAB */
+      tab === "stage" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        Object.keys(stageInfo).map(sKey => {
+          const s = stageInfo[sKey];
+          const isCur = sKey === currentStageKey;
+          const isStageOpen = openStageCards[sKey] !== false;
+          const isMsOpen = openStageMilestone[sKey] !== false;
+
+          const sMusSteps = musicSteps.filter(x => x.stage === sKey);
+          const sPySteps = pythonSteps.filter(x => x.stage === sKey);
+          const sStudyUnits = allStudyUnits.filter(x => x.stage === sKey);
+
+          return h('div', {
+            key: sKey,
+            style: {
+              background: isCur ? "#1C1C1E" : "#FFFFFF",
+              color: isCur ? "#FFFFFF" : C.text,
+              borderRadius: "10px",
+              border: isCur ? "2px solid #007AFF" : `1px solid ${C.border}`,
+              padding: "14px",
+              boxShadow: isCur ? "0 4px 14px rgba(0,0,0,0.3)" : "none"
+            }
+          },
+            h('div', {
+              onClick: () => toggleStageCard(sKey),
+              style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px", cursor: "pointer", marginBottom: isStageOpen ? "10px" : "0" }
+            },
+              h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                h('span', {
+                  style: {
+                    fontSize: "14px", fontWeight: 900,
+                    color: isCur ? "#FFFFFF" : s.text || C.sub,
+                    background: isCur ? "rgba(255,255,255,0.18)" : s.bg || "#F2F2F7",
+                    padding: "2px 8px", borderRadius: "6px",
+                    border: `1px solid ${isCur ? "rgba(255,255,255,0.3)" : s.border || C.border}`
+                  }
+                }, s.label),
+                h('span', { style: { fontSize: "15px", fontWeight: 900 } }, s.title)
+              ),
+              h('div', { style: { display: "flex", alignItems: "center", gap: "6px" } },
+                h('span', { className: "badge-tag", style: { color: isCur ? "#E5E5EA" : C.sub, background: isCur ? "rgba(255,255,255,0.12)" : "#F2F2F7" } }, s.period),
+                h('span', { style: { fontSize: "12px", color: isCur ? "#E5E5EA" : C.muted } }, isStageOpen ? "▲" : "▼")
+              )
+            ),
+
+            isStageOpen && h('div', null,
+              h('div', {
+                style: {
+                  background: isCur ? "rgba(255,255,255,0.06)" : "#F8FAFC",
+                  border: isCur ? "1px solid rgba(255,255,255,0.12)" : "1px solid #E5E7EB",
+                  borderRadius: "8px", overflow: "hidden", marginBottom: "12px"
+                }
+              },
+                h('button', {
+                  className: "accordion-trigger",
+                  onClick: () => toggleStageMilestone(sKey),
+                  style: { padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }
+                },
+                  h('span', { style: { fontWeight: 800, fontSize: "12.5px", color: isCur ? "#FEF08A" : "#B45309" } }, "🏁 マイルストーン & 決戦イベント"),
+                  h('span', { style: { fontSize: "11px", color: isCur ? "#E5E5EA" : C.muted } }, isMsOpen ? "▲" : "▼")
+                ),
+                isMsOpen && h('div', { style: { padding: "0 12px 10px", fontSize: "12.5px", color: isCur ? "#E5E5EA" : C.sub } },
+                  `このステージの目標：${s.title}（完了期日: ${s.period}）`
+                )
+              ),
+
+              h('div', { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+                sMusSteps.length > 0 && h('div', { style: { borderRadius: "8px", border: isCur ? "1px solid rgba(196,181,253,0.3)" : `1px solid ${C.musicBorder}`, overflow: "hidden" } },
+                  h('button', {
+                    className: "accordion-trigger",
+                    onClick: () => toggleStageCategory(`${sKey}_mus`),
+                    style: { padding: "8px 10px", background: isCur ? "rgba(124,58,237,0.25)" : C.musicBg, display: "flex", justifyContent: "space-between", alignItems: "center" }
+                  },
+                    h('span', { style: { fontWeight: 800, color: isCur ? "#C4B5FD" : C.musicText } }, `🎸 音楽（${sMusSteps.length}ステップ）`),
+                    h('span', { style: { fontSize: "11px", color: isCur ? "#C4B5FD" : C.musicText } }, openStageCategory[`${sKey}_mus`] ? "▲" : "▼")
+                  ),
+                  openStageCategory[`${sKey}_mus`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                    sMusSteps.map(st => h('div', { key: st.id, style: { fontSize: "12.5px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                      h('div', null,
+                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music, fontWeight: 600, marginRight: "6px" } }, `${stageInfo[st.stage].label.replace(" ", "")}ステップ${st.stepNum}`),
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title)
+                      ),
+                      h('button', {
+                        className: "btn-action",
+                        onClick: () => jumpToTask("music", st.id),
+                        style: { color: "#FFFFFF", background: C.music, padding: "2px 7px", fontSize: "11px", fontWeight: 600, letterSpacing: "0.03em" }
+                      }, "詳細 ↗")
+                    ))
+                  )
+                ),
+
+                sPySteps.length > 0 && h('div', { style: { borderRadius: "8px", border: isCur ? "1px solid rgba(110,231,183,0.3)" : `1px solid ${C.codeBorder}`, overflow: "hidden" } },
+                  h('button', {
+                    className: "accordion-trigger",
+                    onClick: () => toggleStageCategory(`${sKey}_py`),
+                    style: { padding: "8px 10px", background: isCur ? "rgba(5,150,105,0.25)" : C.codeBg, display: "flex", justifyContent: "space-between", alignItems: "center" }
+                  },
+                    h('span', { style: { fontWeight: 800, color: isCur ? "#6EE7B7" : C.codeText } }, `💻 開発（${sPySteps.length}ステップ）`),
+                    h('span', { style: { fontSize: "11px", color: isCur ? "#6EE7B7" : C.codeText } }, openStageCategory[`${sKey}_py`] ? "▲" : "▼")
+                  ),
+                  openStageCategory[`${sKey}_py`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                    sPySteps.map(st => h('div', { key: st.id, style: { fontSize: "12.5px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                      h('div', null,
+                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code, fontWeight: 600, marginRight: "6px" } }, `${stageInfo[st.stage].label.replace(" ", "")}ステップ${st.stepNum}`),
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title)
+                      ),
+                      h('button', {
+                        className: "btn-action",
+                        onClick: () => jumpToTask("python", st.id),
+                        style: { color: "#FFFFFF", background: C.code, padding: "2px 7px", fontSize: "11px", fontWeight: 600, letterSpacing: "0.03em" }
+                      }, "詳細 ↗")
+                    ))
+                  )
+                ),
+
+                sStudyUnits.length > 0 && h('div', { style: { borderRadius: "8px", border: isCur ? "1px solid rgba(147,197,253,0.3)" : `1px solid ${C.studyBorder}`, overflow: "hidden" } },
+                  h('button', {
+                    className: "accordion-trigger",
+                    onClick: () => toggleStageCategory(`${sKey}_study`),
+                    style: { padding: "8px 10px", background: isCur ? "rgba(0,122,255,0.25)" : C.studyBg, display: "flex", justifyContent: "space-between", alignItems: "center" }
+                  },
+                    h('span', { style: { fontWeight: 800, color: isCur ? "#93C5FD" : C.studyText } }, `📚 学習（${sStudyUnits.length}単元）`),
+                    h('span', { style: { fontSize: "11px", color: isCur ? "#93C5FD" : C.studyText } }, openStageCategory[`${sKey}_study`] ? "▲" : "▼")
+                  ),
+                  openStageCategory[`${sKey}_study`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                    sStudyUnits.map(u => {
+                      const subObj = studySubjectsData.find(s => s.units.some(x => x.id === u.id)) || {};
+                      return renderStudyTaskCard(u, subObj, "study");
+                    })
+                  )
+                )
+              )
+            )
+          );
+        })
+      ),
+
+      /* MUSIC TAB */
+      tab === "music" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "14.5px", fontWeight: 900 } },
+            "🎸【音楽のビジョン】Les Paul ＋ RAT2 ＋ Mac（MainStage/Logic）を自在に操り、高校軽音・世界水準のサウンドを創造する"
+          )
+        ),
+
+        /* 統合された音楽タブの進み具合カード（ダークテーマ） */
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" } },
+            h('div', { style: { fontSize: "15px", fontWeight: 900, color: "#FFFFFF" } }, "🎸 音楽タブの進み具合"),
+            h('button', {
+              className: "btn-action",
+              onClick: () => setIsEditingTracks(!isEditingTracks),
+              style: { color: "#FFFFFF", background: isEditingTracks ? "#10B981" : "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.25)" }
+            }, isEditingTracks ? "完了" : "✏️ 編集")
+          ),
+          /* 音楽ステップ棒グラフ */
+          h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "10px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)", marginBottom: "12px" } },
+            h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" } },
+              h('span', { style: { fontSize: "13px", fontWeight: 800, color: "#C4B5FD" } }, "音楽ステップ進捗"),
+              h('div', { style: { display: "flex", gap: "8px", alignItems: "baseline" } },
+                h('span', { style: { fontSize: "18px", fontWeight: 900, color: "#C4B5FD" } }, `${musPct}%`),
+                h('span', { style: { fontSize: "12px", color: "#E5E5EA" } }, `${checkedMusSubtasks} / ${totalMusSubtasks}`)
+              )
+            ),
+            h('div', { style: { height: "7px", background: "rgba(255,255,255,0.14)", borderRadius: "4px", overflow: "hidden" } },
+              h('div', { style: { width: `${musPct}%`, height: "100%", background: "#A855F7", transition: "width 0.3s" } })
+            )
+          ),
+          /* オリジナル曲進捗 */
+          h('div', null,
+            h('div', { style: { fontSize: "12.5px", fontWeight: 800, color: "#E5E5EA", marginBottom: "8px" } }, "🎵 オリジナル曲 制作進捗"),
+            h('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px" } },
+              musicTracks.map((trk) => h('div', {
+                key: trk.id,
+                style: { background: "rgba(255,255,255,0.08)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" }
+              },
+                h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" } },
+                  h('span', { style: { fontSize: "12.5px", fontWeight: 900, color: "#FFFFFF" } }, trk.name),
+                  !isEditingTracks
+                    ? h('span', { style: { fontSize: "14px", fontWeight: 900, color: "#C4B5FD" } }, `${trk.pct}%`)
+                    : h('select', {
+                        value: trk.pct,
+                        onChange: (e) => updateTrackPct(trk.id, e.target.value),
+                        className: "time-input-inline",
+                        style: { padding: "1px 4px", fontSize: "11px", fontWeight: 800 }
+                      },
+                        Array.from({ length: 21 }, (_, i) => i * 5).map(val => h('option', { key: val, value: val }, `${val}%`))
+                      )
+                ),
+                h('div', { style: { height: "6px", background: "rgba(255,255,255,0.14)", borderRadius: "3px", overflow: "hidden" } },
+                  h('div', { style: { width: `${trk.pct}%`, height: "100%", background: "#C4B5FD" } })
+                )
+              ))
+            )
+          )
+        ),
+
+        musicSteps.map(s => {
+          const isExpanded = !!expandedDetailTasks[s.id];
+          return h('div', {
+            key: s.id,
+            id: s.id,
+            style: { background: C.musicBg, borderRadius: "10px", border: `1px solid ${C.musicBorder}`, padding: "12px 14px" }
+          },
+            h('div', {
+              onClick: () => toggleTaskDetail(s.id),
+              style: { display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
+            },
+              h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
+                h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.musicText } }, s.title)
+              ),
+              h('span', { style: { fontSize: "12px", color: C.musicText } }, isExpanded ? "▲" : "▼")
+            ),
+            isExpanded && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: `1px dashed ${C.musicBorder}` } },
+              s.subtasks.map(st => h('div', {
+                key: st.id,
+                style: { display: "flex", gap: "8px", alignItems: "flex-start", marginBottom: "6px" }
+              },
+                h('input', {
+                  type: "checkbox", className: "custom-checkbox-interactive",
+                  checked: !!checkedItems[st.id], onChange: () => toggleCheck(st.id)
+                }),
+                h('span', { style: { fontSize: "13px", lineHeight: 1.4, color: checkedItems[st.id] ? C.muted : C.text, textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
+                  st.text
+                )
+              ))
+            )
+          );
+        })
+      ),
+
+      /* PYTHON TAB */
+      tab === "python" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "14.5px", fontWeight: 900 } },
+            "💻【開発のビジョン】Mountain of Soundを完成させ、ギター×MIDI×Pythonの独自プロダクトとしてGitHub世界公開＆大学入試の最強武器にする"
+          )
+        ),
+
+        /* 統合された開発タブの進み具合カード（ダークテーマ） */
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "15px", fontWeight: 900, color: "#FFFFFF", marginBottom: "8px" } }, "💻 開発タブの進み具合"),
+          h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "10px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+            h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" } },
+              h('span', { style: { fontSize: "13px", fontWeight: 800, color: "#6EE7B7" } }, "Mountain of Sound 開発進捗"),
+              h('div', { style: { display: "flex", gap: "8px", alignItems: "baseline" } },
+                h('span', { style: { fontSize: "18px", fontWeight: 900, color: "#6EE7B7" } }, `${pyPct}%`),
+                h('span', { style: { fontSize: "12px", color: "#E5E5EA" } }, `${checkedPySubtasks} / ${totalPySubtasks}`)
+              )
+            ),
+            h('div', { style: { height: "7px", background: "rgba(255,255,255,0.14)", borderRadius: "4px", overflow: "hidden" } },
+              h('div', { style: { width: `${pyPct}%`, height: "100%", background: "#10B981", transition: "width 0.3s" } })
+            )
+          )
+        ),
+
+        pythonSteps.map(s => {
+          const isExpanded = !!expandedDetailTasks[s.id];
+          return h('div', {
+            key: s.id,
+            id: s.id,
+            style: { background: C.codeBg, borderRadius: "10px", border: `1px solid ${C.codeBorder}`, padding: "12px 14px" }
+          },
+            h('div', {
+              onClick: () => toggleTaskDetail(s.id),
+              style: { display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
+            },
+              h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
+                h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.codeText } }, s.title)
+              ),
+              h('span', { style: { fontSize: "12px", color: C.codeText } }, isExpanded ? "▲" : "▼")
+            ),
+            isExpanded && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: `1px dashed ${C.codeBorder}` } },
+              s.subtasks.map(st => h('div', {
+                key: st.id,
+                style: { display: "flex", gap: "8px", alignItems: "flex-start", marginBottom: "6px" }
+              },
+                h('input', {
+                  type: "checkbox", className: "custom-checkbox-interactive",
+                  checked: !!checkedItems[st.id], onChange: () => toggleCheck(st.id)
+                }),
+                h('span', { style: { fontSize: "13px", lineHeight: 1.4, color: checkedItems[st.id] ? C.muted : C.text, textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
+                  st.text
+                )
+              ))
+            )
+          );
+        })
+      ),
+
+      /* STUDY TAB */
+      tab === "study" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', {
+            onClick: () => setOpenStudyVisionCard(!openStudyVisionCard),
+            style: { display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
+          },
+            h('div', { style: { fontSize: "14.5px", fontWeight: 900 } },
+              "📚【学習のビジョン】都立武蔵丘高合格（換算内申44＋360点確保）を成し遂げ、表現者としての土台を固める"
+            ),
+            h('span', { style: { fontSize: "12px", color: "#D1D1D6" } }, openStudyVisionCard ? "▲" : "▼")
+          ),
+          openStudyVisionCard && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.15)" } },
+            h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" } },
+              h('div', { style: { fontSize: "14px", fontWeight: 900, color: "#FEF08A" } }, "🎯 都立武蔵丘高校 合格目標・マイルストーン計画"),
+              h('span', { style: { fontSize: "11px", fontWeight: 900, background: "#EF4444", color: "#FFF", padding: "2px 8px", borderRadius: "10px" } }, "🔥 連続学習: 12日達成中！")
+            ),
+            h('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "8px" } },
+              h('div', { style: { background: "rgba(255,255,255,0.08)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+                h('div', { style: { fontSize: "11px", color: "#93C5FD", fontWeight: 800, marginBottom: "2px" } }, "🏁 年間ゴール (2028年2月本番)"),
+                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } }, "合格安全圏: 685〜700点 / 1020点"),
+                h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } }, "換算内申44 (5科オール3+実技4) + 当日360点 (72%)")
+              ),
+              h('div', { style: { background: "rgba(255,255,255,0.08)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+                h('div', { style: { fontSize: "11px", color: "#FDE047", fontWeight: 800, marginBottom: "2px" } }, "📅 今月の重点テーマ (9月)"),
+                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } }, "Sランク絶対死守 ＆ 学校ワーク3周"),
+                h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } }, "数英の基本計算・文法を毎日ルーティン化して内申点UP")
+              ),
+              h('div', { style: { background: "rgba(255,255,255,0.08)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+                h('div', { style: { fontSize: "11px", color: "#86EFAC", fontWeight: 800, marginBottom: "2px" } }, "⚡ 今週のスプリント (週間目標 300分)"),
+                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } }, "今週の実績: 210 / 300分 (70%)"),
+                h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } }, "1日50分×6日。Sランク未完了から最優先で消化！")
+              )
+            )
+          )
+        ),
+
+        /* 統合された学習タブの進み具合カード（ダークテーマ） */
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "15px", fontWeight: 900, color: "#FFFFFF", marginBottom: "8px" } }, "📚 学習タブの進み具合"),
+          /* 上段: 5教科全単元 & Sランク即効 */
+          h('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" } },
+            h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+              h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" } },
+                h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#93C5FD" } }, "5教科全単元"),
+                h('div', { style: { display: "flex", gap: "6px", alignItems: "baseline" } },
+                  h('span', { style: { fontSize: "16px", fontWeight: 900, color: "#60A5FA" } }, `${studyPct}%`),
+                  h('span', { style: { fontSize: "11px", color: "#E5E5EA" } }, `${checkedStudyUnits}/${totalStudyUnits}`)
+                )
+              ),
+              h('div', { style: { height: "6px", background: "rgba(255,255,255,0.14)", borderRadius: "3px", overflow: "hidden" } },
+                h('div', { style: { width: `${studyPct}%`, height: "100%", background: "#3B82F6" } })
+              )
+            ),
+            h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+              h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" } },
+                h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#FCA5A5" } }, "🔥 Sランク即効"),
+                h('div', { style: { display: "flex", gap: "6px", alignItems: "baseline" } },
+                  h('span', { style: { fontSize: "16px", fontWeight: 900, color: "#EF4444" } }, `${sRankPct}%`),
+                  h('span', { style: { fontSize: "11px", color: "#E5E5EA" } }, `${checkedSRankUnits}/${totalSRankUnits}`)
+                )
+              ),
+              h('div', { style: { height: "6px", background: "rgba(255,255,255,0.14)", borderRadius: "3px", overflow: "hidden" } },
+                h('div', { style: { width: `${sRankPct}%`, height: "100%", background: "#EF4444" } })
+              )
+            )
+          ),
+          /* 下段: 数・英・理・社・国の各教科進捗 */
+          h('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "6px" } },
+            studySubjectsData.map((sub) => {
+              const subDone = sub.units.filter(u => checkedItems[u.id]).length;
+              const subTotal = sub.units.length;
+              const subPct = Math.round((subDone / subTotal) * 100);
+              return h('div', {
+                key: sub.id,
+                style: { background: "rgba(255,255,255,0.06)", padding: "6px 8px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)" }
+              },
+                h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "3px" } },
+                  h('span', { style: { fontSize: "11.5px", fontWeight: 800, color: sub.text === C.musicText ? "#C4B5FD" : (sub.text === C.codeText ? "#6EE7B7" : "#93C5FD") } }, `${sub.icon} ${sub.name.slice(0, 1)}`),
+                  h('span', { style: { fontSize: "12px", fontWeight: 900, color: "#FFFFFF" } }, `${subPct}% (${subDone}/${subTotal})`)
+                ),
+                h('div', { style: { height: "5px", background: "rgba(255,255,255,0.12)", borderRadius: "3px", overflow: "hidden" } },
+                  h('div', { style: { width: `${subPct}%`, height: "100%", background: sub.color } })
+                )
+              );
+            })
+          )
+        ),
+
+        h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } },
+          h('div', { style: { display: "flex", gap: "6px", flexWrap: "wrap" } },
+            h('button', {
+              className: "chip-switch",
+              style: { color: studyFilterRankS ? "#FFFFFF" : "#DC2626", background: studyFilterRankS ? "#DC2626" : "#FFFFFF" },
+              onClick: () => setStudyFilterRankS(!studyFilterRankS)
+            }, "🔥 Sランク最優先"),
+            h('button', {
+              className: "chip-switch",
+              style: { color: studyFilterWeak ? "#FFFFFF" : "#D97706", background: studyFilterWeak ? "#D97706" : "#FFFFFF" },
+              onClick: () => setStudyFilterWeak(!studyFilterWeak)
+            }, "⚠️ 苦手単元のみ"),
+            [
+              { key: "math", label: "📐 数学" },
+              { key: "eng",  label: "🇬🇧 英語" },
+              { key: "sci",  label: "🧪 理科" },
+              { key: "soc",  label: "🌍 社会" },
+              { key: "jpn",  label: "📖 国語" }
+            ].map(sb => h('button', {
+              key: sb.key,
+              className: "chip-switch",
+              style: {
+                color: studyFilterSubjects[sb.key] ? "#FFFFFF" : C.sub,
+                background: studyFilterSubjects[sb.key] ? C.study : "#FFFFFF"
+              },
+              onClick: () => toggleSubjectFilter(sb.key)
+            }, sb.label))
+          ),
+          h('a', {
+            href: "https://docs.google.com/spreadsheets/d/1Cby5FhS95wd-C8ekgEPfI8WgUqdh-RloY5vku6-GosY/edit?gid=351847494#gid=351847494",
+            target: "_blank", rel: "noopener noreferrer",
+            className: "btn-action",
+            style: { color: "#0369A1", background: "#F0F9FF", border: "1px solid #7DD3FC", padding: "4px 9px" }
+          }, "📑 スプレッドシート原本 ↗")
+        ),
+
+        studySubjectsData.map(subject => {
+          const hasSelectedSub = Object.values(studyFilterSubjects).some(Boolean);
+          if (hasSelectedSub && !studyFilterSubjects[subject.id]) return null;
+
+          let uList = subject.units;
+          if (studyFilterRankS) uList = uList.filter(u => u.rank === "S");
+          if (studyFilterWeak) uList = uList.filter(u => u.level.includes("苦手"));
+          if (uList.length === 0) return null;
+
+          const isSubOpen = openStudySubjects[subject.id] !== false;
+
+          return h('div', {
+            key: subject.id,
+            style: { background: subject.bg, borderRadius: "10px", border: `2px solid ${subject.border}`, overflow: "hidden" }
+          },
+            h('div', {
+              onClick: () => toggleStudySubject(subject.id),
+              style: {
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "10px 14px", background: subject.bg, cursor: "pointer",
+                borderBottom: isSubOpen ? `1px solid ${subject.border}` : "none"
+              }
+            },
+              h('div', { style: { display: "flex", alignItems: "center", gap: "8px" } },
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: subject.color } }, `${subject.icon} ${subject.name}`),
+                h('span', { style: { fontSize: "14px", fontWeight: 900, color: subject.text } }, subject.name),
+                h('span', { style: { fontSize: "12px", color: C.muted } }, `(${uList.length}単元)`)
+              ),
+              h('span', { style: { fontSize: "12px", color: subject.text } }, isSubOpen ? "▲" : "▼")
+            ),
+            isSubOpen && h('div', { style: { padding: "10px 14px", background: subject.bg } },
+              uList.map(u => renderStudyTaskCard(u, subject, "study"))
+            )
+          );
+        })
+      ),
+
+      /* SCHEDULE TAB */
+      tab === "sched" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "15px", fontWeight: 900, marginBottom: "4px" } }, "⏰ 時間割・ルーティンマネージャー"),
+          h('div', { style: { fontSize: "12px", color: "#D1D1D6" } },
+            "部活やテスト期間に合わせた最適な生活リズムを管理・編集できます。"
+          )
+        ),
+        h('div', { style: { display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" } },
+          Object.keys(schedules).map(k => h('button', {
+            key: k,
+            className: "chip-switch",
+            style: {
+              color: schedType === k ? "#FFFFFF" : C.sub,
+              background: schedType === k ? C.study : "#FFFFFF"
+            },
+            onClick: () => setSchedType(k)
+          }, schedules[k].name)),
+          isEditingSchedule && h('div', { style: { display: "flex", gap: "4px", alignItems: "center" } },
+            h('button', {
+              className: "btn-action",
+              style: { color: C.studyText, background: "#EFF6FF", border: `1px solid ${C.studyBorder}` },
+              onClick: () => duplicateScheduleTemplate(schedType)
+            }, "＋ 複製してテンプレ追加"),
+            Object.keys(schedules).length > 1 && h('button', {
+              className: "btn-action",
+              style: { color: "#DC2626", background: "#FEF2F2", border: "1px solid #FECACA" },
+              onClick: () => deleteScheduleTemplate(schedType)
+            }, "🗑 テンプレを削除")
+          )
+        ),
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "14px" } },
+          h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" } },
+            h('span', { style: { fontSize: "15px", fontWeight: 900 } }, `${schedules[schedType].name} のスケジュール`),
+            !isEditingSchedule
+              ? h('button', { className: "btn-action", style: { color: "#FFFFFF", background: C.study }, onClick: startEditSchedule }, "✏️ 編集")
+              : h('div', { style: { display: "flex", gap: "4px" } },
+                  h('button', { className: "btn-action", style: { color: "#48484A", background: "#E5E5EA" }, onClick: cancelEditSchedule }, "キャンセル"),
+                  h('button', { className: "btn-action", style: { color: "#FFFFFF", background: "#34C759" }, onClick: finishEditSchedule }, "完了")
+                )
+          ),
+          h('div', { style: { display: "flex", flexDirection: "column", gap: "6px" } },
+            schedules[schedType].items.map((item, idx) => {
+              const [startPart, endPart] = item.t.includes("〜") ? item.t.split("〜") : [item.t, ""];
+              return h('div', {
+                key: item.id,
+                style: {
+                  display: "flex", gap: "10px", alignItems: "center", padding: "8px 10px",
+                  background: "#F8FAFC", border: `1px solid ${C.border}`, borderRadius: "8px"
+                }
+              },
+                h('input', {
+                  type: "checkbox", className: "custom-checkbox-interactive",
+                  checked: !!checkedItems[item.id], onChange: () => toggleCheck(item.id)
+                }),
+                !isEditingSchedule
+                  ? h('div', { style: { minWidth: "90px", fontSize: "12.5px", fontWeight: 800, color: C.muted } }, item.t)
+                  : h('div', { style: { display: "flex", gap: "4px", alignItems: "center", flexWrap: "nowrap" } },
+                      h('input', {
+                        type: "text",
+                        className: "time-input-inline",
+                        style: { width: "54px", padding: "2px 4px" },
+                        value: startPart,
+                        onChange: (e) => updateScheduleItemTimeRange(schedType, idx, true, e.target.value)
+                      }),
+                      h('select', {
+                        className: "time-input-inline",
+                        style: { width: "24px", padding: "2px 0", textAlign: "center" },
+                        value: "",
+                        onChange: (e) => { if(e.target.value) updateScheduleItemTimeRange(schedType, idx, true, e.target.value); }
+                      },
+                        h('option', { value: "" }, "▼"),
+                        TIME_OPTIONS.map(opt => h('option', { key: opt, value: opt }, opt))
+                      ),
+                      h('span', { style: { fontSize: "12px", color: C.muted } }, "〜"),
+                      h('input', {
+                        type: "text",
+                        className: "time-input-inline",
+                        style: { width: "54px", padding: "2px 4px" },
+                        value: endPart,
+                        onChange: (e) => updateScheduleItemTimeRange(schedType, idx, false, e.target.value)
+                      }),
+                      h('select', {
+                        className: "time-input-inline",
+                        style: { width: "24px", padding: "2px 0", textAlign: "center" },
+                        value: "",
+                        onChange: (e) => { if(e.target.value) updateScheduleItemTimeRange(schedType, idx, false, e.target.value); }
+                      },
+                        h('option', { value: "" }, "▼"),
+                        TIME_OPTIONS.map(opt => h('option', { key: opt, value: opt }, opt))
+                      )
+                    ),
+                !isEditingSchedule
+                  ? h('div', { style: { flex: 1, fontSize: "13.5px", fontWeight: item.hi ? 800 : 500 } }, item.a)
+                  : h('input', {
+                      type: "text", value: item.a,
+                      onChange: (e) => updateScheduleItemField(schedType, idx, "a", e.target.value),
+                      style: { flex: 1, padding: "4px 8px", fontSize: "13px", border: "1px solid #CCC", borderRadius: "5px" }
+                    }),
+                isEditingSchedule && h('div', { style: { display: "flex", gap: "3px" } },
+                  h('button', { onClick: () => moveScheduleItem(schedType, idx, -1), style: { padding: "2px 6px", fontSize: "11px" } }, "▲"),
+                  h('button', { onClick: () => moveScheduleItem(schedType, idx, 1), style: { padding: "2px 6px", fontSize: "11px" } }, "▼")
+                )
+              );
+            })
+          ),
+          isEditingSchedule && h('button', {
+            className: "btn-action",
+            style: { marginTop: "10px", width: "100%", background: "#F2F2F7", color: C.text, border: `1px dashed ${C.border}` },
+            onClick: () => addScheduleItem(schedType)
+          }, "＋ スケジュール項目を追加")
+        )
+      ),
+
+      /* SCHOOL TAB */
+      tab === "school" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "15px", fontWeight: 900, marginBottom: "4px" } },
+            "🎯【進路のビジョン】中学〜大学院まで一貫した「音楽×プログラミング」のクリエイター進路ロードマップ"
+          ),
+          h('div', { style: { fontSize: "12px", color: "#D1D1D6" } },
+            "都立武蔵丘高（軽音）➔ 慶應SFC/明治FMS（総合型選抜）➔ 将来ロンドン大学Goldsmithsへ"
+          )
+        ),
+        schoolCardsData.map(sec => {
+          const isOpen = openSchoolCards[sec.key] === true;
+          return h('div', {
+            key: sec.key,
+            style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" }
+          },
+            h('div', {
+              onClick: () => toggleSchoolCard(sec.key),
+              style: { padding: "12px 14px", background: "#F8FAFC", borderBottom: isOpen ? `1px solid ${C.border}` : "none", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
+            },
+              h('div', { style: { display: "flex", alignItems: "center", gap: "8px" } },
+                h('span', { style: { fontSize: "14.5px", fontWeight: 900 } }, sec.title),
+                h('span', { className: "badge-tag", style: { color: sec.color, background: "#FFFFFF", border: `1px solid ${C.border}` } }, sec.badge)
+              ),
+              h('span', { style: { fontSize: "12px", color: C.muted } }, isOpen ? "▲" : "▼")
+            ),
+            isOpen && h('div', { style: { padding: "12px 14px", display: "flex", flexDirection: "column", gap: "12px" } },
+              sec.group.map((sch, si) => h('div', {
+                key: si,
+                style: { background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 14px" }
+              },
+                h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexWrap: "wrap", gap: "6px" } },
+                  h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                    h('span', { style: { fontSize: "15px", fontWeight: 900, color: sec.color } }, sch.name),
+                    sch.badge && h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: sec.color } }, sch.badge)
+                  ),
+                  sch.url && h('a', {
+                    href: sch.url, target: "_blank", rel: "noopener noreferrer",
+                    className: "btn-action", style: { color: "#007AFF", background: "#EFF6FF", border: "1px solid #BFDBFE" }
+                  }, "🌐 公式サイト ↗")
+                ),
+                sch.location && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "6px" } },
+                  h('strong', null, "📍 所在地・通学時間: "), sch.location
+                ),
+                sch.learn && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "6px" } },
+                  h('strong', null, "🌟 学べること: "),
+                  h('ul', { style: { paddingLeft: "18px", marginTop: "3px" } },
+                    sch.learn.map((l, li) => h('li', { key: li, style: { marginBottom: "2px" } }, l))
+                  )
+                ),
+                sch.advantages && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "6px", lineHeight: 1.45 } },
+                  h('strong', null, "💡 学習利点: "), sch.advantages
+                ),
+                sch.teachers && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "6px" } },
+                  h('strong', null, "👨‍🏫 教員・指導陣: "), sch.teachers.join(" / ")
+                ),
+                sch.alumni && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "6px" } },
+                  h('strong', null, "✨ 著名な卒業生: "), sch.alumni
+                ),
+                sch.otherPoints && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "4px" } },
+                  h('strong', null, "📌 他のポイント: "), sch.otherPoints
+                )
+              ))
+            )
+          );
+        }),
+
+        /* 6. 最新総合推薦ランキング */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" } },
+          h('div', {
+            onClick: () => toggleSchoolCard("rank"),
+            style: { padding: "12px 14px", background: "#F8FAFC", borderBottom: openSchoolCards["rank"] ? `1px solid ${C.border}` : "none", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
+          },
+            h('span', { style: { fontSize: "14.5px", fontWeight: 900 } }, "🏆 6. 最新総合推薦ランキング（メリット＆デメリット比較）"),
+            h('span', { style: { fontSize: "12px", color: C.muted } }, openSchoolCards["rank"] ? "▲" : "▼")
+          ),
+          openSchoolCards["rank"] && h('div', { style: { padding: "14px", display: "flex", flexDirection: "column", gap: "14px" } },
+            /* 中高生部門 TOP3 */
+            h('div', null,
+              h('div', { style: { fontSize: "13.5px", fontWeight: 900, color: "#DC2626", marginBottom: "8px" } }, "【中高生部門】今すぐ〜高校時代に目指したい TOP3"),
+              h('div', { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+                recommendationRankingData.junior.map((item, idx) => h('div', {
+                  key: idx, style: { background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "10px 12px" }
+                },
+                  h('div', { style: { fontSize: "13px", fontWeight: 900, color: "#1C1C1E", marginBottom: "4px" } }, `🥇 ${item.rank}：${item.name}`),
+                  h('div', { style: { fontSize: "12px", color: "#065F46", lineHeight: 1.4 } }, `🟢 メリット: ${item.merit}`),
+                  h('div', { style: { fontSize: "12px", color: "#991B1B", lineHeight: 1.4 } }, `🔴 デメリット: ${item.demerit}`)
+                ))
+              )
+            ),
+            /* 高校卒業後部門 TOP5 */
+            h('div', null,
+              h('div', { style: { fontSize: "13.5px", fontWeight: 900, color: "#7C3AED", marginBottom: "8px" } }, "【高校卒業後の進路部門】ベストマッチ TOP5"),
+              h('div', { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+                recommendationRankingData.higher.map((item, idx) => h('div', {
+                  key: idx, style: { background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "10px 12px" }
+                },
+                  h('div', { style: { fontSize: "13px", fontWeight: 900, color: "#1C1C1E", marginBottom: "4px" } }, `🎖️ ${item.rank}：${item.name}`),
+                  h('div', { style: { fontSize: "12px", color: "#065F46", lineHeight: 1.4 } }, `🟢 メリット: ${item.merit}`)
+                ))
+              )
+            )
+          )
+        )
+      ),
+
+      /* FEEDBACK TAB */
+      tab === "feedback" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "16px", fontWeight: 900, marginBottom: "4px" } }, "📝 使ってみた感想（フィードバック）"),
+          h('div', { style: { fontSize: "12px", color: "#D1D1D6" } },
+            "真・パパのリアルな声をもとに、アプリをどんどん進化させよう！回答者ごとに独立して下書き保存されます。"
+          )
+        ),
+
+        /* 入力フォームカード */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "16px" } },
+          /* 回答者選択バー（ピル形状・色分け） */
+          h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "8px", paddingBottom: "12px", borderBottom: `1px solid ${C.border}` } },
+            h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+              h('span', { style: { fontSize: "13px", fontWeight: 800, color: "#48484A" } }, "回答者:"),
+              [
+                { id: "真", label: "真", activeBg: "#4F46E5", activeColor: "#FFFFFF", inactiveBg: "#EEF2FF", inactiveColor: "#4338CA" },
+                { id: "パパ", label: "パパ", activeBg: "#059669", activeColor: "#FFFFFF", inactiveBg: "#ECFDF5", inactiveColor: "#065F46" },
+                { id: "その他", label: "その他", activeBg: "#4B5563", activeColor: "#FFFFFF", inactiveBg: "#F3F4F6", inactiveColor: "#374151" }
+              ].map(resp => {
+                const isSelected = currentRespondent === resp.id;
+                return h('button', {
+                  key: resp.id,
+                  type: "button",
+                  className: "respondent-pill",
+                  onClick: () => handleRespondentSwitch(resp.id),
+                  style: {
+                    background: isSelected ? resp.activeBg : resp.inactiveBg,
+                    color: isSelected ? resp.activeColor : resp.inactiveColor,
+                    borderColor: isSelected ? resp.activeBg : "transparent",
+                    boxShadow: isSelected ? "0 2px 5px rgba(0,0,0,0.15)" : "none"
+                  }
+                },
+                  isSelected ? "● " : "○ ",
+                  resp.label
+                );
+              })
+            ),
+            h('div', { style: { display: "flex", alignItems: "center", gap: "8px" } },
+              currentForm.editingFeedbackId && h('span', {
+                className: "badge-tag",
+                style: { background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A", fontWeight: 800 }
+              }, "✏️ 過去の回答を編集中"),
+              h('button', {
+                type: "button",
+                className: "btn-action",
+                onClick: handleResetCurrentForm,
+                style: { background: "#F3F4F6", color: "#4B5563", border: "1px solid #D1D5DB", padding: "4px 8px" }
+              }, "🔄 入力をリセット")
+            )
+          ),
+
+          /* 質問項目一覧 */
+          h('div', { style: { display: "flex", flexDirection: "column", gap: "16px" } },
+            FEEDBACK_QUESTIONS.map((q) => {
+              const rating = currentForm.ratings[q.id];
+              const comment = currentForm.comments[q.id] || "";
+              const hasRating = q.id !== "q6_requests";
+
+              return h('div', {
+                key: q.id,
+                style: { background: "#F8FAFC", border: `1px solid ${C.border}`, borderRadius: "8px", padding: "12px" }
+              },
+                h('div', { style: { fontSize: "13.5px", fontWeight: 900, color: "#1C1C1E", marginBottom: "8px" } }, q.text),
+                hasRating && h('div', { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" } },
+                  h('span', { style: { fontSize: "12px", color: C.muted, fontWeight: 700 } }, "評価:"),
+                  [1, 2, 3, 4, 5].map(starVal => h('button', {
+                    key: starVal,
+                    type: "button",
+                    className: "star-rating-btn",
+                    onClick: () => handleRatingChange(q.id, starVal),
+                    style: { color: starVal <= rating ? "#F59E0B" : "#D1D5DB" }
+                  }, "★")),
+                  h('span', { style: { fontSize: "12.5px", fontWeight: 900, color: "#D97706", marginLeft: "4px" } },
+                    rating ? `${rating} / 5` : "未評価"
+                  )
+                ),
+                h('textarea', {
+                  rows: 2,
+                  value: comment,
+                  placeholder: q.placeholder,
+                  onChange: (e) => handleCommentChange(q.id, e.target.value),
+                  style: {
+                    width: "100%", padding: "8px 10px", fontSize: "13px",
+                    border: "1px solid #D1D5DB", borderRadius: "6px",
+                    background: "#FFFFFF", color: "#1C1C1E", resize: "vertical"
+                  }
+                })
+              );
+            })
+          ),
+
+          /* 保存ボタン */
+          h('div', { style: { marginTop: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" } },
+            h('div', { style: { display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" } },
+              h('button', {
+                type: "button",
+                className: "btn-action",
+                onClick: handleSaveFeedback,
+                style: {
+                  background: currentRespondent === "パパ" ? "#059669" : "#4F46E5",
+                  color: "#FFFFFF", padding: "8px 18px",
+                  fontSize: "14px", fontWeight: 900, borderRadius: "8px",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.2)"
+                }
+              }, currentForm.editingFeedbackId
+                  ? `💾 【${currentRespondent}】の編集内容を更新保存`
+                  : `💾 【${currentRespondent}】の感想を保存する`
+              ),
+              h('button', {
+                type: "button",
+                className: "btn-action",
+                onClick: handleResetCurrentForm,
+                style: {
+                  background: "#F3F4F6", color: "#4B5563", border: "1px solid #D1D5DB",
+                  padding: "8px 14px", fontSize: "13px", fontWeight: 800, borderRadius: "8px"
+                }
+              }, "🔄 入力をリセット")
+            ),
+            feedbackSavedMessage && h('span', { style: { fontSize: "13px", fontWeight: 800, color: "#059669" } }, feedbackSavedMessage)
+          )
+        ),
+
+        /* 入力内容のエクスポートカード */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "16px" } },
+          h('div', { style: { fontSize: "14.5px", fontWeight: 900, marginBottom: "12px", display: "flex", alignItems: "center" } },
+            h('span', null, "感想のエクスポート")
+          ),
+          h('div', { style: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px", padding: "8px 12px", background: "#F8FAFC", borderRadius: "6px", flexWrap: "wrap" } },
+            h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#48484A" } }, "出力対象:"),
+            h('label', {
+              onClick: () => setExportScope("latest"),
+              style: {
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12.5px",
+                fontWeight: exportScope === "latest" ? 800 : 600,
+                cursor: "pointer",
+                padding: "4px 10px",
+                borderRadius: "6px",
+                background: exportScope === "latest" ? "#EFF6FF" : "transparent",
+                border: exportScope === "latest" ? "1.5px solid #007AFF" : "1.5px solid transparent",
+                color: exportScope === "latest" ? "#007AFF" : "#1C1C1E",
+                transition: "all 0.15s ease"
+              }
+            },
+              h('input', {
+                type: "radio",
+                name: "exportScope",
+                checked: exportScope === "latest",
+                onChange: () => setExportScope("latest"),
+                style: {
+                  WebkitAppearance: "radio",
+                  appearance: "radio",
+                  width: "16px",
+                  height: "16px",
+                  cursor: "pointer",
+                  accentColor: "#007AFF",
+                  margin: 0
+                }
+              }),
+              "最新の1件のみ"
+            ),
+            h('label', {
+              onClick: () => setExportScope("all"),
+              style: {
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12.5px",
+                fontWeight: exportScope === "all" ? 800 : 600,
+                cursor: "pointer",
+                padding: "4px 10px",
+                borderRadius: "6px",
+                background: exportScope === "all" ? "#EFF6FF" : "transparent",
+                border: exportScope === "all" ? "1.5px solid #007AFF" : "1.5px solid transparent",
+                color: exportScope === "all" ? "#007AFF" : "#1C1C1E",
+                transition: "all 0.15s ease"
+              }
+            },
+              h('input', {
+                type: "radio",
+                name: "exportScope",
+                checked: exportScope === "all",
+                onChange: () => setExportScope("all"),
+                style: {
+                  WebkitAppearance: "radio",
+                  appearance: "radio",
+                  width: "16px",
+                  height: "16px",
+                  cursor: "pointer",
+                  accentColor: "#007AFF",
+                  margin: 0
+                }
+              }),
+              `過去すべての回答履歴（${feedbacks.length}件）`
+            )
+          ),
+          h('div', { style: { display: "flex", gap: "8px", width: "100%" } },
+            h('button', {
+              type: "button",
+              className: "btn-action",
+              onClick: copyFeedbackText,
+              style: {
+                flex: "1 1 0",
+                minWidth: "0",
+                background: "#007AFF",
+                color: "#FFFFFF",
+                padding: "9px 4px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "3px",
+                borderRadius: "8px"
+              }
+            },
+              h('span', { style: { fontSize: "13px", fontWeight: 900, whiteSpace: "nowrap", color: "#FFFFFF" } }, "感想をコピー"),
+              h('span', { style: { fontSize: "11.5px", fontWeight: 700, whiteSpace: "nowrap", color: "#FFFFFF", letterSpacing: "0.01em" } }, "(他のAIにコピペ用)")
+            ),
+            h('button', {
+              type: "button",
+              className: "btn-action",
+              onClick: exportFeedbackCSV,
+              style: {
+                flex: "1 1 0",
+                minWidth: "0",
+                background: "#059669",
+                color: "#FFFFFF",
+                padding: "9px 4px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "3px",
+                borderRadius: "8px"
+              }
+            },
+              h('span', { style: { fontSize: "13px", fontWeight: 900, whiteSpace: "nowrap", color: "#FFFFFF" } }, ".csvで書き出し"),
+              h('span', { style: { fontSize: "11.5px", fontWeight: 700, whiteSpace: "nowrap", color: "#FFFFFF", letterSpacing: "0.01em" } }, "(表計算ソフトに渡す時用)")
+            ),
+            h('button', {
+              type: "button",
+              className: "btn-action",
+              onClick: exportFeedbackJSON,
+              style: {
+                flex: "1 1 0",
+                minWidth: "0",
+                background: "#6366F1",
+                color: "#FFFFFF",
+                padding: "9px 4px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "3px",
+                borderRadius: "8px"
+              }
+            },
+              h('span', { style: { fontSize: "13px", fontWeight: 900, whiteSpace: "nowrap", color: "#FFFFFF" } }, ".jsonで書き出し"),
+              h('span', { style: { fontSize: "11.5px", fontWeight: 700, whiteSpace: "nowrap", color: "#FFFFFF", letterSpacing: "0.01em" } }, "(他のソフトに渡すとき用)")
+            )
+          )
+        ),
+
+        /* 過去の回答履歴カード */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "16px" } },
+          h('div', { style: { fontSize: "14.5px", fontWeight: 900, marginBottom: "10px" } },
+            `📜 過去の回答履歴（${feedbacks.length}件）`
+          ),
+          feedbacks.length === 0
+            ? h('div', { style: { fontSize: "12.5px", color: C.muted, padding: "12px 0", textAlign: "center" } }, "まだ保存された感想はありません。")
+            : h('div', { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+                feedbacks.map((fb) => {
+                  const ratedAnswers = fb.answers.filter(a => a.rating !== null);
+                  const avgRating = ratedAnswers.length > 0
+                    ? (ratedAnswers.reduce((acc, a) => acc + a.rating, 0) / ratedAnswers.length).toFixed(1)
+                    : null;
+
+                  const isDad = fb.respondent === "パパ" || fb.respondent === "お父様";
+                  const isShin = fb.respondent === "真" || fb.respondent === "真くん";
+
+                  return h('div', {
+                    key: fb.feedback_id,
+                    style: { background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "10px 12px" }
+                  },
+                    h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" } },
+                      h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                        h('span', { style: { fontSize: "13px", fontWeight: 800 } }, `▼ ${fb.submitted_at_formatted}`),
+                        h('span', {
+                          className: "badge-tag",
+                          style: {
+                            background: isDad ? "#ECFDF5" : (isShin ? "#EEF2FF" : "#F3F4F6"),
+                            color: isDad ? "#065F46" : (isShin ? "#4338CA" : "#374151"),
+                            fontWeight: 800
+                          }
+                        }, fb.respondent === "お父様" ? "パパ" : (fb.respondent === "真くん" ? "真" : fb.respondent)),
+                        h('span', { className: "badge-tag", style: { background: "#F3F4F6", color: "#374151" } }, fb.app_version),
+                        avgRating && h('span', { style: { fontSize: "12px", fontWeight: 800, color: "#D97706" } }, `総合 ★${avgRating}`)
+                      ),
+                      h('div', { style: { display: "flex", gap: "4px" } },
+                        h('button', {
+                          type: "button",
+                          className: "btn-action",
+                          onClick: () => startEditExistingFeedback(fb),
+                          style: { background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", padding: "2px 8px", fontSize: "11px" }
+                        }, "編集"),
+                        h('button', {
+                          type: "button",
+                          className: "btn-action",
+                          onClick: () => deleteFeedback(fb.feedback_id),
+                          style: { background: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA", padding: "2px 8px", fontSize: "11px" }
+                        }, "削除")
+                      )
+                    )
+                  );
+                })
+              )
+        )
+      )
+    )
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(h(App));
+</script>
+</body>
+</html>
