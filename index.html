@@ -2221,6 +2221,49 @@ function App() {
   };
 
   const [openSchoolCards, setOpenSchoolCards] = useState({});
+  const [customSchools, setCustomSchools] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_custom_schools_v1") || "[]"); }
+    catch (e) { return []; }
+  });
+  const [hiddenSchools, setHiddenSchools] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_hidden_schools_v1") || "[]"); }
+    catch (e) { return []; }
+  });
+  const [showArchivedSchools, setShowArchivedSchools] = useState(false);
+  const [newSchool, setNewSchool] = useState({
+    section: "junior_high", name: "", url: "", location: ""
+  });
+  const [schoolEditorMessage, setSchoolEditorMessage] = useState("");
+  const saveCustomSchools = rows => {
+    setCustomSchools(rows);
+    try { localStorage.setItem("riff_custom_schools_v1", JSON.stringify(rows)); }
+    catch (e) {}
+  };
+  const saveHiddenSchools = ids => {
+    setHiddenSchools(ids);
+    try { localStorage.setItem("riff_hidden_schools_v1", JSON.stringify(ids)); }
+    catch (e) {}
+  };
+  const addSchool = () => {
+    const name = newSchool.name.trim(), url = newSchool.url.trim();
+    if (!name) { setSchoolEditorMessage("教育機関名を入力してください。"); return; }
+    if (url && !/^https?:\/\//i.test(url)) {
+      setSchoolEditorMessage("公式サイトは http または https のURLを入力してください。");
+      return;
+    }
+    const row = {
+      id: "school-custom-" + Date.now(), section: newSchool.section,
+      name, url, location: newSchool.location.trim(),
+      badge: "調査待ち", learn: [], teachers: [], alumni: "",
+      advantages: "", otherPoints: "",
+      sourceStatus: "未調査（本人入力のみ・公式確認前）"
+    };
+    saveCustomSchools([...customSchools, row]);
+    setOpenSchoolCards(prev => ({ ...prev, [row.section]: true }));
+    setNewSchool(prev => ({ ...prev, name: "", url: "", location: "" }));
+    setSchoolEditorMessage("候補として追加しました。詳細情報は未調査です。");
+  };
+
   const toggleSchoolCard = (key) => {
     setOpenSchoolCards(prev => ({ ...prev, [key]: !prev[key] }));
   };
