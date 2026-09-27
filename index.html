@@ -230,8 +230,7 @@ TIME_OPTIONS.push("24:00");
 
 const PLAN_START = "2026-10";
 const PLAN_END = "2031-04";
-const GANTT_MONTH_WIDTH = 34;
-const GANTT_LABEL_WIDTH = 160;
+// Two responsive gantt bands, each using a proportional month scale.
 
 // 2028年2月の高校入試は固定したまま、進学までの学年を正しくつなぐ。
 const stageInfo = {
@@ -271,8 +270,8 @@ const makeMonthRange = (start, end) => {
   });
 };
 const GANTT_ROWS = [
-  { title: "2026年10月〜2028年3月", start: "2026-10", end: "2028-03", months: makeMonthRange("2026-10", "2028-03") },
-  { title: "2028年4月〜2031年4月", start: "2028-04", end: "2031-04", months: makeMonthRange("2028-04", "2031-04") }
+  { title: "2026年10月〜2028年12月", start: "2026-10", end: "2028-12", months: makeMonthRange("2026-10", "2028-12") },
+  { title: "2029年1月〜2031年4月", start: "2029-01", end: "2031-04", months: makeMonthRange("2029-01", "2031-04") }
 ];
 const allGanttMonthLabels = makeMonthRange(PLAN_START, PLAN_END);
 const TOTAL_GANTT_MONTHS = allGanttMonthLabels.length;
@@ -1512,6 +1511,19 @@ const ganttTasks = [
   { nameLines: ["🌏 国内・海外進路調査", "洗足・Goldsmiths等"], stage: "p6", start: "2029-04", end: "2030-09" },
   { nameLines: ["📂 作品・選抜準備", "出願・面接・英語要件"], stage: "p7", start: "2030-04", end: "2031-03" },
   { nameLines: ["🎓 進学・次の制作", "進学先は未確定"], stage: "p8", start: "2031-04", end: "2031-04" }
+];
+
+// Reference dates are for the historical 2026-entry cycles; none is a confirmed 2028/2031 exam date.
+const EXAM_REFERENCE_NOTES = [
+  { label: "都立高校・令和8年度（2026年入学）", detail: "推薦：2026年1月26〜27日／第一次募集の学力検査：2026年2月21日。真の受験する2028年の日程ではありません。", status: "過去年度参考" },
+  { label: "洗足学園音楽大学・2026年度入試", detail: "方式・コース別に日程が異なります。音楽音響クリエイティブ表現コースの2026年度試験日は、この年度の同コース実施を確認できないため登録しません。総合型・学校推薦型・一般の真の受験年度の日程は公式要項で更新します。", status: "過去年度参考・要項確認" },
+  { label: "Goldsmiths・2026年入学", detail: "UCASの主な出願期限は2026年1月14日。これは試験日ではありません。Creative Computing／Music Computingの正式な出願経路・選考方法・面接日は各コースの公式情報で確認します。", status: "過去年度参考・試験日とは別" }
+];
+const EXAM_PLAN_MILESTONES = [
+  { date: "2028-02", label: "高校受験", full: "都立高校の受験予定月（2028年度入学。正式日未公表）", color: "#B91C1C" },
+  { date: "2030-09", label: "国内大", full: "国内大学の総合型選抜・推薦などの確認開始時期（正式日未公表）", color: "#7C3AED" },
+  { date: "2031-02", label: "大学受験", full: "国内大学の一般選抜等に備える計画上の月（正式日未公表）", color: "#7C3AED" },
+  { date: "2031-01", label: "海外出願", full: "Goldsmithsの出願・選考時期を確認する目安（正式日未公表）", color: "#047857" }
 ];
 
 const schoolCardsData = [
@@ -2798,70 +2810,86 @@ function App() {
         renderTodayActivitySection("python", "💻 今日の開発", openTodayCode, () => setOpenTodayCode(!openTodayCode), C.codeText)
       ),
 
-            /* GANTT TAB — two date-accurate bands, preserving 2028-02 entrance exam */
-      tab === "gantt" && h('div', { style: { display: "flex", flexDirection: "column", gap: "16px" } },
-        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "14px" } },
-          h('div', { style: { fontSize: "15px", fontWeight: 900, marginBottom: "6px" } }, "全体スケジュール（2026年10月〜2031年4月）"),
-          h('div', { style: { fontSize: "12px", color: C.muted, marginBottom: "12px" } },
-            "二段表示。横幅が足りない画面では各段を左右にスクロールできます。バーを押すとステージタブに移ります。"),
-          GANTT_ROWS.map((row) => {
-            const trackWidth = row.months.length * GANTT_MONTH_WIDTH;
-            const examIndex = row.months.findIndex(month => month.date === "2028-02");
-            return h('div', { key: row.start, style: { marginBottom: "18px" } },
-              h('div', { style: { fontSize: "13px", fontWeight: 900, marginBottom: "6px", color: C.studyText } }, row.title),
-              h('div', { style: { overflowX: "auto", paddingBottom: "6px" } },
-                h('div', { style: { position: "relative", width: GANTT_LABEL_WIDTH + trackWidth + "px" } },
-                  h('div', { style: { display: "flex", borderBottom: "2px solid #007AFF", paddingBottom: "8px", marginBottom: "7px" } },
-                    h('div', { style: { width: GANTT_LABEL_WIDTH + "px", flexShrink: 0, fontSize: "11px", fontWeight: 900 } }, "プロジェクト"),
-                    h('div', { style: { display: "flex", width: trackWidth + "px" } },
-                      row.months.map(m => h('div', { key: m.date, title: m.date,
-                        style: { width: GANTT_MONTH_WIDTH + "px", flexShrink: 0, textAlign: "center", fontSize: "10px",
-                          color: m.m === 1 ? "#007AFF" : C.text, fontWeight: m.m === 1 ? 900 : 700 }
-                      }, m.label))
-                    )
-                  ),
-                  ganttTasks.map((task, idx) => {
-                    const left = Math.max(0, getMonthOffset(task.start, row.start));
-                    const end = Math.min(row.months.length - 1, getMonthOffset(task.end, row.start));
-                    if (end < left) return null;
-                    const info = stageInfo[task.stage] || {};
-                    return h('div', { key: task.nameLines.join("-") + row.start,
-                      onClick: () => setTab("stage"),
-                      style: { display: "flex", alignItems: "center", padding: "6px 0",
-                        borderBottom: "1px solid #F2F2F7", cursor: "pointer", minHeight: "43px" } },
-                      h('div', { style: { width: GANTT_LABEL_WIDTH + "px", flexShrink: 0, paddingRight: "6px" } },
-                        task.nameLines.map((line, li) => h('div', { key: li, style: { fontSize: "11px", fontWeight: 800, lineHeight: 1.25 } }, line))
-                      ),
-                      h('div', { style: { width: trackWidth + "px", flexShrink: 0, position: "relative",
-                        height: "28px", background: "#F2F2F7", borderRadius: "5px" } },
-                        h('div', { title: task.start + "〜" + task.end,
-                          style: { position: "absolute", left: left * GANTT_MONTH_WIDTH + 2 + "px",
-                            width: Math.max(26, (end - left + 1) * GANTT_MONTH_WIDTH - 4) + "px",
-                            top: "2px", bottom: "2px", background: info.color || C.study,
-                            borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center",
-                            color: "#FFFFFF", fontSize: "10px", fontWeight: 900 }
-                        }, info.shortLabel || "St")
-                      )
-                    );
-                  }),
-                  examIndex >= 0 && h('div', { "aria-label": "2028年2月 高校受験マイルストーン",
-                    style: { position: "absolute",
-                      left: (GANTT_LABEL_WIDTH + (examIndex + 0.5) * GANTT_MONTH_WIDTH) + "px",
-                      top: "32px", bottom: "0", borderLeft: "2px dashed #B91C1C",
-                      pointerEvents: "none", zIndex: 2 } },
-                    h('span', { style: { position: "absolute", top: "3px", left: "4px",
-                      background: "rgba(255,255,255,0.9)", color: "#991B1B",
-                      writingMode: "vertical-rl", textOrientation: "upright",
-                      fontSize: "12px", fontWeight: 900, padding: "3px 1px", borderRadius: "3px" } }, "高校受験")
+            /* GANTT TAB: 27 + 28 months, proportional grid without horizontal scrolling. */
+      tab === "gantt" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: "dark-card-banner" },
+          h('div', { style: { fontSize: "16px", fontWeight: 900, color: "#FFFFFF" } },
+            "全体スケジュール（2026年10月〜2031年4月）")
+        ),
+        GANTT_ROWS.map(row => {
+          const monthCount = row.months.length;
+          const inRow = (date) => row.start <= date && date <= row.end;
+          return h('div', { key: row.start, style: { background: "#FFFFFF", borderRadius: "10px",
+            border: "1px solid " + C.border, padding: "10px", minWidth: 0 } },
+            h('div', { style: { fontSize: "13px", fontWeight: 900, color: C.studyText, marginBottom: "8px" } }, row.title),
+            h('div', { style: { display: "flex", gap: "5px", minWidth: 0, borderBottom: "2px solid #007AFF", paddingBottom: "5px" } },
+              h('div', { style: { width: "27%", minWidth: 0, fontSize: "10px", fontWeight: 800 } }, "プロジェクト"),
+              h('div', { style: { flex: 1, minWidth: 0, display: "grid",
+                gridTemplateColumns: "repeat(" + monthCount + ", minmax(0, 1fr))" } },
+                row.months.map((month, idx) =>
+                  h('div', { key: month.date, title: month.date,
+                    style: { gridColumn: String(idx + 1), textAlign: "left",
+                      overflow: "visible", whiteSpace: "nowrap", zIndex: 1, fontSize: "9px",
+                      color: month.m === 1 ? "#007AFF" : C.text, fontWeight: 800 } },
+                    month.m === 1 ? String(month.year).slice(2) + "年" : ([4,7,10].includes(month.m) ? String(month.m) + "月" : ""))
+                )
+              )
+            ),
+            ganttTasks.filter(task => task.start <= row.end && task.end >= row.start).map((task, idx) => {
+              const first = Math.max(0, getMonthOffset(task.start, row.start));
+              const last = Math.min(monthCount - 1, getMonthOffset(task.end, row.start));
+              const info = stageInfo[task.stage] || {};
+              return h('div', { key: task.nameLines.join("/") + row.start,
+                onClick: () => setTab("stage"),
+                style: { display: "flex", gap: "5px", alignItems: "center", minWidth: 0,
+                  padding: "4px 0", borderBottom: "1px solid #F2F2F7", cursor: "pointer" } },
+                h('div', { style: { width: "27%", minWidth: 0, overflowWrap: "anywhere",
+                  fontSize: "10px", lineHeight: 1.3, fontWeight: 800 } }, task.nameLines[0]),
+                h('div', { style: { flex: 1, minWidth: 0, position: "relative", height: "17px",
+                  background: "#F2F2F7", borderRadius: "3px" } },
+                  h('div', { title: task.nameLines.join("／") + "：" + task.start + "〜" + task.end,
+                    style: { position: "absolute", left: 100 * first / monthCount + "%",
+                      width: 100 * (last - first + 1) / monthCount + "%",
+                      top: "2px", bottom: "2px", borderRadius: "3px", background: info.color || C.study,
+                      minWidth: "2px" } })
+                )
+              );
+            }),
+            h('div', { style: { marginTop: "8px", borderTop: "1px solid #E5E7EB",
+              paddingTop: "7px", display: "flex", flexDirection: "column", gap: "5px" } },
+              EXAM_PLAN_MILESTONES.filter(x => inRow(x.date)).map(mark =>
+                h('div', { key: mark.date + mark.label, title: mark.full,
+                  style: { display: "flex", gap: "5px", alignItems: "center", minWidth: 0 } },
+                  h('div', { style: { width: "27%", minWidth: 0, fontSize: "10px",
+                    color: mark.color, fontWeight: 900, overflowWrap: "anywhere" } }, mark.label),
+                  h('div', { style: { position: "relative", flex: 1, minWidth: 0,
+                    height: "22px", background: "#F8FAFC" } },
+                    h('div', { style: { position: "absolute", left: (100 * (getMonthOffset(mark.date,row.start) + 0.5) / monthCount) + "%",
+                      top: 0, bottom: 0, borderLeft: "2px dashed " + mark.color } }),
+                    h('span', { style: { position: "absolute", left: (100 * (getMonthOffset(mark.date,row.start) + 0.5) / monthCount) + "%",
+                      top: "2px", writingMode: "vertical-rl", textOrientation: "upright",
+                      fontSize: "9px", fontWeight: 900, color: mark.color } }, "◆")
                   )
                 )
               )
-            );
-          })
+            )
+          );
+        }),
+        h('div', { style: { background: "#FFFFFF", border: "1px solid " + C.border,
+          borderRadius: "10px", padding: "12px", fontSize: "12px" } },
+          h('div', { style: { fontWeight: 900, color: C.text, marginBottom: "6px" } },
+            "入試予定と過去年度の参考日程"),
+          h('div', { style: { color: C.sub, marginBottom: "8px", lineHeight: 1.5 } },
+            "ガントの受験・出願マークは真の予定を考えるための目安です。該当年度の正式日程が公表されたら更新します。"),
+          EXAM_REFERENCE_NOTES.map(note => h('div', { key: note.label,
+            style: { borderTop: "1px solid #E5E7EB", padding: "7px 0", lineHeight: 1.5 } },
+            h('div', { style: { fontWeight: 900, color: C.studyText } }, note.label + "｜" + note.status),
+            h('div', { style: { color: C.sub } }, note.detail)
+          ))
         )
       ),
 
-      /* CALENDAR TAB */
+            /* CALENDAR TAB */
       tab === "cal" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
         calendarData.map((yr, yi) => h('div', { key: yi, style: { display: "flex", flexDirection: "column", gap: "10px" } },
           h('div', { style: { fontSize: "14px", fontWeight: 900, color: C.studyText, padding: "4px 8px", background: "#EFF6FF", borderRadius: "6px" } },
