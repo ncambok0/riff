@@ -1952,7 +1952,7 @@ function App() {
 
   const addScheduleItem = (type) => {
     const list = [...schedules[type].items];
-    const newItem = { id: `sch-custom-${Date.now()}`, t: "17:00〜17:30", a: "新規やること", hi: false };
+    const newItem = { id: `sch-custom-${Date.now()}`, t: "17:00〜17:30", a: "新規やること", category: "other", hi: false };
     saveSchedules({ ...schedules, [type]: { ...schedules[type], items: [...list, newItem] } });
   };
 
@@ -2544,6 +2544,17 @@ function App() {
     );
   };
 
+  const renderScheduleCategorySelect = (item, index) =>
+    h('select', { className: "time-input-inline", value: getScheduleCategory(item),
+      "aria-label": "時間割項目の分野", title: "今日の学習・音楽・開発の表示先",
+      style: { maxWidth: "88px", minWidth: "70px", fontSize: "11px" },
+      onChange: (e) => updateScheduleItemField(schedType, index, "category", e.target.value) },
+      h('option', { value: "study" }, "📚 学習"),
+      h('option', { value: "music" }, "🎸 音楽"),
+      h('option', { value: "python" }, "💻 開発"),
+      h('option', { value: "other" }, "その他")
+    );
+
   // All three sections use the same schedule rows and date-specific completion keys.
   const todayActivities = { study: [], music: [], python: [] };
   todaySched.items.forEach(item => {
@@ -2795,6 +2806,7 @@ function App() {
                         onChange: (e) => updateScheduleItemField(schedType, idx, "a", e.target.value),
                         style: { flex: 1, padding: "4px 8px", fontSize: "13px", border: "1px solid #CCC", borderRadius: "5px" }
                       }),
+                  isEditingSchedule && renderScheduleCategorySelect(item, idx),
                   isEditingSchedule && h('div', { style: { display: "flex", gap: "3px" } },
                     h('button', { onClick: () => moveScheduleItem(schedType, idx, -1), style: { padding: "2px 6px", fontSize: "11px" } }, "▲"),
                     h('button', { onClick: () => moveScheduleItem(schedType, idx, 1), style: { padding: "2px 6px", fontSize: "11px" } }, "▼")
@@ -3607,6 +3619,7 @@ function App() {
                       onChange: (e) => updateScheduleItemField(schedType, idx, "a", e.target.value),
                       style: { flex: 1, padding: "4px 8px", fontSize: "13px", border: "1px solid #CCC", borderRadius: "5px" }
                     }),
+                isEditingSchedule && renderScheduleCategorySelect(item, idx),
                 isEditingSchedule && h('div', { style: { display: "flex", gap: "3px" } },
                   h('button', { onClick: () => moveScheduleItem(schedType, idx, -1), style: { padding: "2px 6px", fontSize: "11px" } }, "▲"),
                   h('button', { onClick: () => moveScheduleItem(schedType, idx, 1), style: { padding: "2px 6px", fontSize: "11px" } }, "▼")
