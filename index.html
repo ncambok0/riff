@@ -1520,16 +1520,35 @@ const ganttTasks = [
 ];
 
 // Reference dates are for the historical 2026-entry cycles; none is a confirmed 2028/2031 exam date.
+// Reference: official admissions material for the 2026 entry cycle. The user's exams are in later entry years.
 const EXAM_REFERENCE_NOTES = [
-  { label: "都立高校・令和8年度（2026年入学）", detail: "推薦：2026年1月26〜27日／第一次募集の学力検査：2026年2月21日。真の受験する2028年の日程ではありません。", status: "過去年度参考" },
-  { label: "洗足学園音楽大学・2026年度入試", detail: "方式・コース別に日程が異なります。音楽音響クリエイティブ表現コースの2026年度試験日は、この年度の同コース実施を確認できないため登録しません。総合型・学校推薦型・一般の真の受験年度の日程は公式要項で更新します。", status: "過去年度参考・要項確認" },
-  { label: "Goldsmiths・2026年入学", detail: "UCASの主な出願期限は2026年1月14日。これは試験日ではありません。Creative Computing／Music Computingの正式な出願経路・選考方法・面接日は各コースの公式情報で確認します。", status: "過去年度参考・試験日とは別" }
+  { label: "都立高校・2026年度入学者選抜", status: "過去年度の確定日",
+    detail: "推薦選抜：2026年1月26・27日／第一次募集の学力検査：2026年2月21日。真が受験する2028年の試験日ではありません。",
+    url: "https://www.kyoiku.metro.tokyo.lg.jp/admission/high_school/archives/exam/nyuusenn_o_2025052201" },
+  { label: "洗足・2026年度 総合型選抜（旧AOに相当）", status: "過去年度の確定日",
+    detail: "第1回：2025年9月20・21日／第2回：10月18・19日／第3回：11月22・23日／第4回：12月25日／第5回：2026年2月7・8日。受験するコースによって実施日・提出内容が異なります。",
+    url: "https://www.senzoku.ac.jp/music/admission_guide/navi/schedule.html" },
+  { label: "洗足・2026年度 一般選抜", status: "過去年度の確定日",
+    detail: "一般選抜A：2026年2月7・8日／一般選抜B：2026年3月5・6日。真の2031年度入試の日程としては使用しません。",
+    url: "https://www.senzoku.ac.jp/music/admission_guide/navi/schedule.html" },
+  { label: "洗足・2026年度 学校推薦型選抜（指定校）", status: "学校に確認",
+    detail: "詳細は大学から各指定校へ通知されます。受験年度・在籍高校・対象コースの条件を高校へ確認するまで日付を登録しません。",
+    url: "https://www.senzoku.ac.jp/music/admission_guide/navi/schedule.html" },
+  { label: "洗足・音楽音響クリエイティブ表現コース", status: "年度・コースを区別",
+    detail: "同コースの募集は2027年度入試案内で確認できます。2026年度の別コースの試験日を同コースの試験日とみなさず、音楽・音響デザインとそれぞれの該当年度要項で確認します。",
+    url: "https://www.senzoku.ac.jp/music/admission/advance" },
+  { label: "Goldsmiths・2026年入学の出願", status: "試験日ではなく出願期限",
+    detail: "2026年入学の多くの学士課程でUCASの主要な出願期限は2026年1月14日。Creative Computingの募集要件を確認し、Music Computingの現行募集状況・選考形式は別途公式に確認します。両コース共通の『入学試験日』は登録しません。",
+    url: "https://www.gold.ac.uk/ug/apply/applying-through-ucas/" }
 ];
+// These marks are planning windows, NOT university-announced dates for the user's entry year.
 const EXAM_PLAN_MILESTONES = [
-  { date: "2028-02", label: "高校受験", full: "都立高校の受験予定月（2028年度入学。正式日未公表）", color: "#B91C1C" },
-  { date: "2030-09", label: "国内大", full: "国内大学の総合型選抜・推薦などの確認開始時期（正式日未公表）", color: "#7C3AED" },
-  { date: "2031-02", label: "大学受験", full: "国内大学の一般選抜等に備える計画上の月（正式日未公表）", color: "#7C3AED" },
-  { date: "2031-01", label: "海外出願", full: "Goldsmithsの出願・選考時期を確認する目安（正式日未公表）", color: "#047857" }
+  { date: "2028-02", label: "高校受験", full: "都立高校の受験予定月。実際の2028年度入学試験の正式日付は公式発表後に更新。", color: "#B91C1C" },
+  { date: "2030-09", label: "総合型", full: "国内大学の総合型選抜への準備期間を示す仮置き。該当年度の出願・試験日は未公表。", color: "#7C3AED" },
+  { date: "2030-11", label: "学校推薦", full: "学校推薦型選抜への準備期間を示す仮置き。指定校推薦の有無・試験日は在籍高校と大学に確認。", color: "#7C3AED" },
+  { date: "2031-01", label: "海外出願", full: "Goldsmithsへの出願・選考の確認時期を示す仮置き。試験日ではなく、該当年度の正式期限は未公表。", color: "#047857" },
+  { date: "2031-02", label: "一般A", full: "洗足の一般選抜Aなどへの準備期間を示す仮置き。該当年度の正式試験日は未公表。", color: "#7C3AED" },
+  { date: "2031-03", label: "一般B", full: "洗足の一般選抜Bなどへの準備期間を示す仮置き。該当年度の正式試験日は未公表。", color: "#7C3AED" }
 ];
 
 const schoolCardsData = [
@@ -2902,7 +2921,10 @@ function App() {
           EXAM_REFERENCE_NOTES.map(note => h('div', { key: note.label,
             style: { borderTop: "1px solid #E5E7EB", padding: "7px 0", lineHeight: 1.5 } },
             h('div', { style: { fontWeight: 900, color: C.studyText } }, note.label + "｜" + note.status),
-            h('div', { style: { color: C.sub } }, note.detail)
+            h('div', { style: { color: C.sub } }, note.detail),
+            note.url && h('a', { href: note.url, target: "_blank", rel: "noopener noreferrer",
+              style: { display: "inline-block", marginTop: "4px", color: C.studyText, fontWeight: 800 } },
+              "公式資料を確認 ↗")
           ))
         )
       ),
