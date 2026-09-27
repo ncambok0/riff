@@ -2153,6 +2153,146 @@ function App() {
     setSchedType(nextKey);
   };
 
+  // 計測・教材難易度は実際に本人が記録したセッションだけを保存する。
+  const [taskSessions, setTaskSessions] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_task_sessions_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const [activeTaskTimers, setActiveTaskTimers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_active_timers_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const [taskSessionDrafts, setTaskSessionDrafts] = useState({});
+  const [openTaskMeasurements, setOpenTaskMeasurements] = useState({});
+  const setTaskSessionDraft = (id, field, value) => {
+    setTaskSessionDrafts(prev => ({ ...prev,
+      [id]: { ...(prev[id] || {}), [field]: value } }));
+  };
+  const startTaskTimer = id => {
+    if (activeTaskTimers[id]) return;
+    setActiveTaskTimers(prev => {
+      const next = { ...prev, [id]: Date.now() };
+      try { localStorage.setItem("riff_active_timers_v1", JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+  };
+  const finishTaskTimer = id => {
+    const started = Number(activeTaskTimers[id]);
+    if (!started || started > Date.now()) return;
+    const draft = taskSessionDrafts[id] || {};
+    const seconds = Math.round((Date.now() - started) / 1000);
+    if (seconds <= 0) return;
+    const attempted = draft.attempted === "" || draft.attempted == null
+      ? null : Number(draft.attempted);
+    const correct = draft.correct === "" || draft.correct == null
+      ? null : Number(draft.correct);
+    if ((attempted != null || correct != null) &&
+        (!Number.isInteger(attempted) || attempted <= 0 ||
+          !Number.isInteger(correct) || correct < 0 || correct > attempted)) {
+      setTaskSessionDraft(id, "error", "正答数と問題数を確認してください（0〜問題数）。");
+      return;
+    }
+    const record = { id: "session-" + Date.now(), at: new Date().toISOString(),
+      seconds, difficulty: draft.difficulty ? Number(draft.difficulty) : null,
+      attempted, correct, material: String(draft.material || "").trim(),
+      notes: String(draft.notes || "").trim() };
+    setTaskSessions(prev => {
+      const next = { ...prev, [id]: [...(prev[id] || []), record] };
+      try { localStorage.setItem("riff_task_sessions_v1", JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+    setActiveTaskTimers(prev => {
+      const next = { ...prev };
+      delete next[id];
+      try { localStorage.setItem("riff_active_timers_v1", JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+  };
+  const getMeasuredMinutes = task => {
+    const records = (taskSessions[task.id] || [])
+      .filter(record => Number(record.seconds) > 0);
+    if (records.length < 3) return null;
+    const durations = records.map(record => record.seconds / 60).sort((a,b) => a-b);
+    const mid = Math.floor(durations.length / 2);
+    const median = durations.length % 2 ? durations[mid] :
+      (durations[mid - 1] + durations[mid]) / 2;
+    return Math.max(1, Math.ceil(median));
+  };
+  const effectiveTaskMinutes = task => getMeasuredMinutes(task) || taskMinutes(task);
+  const renderTaskMeasurement = task => {
+    const opened = !!openTaskMeasurements[task.id];
+    const records = taskSessions[task.id] || [];
+    const draft = taskSessionDrafts[task.id] || {};
+    const running = Number(activeTaskTimers[task.id]) > 0;
+    const elapsed = running ?
+      Math.max(0, Math.floor((currentTime.getTime() - activeTaskTimers[task.id]) / 1000)) : 0;
+    return h('div', { style: { width: "100%", marginTop: "4px",
+      padding: "5px 0", fontSize: "11px" } },
+      h('button', { type: "button", className: "btn-action",
+        style: { color: C.studyText, background: C.studyBg, fontSize: "11px" },
+        onClick: () => setOpenTaskMeasurements(prev =>
+          ({ ...prev, [task.id]: !prev[task.id] })) },
+        "⏱ 実測・難易度" + (records.length ? "（" + records.length + "回）" : "") +
+        (opened ? " ▲" : " ▼")),
+      opened && h('div', { style: { marginTop: "6px", padding: "9px", borderRadius: "7px",
+        background: "#FFFFFF", border: "1px solid " + C.border, color: C.text,
+        display: "flex", flexDirection: "column", gap: "7px" } },
+        h('div', { style: { color: C.muted } },
+          "初期見積もり " + formatTaskMinutes(taskMinutes(task)) +
+          "｜実測補正 " + (getMeasuredMinutes(task) == null ?
+            "3回の記録後（現在" + records.length + "回）" :
+            formatTaskMinutes(getMeasuredMinutes(task)) + "（中央値）")),
+        h('div', { style: { display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" } },
+          h('button', { type: "button", className: "btn-action",
+            disabled: running, style: { color: "#FFFFFF", background: C.code },
+            onClick: () => startTaskTimer(task.id) }, "▶ 計測開始"),
+          h('button', { type: "button", className: "btn-action",
+            disabled: !running, style: { color: "#FFFFFF", background: C.study },
+            onClick: () => finishTaskTimer(task.id) }, "■ 終了して記録"),
+          h('span', { style: { fontWeight: 900 } },
+            running ? "計測中 " + Math.floor(elapsed / 60) + "分" +
+              (elapsed % 60) + "秒" : "未計測")
+        ),
+        h('label', null, "体感難易度（本人の感覚）",
+          h('select', { className: "time-input-inline", value: draft.difficulty || "",
+            style: { marginLeft: "7px" },
+            onChange: e => setTaskSessionDraft(task.id, "difficulty", e.target.value) },
+            h('option', { value: "" }, "未評価"),
+            [1,2,3,4,5].map(n => h('option', { key: n, value: n },
+              n + "（" + (["","簡単","やや簡単","普通","難しい","非常に難しい"][n]) + "）")))
+        ),
+        task.genre === "study" || task.id.startsWith("m-") ||
+          task.id.startsWith("e-") || task.id.startsWith("s-") ||
+          task.id.startsWith("so-") || task.id.startsWith("j-") ?
+          h('div', { style: { display: "flex", gap: "8px", flexWrap: "wrap" } },
+            h('label', null, "問題数",
+              h('input', { type: "number", min: 1, className: "time-input-inline",
+                style: { width: "68px", marginLeft: "5px" },
+                value: draft.attempted || "",
+                onChange: e => setTaskSessionDraft(task.id, "attempted", e.target.value) })),
+            h('label', null, "正答数",
+              h('input', { type: "number", min: 0, className: "time-input-inline",
+                style: { width: "68px", marginLeft: "5px" },
+                value: draft.correct === 0 ? "0" : (draft.correct || ""),
+                onChange: e => setTaskSessionDraft(task.id, "correct", e.target.value) }))
+          ) : null,
+        h('input', { type: "text", className: "time-input-inline",
+          placeholder: "使った教材・資料名／ページ（任意）", value: draft.material || "",
+          onChange: e => setTaskSessionDraft(task.id, "material", e.target.value) }),
+        h('input', { type: "text", className: "time-input-inline",
+          placeholder: "つまずき・次回の確認点（任意）", value: draft.notes || "",
+          onChange: e => setTaskSessionDraft(task.id, "notes", e.target.value) }),
+        draft.error && h('div', { style: { color: "#B91C1C" } }, draft.error),
+        records.length > 0 && h('div', { style: { color: C.sub } },
+          "直近 " + (records[records.length - 1].seconds / 60).toFixed(1) +
+          "分" + (records[records.length - 1].difficulty ?
+            "｜難易度" + records[records.length - 1].difficulty + "/5" : "") +
+          (records[records.length - 1].attempted != null ?
+            "｜正答" + records[records.length - 1].correct + "/" +
+            records[records.length - 1].attempted : ""))
+      )
+    );
+  };
   const [checkedItems, setCheckedItems] = useState(() => {
     try {
       const saved = window.localStorage ? localStorage.getItem("shin_checks_v9") : null;
