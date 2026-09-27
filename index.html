@@ -2891,95 +2891,125 @@ function App() {
     return h('div', { style: { background: "#FFFFFF", borderRadius: "10px",
       border: "1px solid " + C.border, overflow: "hidden" } },
       h('div', { style: { padding: "12px 14px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", gap: "8px", flexWrap: "wrap" } },
+        justifyContent: "space-between", gap: "8px" } },
         h('button', { type: "button", className: "accordion-trigger", onClick: toggleOpen,
-          "aria-expanded": open, style: { flex: 1, display: "flex", alignItems: "center",
-            justifyContent: "space-between", gap: "8px", minWidth: "150px" } },
+          "aria-expanded": open, style: { flex: 1, minWidth: 0, display: "flex",
+            justifyContent: "space-between", alignItems: "center" } },
           h('span', { style: { fontSize: "15px", fontWeight: 900, color } }, title),
-          h('span', { style: { fontSize: "12px", color: C.muted, whiteSpace: "nowrap" } },
-            matchingItems.length + "件 " + (open ? "▲" : "▼"))
-        ),
-        h('button', { type: "button", className: "btn-action",
-          style: { color: "#FFFFFF", background: catInfo.color, fontSize: "11px", padding: "5px 9px" },
-          onClick: () => setTab(catInfo.tab) }, "ステージ／ステップ ↗")
+          h('span', { style: { fontSize: "12px", color: C.muted } },
+            matchingItems.length + "枠 " + (open ? "▲" : "▼"))
+        )
       ),
-      open && h('div', { style: { padding: "0 14px 14px", display: "flex",
-        flexDirection: "column", gap: "8px" } },
-        matchingItems.length === 0 && h('div', {
-          style: { color: C.muted, fontSize: "12px", padding: "8px 0" } },
-          "今日の時間割にこの分野は登録されていません。時間割の編集から追加できます。"),
+      open && h('div', { style: { padding: "0 14px 14px",
+        display: "flex", flexDirection: "column", gap: "9px" } },
+        matchingItems.length === 0 && h('div', { style: { fontSize: "12px", color: C.muted } },
+          "今日の時間割にこのジャンルはありません。"),
         matchingItems.map(item => {
-          const checked = !!checkedItems[scheduleCheckKey(item.id)];
-          const linkedStep = getLinkedStep(item);
-          return h('div', { key: item.id, style: {
-            display: "flex", gap: "8px", alignItems: "center", padding: "9px 10px",
-            background: checked ? "#F8FAFC" : "#FFFFFF",
-            border: "1px solid " + C.border, borderLeft: "3px solid " + catInfo.color,
-            borderRadius: "8px", flexWrap: "wrap"
-          } },
-            h('input', { type: "checkbox", className: "custom-checkbox-interactive",
-              checked, onChange: () => toggleCheck(scheduleCheckKey(item.id)),
-              "aria-label": item.a + "の今日の完了" }),
-            h('div', { style: { flex: 1, minWidth: "160px" } },
-              h('div', { style: { fontSize: "11.5px", color: C.muted, fontWeight: 800 } }, item.t),
-              h('div', { style: { fontSize: "13px", color: checked ? C.muted : C.text,
-                textDecoration: checked ? "line-through" : "none" } }, item.a),
-              linkedStep && h('div', { style: { fontSize: "11px", color: catInfo.color,
-                marginTop: "3px", fontWeight: 700 } },
-                stageInfo[linkedStep.stage].shortLabel + "・ステップ" +
-                linkedStep.stepNum + "｜" + linkedStep.taskTitle),
-              !linkedStep && h('div', { style: { fontSize: "11px", color: C.muted,
-                marginTop: "3px" } }, "計画ステップ：未紐付け")
+          const tasks = (todaySlots[item.id] || []).map(id => ALL_TASKS_BY_ID[id]).filter(Boolean);
+          const budget = parseScheduleDuration(item.t);
+          const used = tasks.reduce((total, task) => total + taskMinutes(task), 0);
+          const complete = tasks.filter(task => checkedItems[task.id]).length;
+          const custom = todayCustomTasks[scheduleCheckKey(item.id)] || "";
+          const stepIds = [...new Set(tasks.map(task => task.stepId))];
+          return h('div', { key: item.id, style: { border: "1px solid " + C.border,
+            borderLeft: "4px solid " + catInfo.color, borderRadius: "8px", padding: "10px" } },
+            h('div', { style: { display: "flex", justifyContent: "space-between",
+              alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "8px" } },
+              h('div', { style: { fontSize: "12px", fontWeight: 800 } },
+                item.t + "｜" + item.a),
+              h('span', { className: "badge-tag", style: { background: C.codeBg,
+                color: C.codeText } }, "割当" + formatTaskMinutes(used) +
+                " / " + formatTaskMinutes(budget) + "（残り" +
+                formatTaskMinutes(Math.max(0, budget - used)) + "）")
             ),
-            h('div', { style: { display: "flex", flexDirection: "column",
-              gap: "5px", width: "100%", marginLeft: "28px" } },
+            stepIds.map(stepId => {
+              const stepTasks = tasks.filter(task => task.stepId === stepId);
+              const first = stepTasks[0], stage = stageInfo[first.stageKey] || {};
+              const studyStage = STUDY_STAGE_BY_UNIT_ID[stepId];
+              return h('div', { key: stepId, style: { background: "#F8FAFC",
+                border: "1px solid " + C.border, borderRadius: "7px",
+                padding: "8px", marginBottom: "8px" } },
+                h('div', { style: { display: "flex", gap: "6px", alignItems: "center",
+                  flexWrap: "wrap", marginBottom: "5px" } },
+                  h('span', { className: "badge-tag", style: {
+                    background: stage.color || C.study, color: "#FFFFFF" } },
+                    "ステージ" + (studyStage ? studyStage.number : first.stageKey.slice(1))),
+                  studyStage && h('span', { style: { fontSize: "11px", color: C.muted } },
+                    studyStage.title),
+                  h('span', { className: "badge-tag", style: {
+                    background: catInfo.color, color: "#FFFFFF" } },
+                    "ステップ" + first.stepNum),
+                  h('span', { style: { fontWeight: 800, fontSize: "12px" } }, first.stepTitle)
+                ),
+                stepTasks.map(task => h('div', { key: task.id, style: { display: "flex",
+                  alignItems: "flex-start", gap: "7px", padding: "5px 0",
+                  borderTop: "1px dashed " + C.border } },
+                  h('input', { type: "checkbox", className: "custom-checkbox-interactive",
+                    checked: !!checkedItems[task.id], onChange: () => toggleCheck(task.id),
+                    "aria-label": task.text + "の完了" }),
+                  h('button', { type: "button", onClick: () => jumpToTask(task.tab, task.id),
+                    style: { flex: 1, textAlign: "left", background: "none", border: "none",
+                      cursor: "pointer", fontSize: "12px", color: checkedItems[task.id] ? C.muted : C.text,
+                      textDecoration: checkedItems[task.id] ? "line-through" : "none" } },
+                    task.text),
+                  h('span', { style: { whiteSpace: "nowrap", fontSize: "11px",
+                    color: catInfo.color, fontWeight: 800 } },
+                    "目安" + formatTaskMinutes(taskMinutes(task)) + "（仮）"),
+                  h('button', { type: "button", className: "btn-action",
+                    onClick: () => {
+                      setManualStepByTask(prev => ({ ...prev, [item.id + ":" + task.id]: task.stepId }));
+                      setOpenTodayLinkFor(prev =>
+                        prev === item.id + ":" + task.id ? null : item.id + ":" + task.id);
+                    }, style: { fontSize: "10px", background: C.studyBg, color: C.studyText } },
+                    "変更")
+                ))
+              );
+            }),
+            tasks.length === 0 && h('div', { style: { fontSize: "12px", color: C.muted } },
+              "この枠に入る未完了タスクがありません。"),
+            tasks.map(task => openTodayLinkFor === item.id + ":" + task.id &&
+              h('div', { key: "edit-" + task.id, style: { background: C.studyBg,
+                borderRadius: "7px", padding: "8px", marginBottom: "8px" } },
+                h('div', { style: { fontWeight: 800, fontSize: "12px" } },
+                  "やること変更（" + task.text + "）"),
+                h('select', { className: "time-input-inline",
+                  style: { width: "100%", marginTop: "5px" },
+                  value: manualStepByTask[item.id + ":" + task.id] || task.stepId,
+                  onChange: e => setManualStepByTask(prev =>
+                    ({ ...prev, [item.id + ":" + task.id]: e.target.value })) },
+                  (scheduleStepChoices[category] || []).map(step =>
+                    h('option', { key: step.id, value: step.id },
+                      "ステップ" + step.stepNum + "｜" + step.taskTitle))),
+                h('select', { className: "time-input-inline",
+                  style: { width: "100%", marginTop: "5px" }, value: "",
+                  "aria-label": "代わりのやることを選択",
+                  onChange: e => { if (e.target.value) updateDailyTask(item.id, task.id, e.target.value); } },
+                  h('option', { value: "" }, "やることを選択"),
+                  TASK_CATALOG[category].filter(option => option.stepId ===
+                    (manualStepByTask[item.id + ":" + task.id] || task.stepId)).map(option =>
+                    h('option', { key: option.id, value: option.id, disabled: !!checkedItems[option.id] },
+                      option.text + "｜" + formatTaskMinutes(taskMinutes(option)))) )
+              )),
+            assignmentWarning && h('div', { style: { color: "#B91C1C", fontSize: "12px" } },
+              assignmentWarning),
+            h('div', { style: { display: "flex", justifyContent: "space-between",
+              alignItems: "center", fontSize: "11px", color: C.muted } },
+              "完了 " + complete + "/" + tasks.length,
               h('button', { type: "button", className: "btn-action",
-                style: { color: "#FFFFFF", background: catInfo.color,
-                  fontSize: "11px", padding: "5px 9px", alignSelf: "flex-start" },
-                onClick: () => setOpenTodayLinkFor(prev => prev === item.id ? null : item.id) },
-                openTodayLinkFor === item.id ? "選択を閉じる ▲" :
-                  (linkedStep ? "紐付けを変更する ▼" : "ステップを紐付け／計画外 ▼")),
-              linkedStep && h('button', { type: "button", className: "btn-action",
-                style: { color: "#FFFFFF", background: catInfo.color,
-                  fontSize: "11px", alignSelf: "flex-start" },
-                onClick: () => jumpToTask(linkedStep.tab, linkedStep.id) }, "ステップ詳細 ↗"),
-              todayCustomTasks[scheduleCheckKey(item.id)] && h('div',
-                { style: { fontSize: "12px", color: catInfo.color, fontWeight: 700 } },
-                "計画外のやること：" + todayCustomTasks[scheduleCheckKey(item.id)]),
-              openTodayLinkFor === item.id && h('div', {
-                style: { display: "flex", flexDirection: "column", gap: "7px",
-                  padding: "8px", borderRadius: "7px", background: "#F8FAFC",
-                  border: "1px solid " + C.border } },
-                h('label', { style: { fontSize: "11px", fontWeight: 800 } },
-                  "計画にあるステップをここで選ぶ（時間割の編集は不要）"),
-                h('select', { className: "time-input-inline", value: linkedStep ? linkedStep.id : "",
-                  "aria-label": "紐付けるステップ",
-                  style: { width: "100%", fontSize: "12px", padding: "7px" },
-                  onChange: e => {
-                    const index = todaySched.items.findIndex(row => row.id === item.id);
-                    if (index >= 0) updateScheduleItemField(schedType, index, "linkedStepId", e.target.value);
-                  } },
-                  h('option', { value: "" }, "紐付けなし（今日の予定だけ）"),
-                  (scheduleStepChoices[category] || []).map(step => h('option', {
-                    key: step.id, value: step.id },
-                    stageInfo[step.stage].shortLabel + " ステップ" + step.stepNum +
-                    "｜" + step.taskTitle))),
-                h('label', { style: { fontSize: "11px", fontWeight: 800 } },
-                  "計画にない場合は、今日だけのやることを自由入力"),
-                h('input', { type: "text", className: "time-input-inline",
-                  value: todayCustomTasks[scheduleCheckKey(item.id)] || "",
-                  placeholder: "例：新しく思いついたリフを録音する",
-                  "aria-label": "今日だけの計画外タスク",
-                  style: { width: "100%", padding: "7px", fontSize: "12px" },
-                  onChange: e => setTodayCustomTask(item.id, e.target.value) }),
-                h('div', { style: { fontSize: "11px", color: C.muted } },
-                  "計画外の内容は当日・この時間割だけに保存。既存の計画や進捗は変更しません。")
-              )
-            )
+                style: { background: catInfo.color, color: "#FFFFFF" },
+                onClick: rebuildDailySlots }, "未完了から再割当")
+            ),
+            h('label', { style: { display: "block", fontSize: "11px",
+              marginTop: "8px", fontWeight: 800 } },
+              "一覧にない場合は、今日だけのやることを自由入力"),
+            h('input', { type: "text", className: "time-input-inline",
+              value: custom, style: { width: "100%", padding: "7px" },
+              placeholder: "今日だけのやること",
+              onChange: e => setTodayCustomTask(item.id, e.target.value) })
           );
         }),
-        h('div', { style: { fontSize: "11px", color: C.muted, lineHeight: 1.4 } },
-          "今日の完了チェックと、計画ステップの完了チェックは別々に記録します。計画にない活動も当日だけのメモとして追加できます。")
+        h('div', { style: { fontSize: "11px", color: C.muted } },
+          "チェックは全タブ共通です。自動割当はその日の計画として保存され、完了後も勝手に入れ替わりません。")
       )
     );
   };
