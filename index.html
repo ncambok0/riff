@@ -931,7 +931,7 @@ const schedulePreferredSubject = item => {
   return null;
 };
 // 今日の自動提案：開始時刻順・番号順で、枠を超えず重複させない。
-const proposeDailySlots = (items, completed) => {
+const proposeDailySlots = (items, completed, minutesForTask = taskMinutes) => {
   const slots = {}, occupied = new Set();
   items.slice().sort((a, b) => String(a.t).localeCompare(String(b.t))).forEach(item => {
     const genre = getScheduleCategory(item);
@@ -943,7 +943,7 @@ const proposeDailySlots = (items, completed) => {
     for (const task of TASK_CATALOG[genre]) {
       if (subject && task.subjectId !== subject) continue;
       if (completed[task.id] || occupied.has(task.id)) continue;
-      const minutes = taskMinutes(task);
+      const minutes = minutesForTask(task);
       if (minutes > remaining) break; // 順序を保ち、次の必須作業を飛び越さない
       slots[item.id].push(task.id);
       occupied.add(task.id);
@@ -2219,6 +2219,9 @@ function App() {
     return Math.max(1, Math.ceil(median));
   };
   const effectiveTaskMinutes = task => getMeasuredMinutes(task) || taskMinutes(task);
+  const taskEstimateLabel = task => getMeasuredMinutes(task) == null
+    ? "目安" + formatTaskMinutes(taskMinutes(task)) + "（仮）"
+    : "実測補正" + formatTaskMinutes(getMeasuredMinutes(task)) + "（中央値）";
   const renderTaskMeasurement = task => {
     const opened = !!openTaskMeasurements[task.id];
     const records = taskSessions[task.id] || [];
@@ -2506,7 +2509,7 @@ function App() {
   });
   const priorDailyPlan = dailyPlans[dailyPlanKey];
   const todaySlots = priorDailyPlan && priorDailyPlan.fingerprint === dailyTemplateFingerprint
-    ? priorDailyPlan.slots : proposeDailySlots(todaySched.items, checkedItems);
+    ? priorDailyPlan.slots : proposeDailySlots(todaySched.items, checkedItems, effectiveTaskMinutes);
   const persistDailySlots = slots => {
     setDailyPlans(prev => {
       const next = { ...prev, [dailyPlanKey]: {
@@ -2522,7 +2525,7 @@ function App() {
     }
   }, [dailyPlanKey, dailyTemplateFingerprint]);
   const rebuildDailySlots = () => {
-    persistDailySlots(proposeDailySlots(todaySched.items, checkedItems));
+    persistDailySlots(proposeDailySlots(todaySched.items, checkedItems, effectiveTaskMinutes));
     setAssignmentWarning("");
   };
   const updateDailyTask = (slotId, oldId, replacementId) => {
@@ -2537,8 +2540,8 @@ function App() {
     }
     const withoutOld = (todaySlots[slotId] || []).filter(id => id !== oldId);
     const used = withoutOld.reduce((total, id) => total +
-      taskMinutes(ALL_TASKS_BY_ID[id] || {}), 0);
-    if (used + taskMinutes(replacement) > parseScheduleDuration(slot.t)) {
+      effectiveTaskMinutes(ALL_TASKS_BY_ID[id] || {}), 0);
+    if (used + effectiveTaskMinutes(replacement) > parseScheduleDuration(slot.t)) {
       setAssignmentWarning("時間枠を超えるため変更できません。短い作業を選んでください。");
       return;
     }
@@ -3009,7 +3012,7 @@ function App() {
               `🎯 学習メモ: ${u.memo}`),
             h('div', { style: { color: C.studyText, fontWeight: 900, margin: "6px 0" } },
               "📚 やること（仮の合計目安" + formatTaskMinutes(stepMinutes(u)) + "）"),
-            u.subtasks.map(task => h('label', { key: task.id,
+            u.subtasks.map(task => h(React.Fragment, { key: task.id }, h('label', {
               id: "riff-task-" + task.id,
               style: { display: "flex", alignItems: "flex-start", gap: "8px",
                 padding: "7px 0", borderTop: "1px solid #E5E7EB", cursor: "pointer",
@@ -3024,7 +3027,9 @@ function App() {
                 textDecoration: checkedItems[task.id] ? "line-through" : "none" } },
                 task.text),
               h('span', { style: { flexShrink: 0, color: "#047857", fontWeight: 800 } },
-                "目安" + formatTaskMinutes(taskMinutes(task)) + "（仮）")
+                taskEstimateLabel(task))
+              ),
+              renderTaskMeasurement(task)
             )),
             h('div', { style: { marginTop: "5px", fontSize: "11px", color: C.muted } },
               "単元の完了チェックと、細かいやることのチェックは別々に記録します。")
@@ -3119,7 +3124,7 @@ function App() {
 
           const tasks = (todaySlots[item.id] || []).map(id => ALL_TASKS_BY_ID[id]).filter(Boolean);
           const budget = parseScheduleDuration(item.t);
-          const used = tasks.reduce((total, task) => total + taskMinutes(task), 0);
+          const used = tasks.reduce((total, task) => total + effectiveTaskMinutes(task), 0);
           const complete = tasks.filter(task => checkedItems[task.id]).length;
           const custom = todayCustomTasks[scheduleCheckKey(item.id)] || "";
           const stepIds = [...new Set(tasks.map(task => task.stepId))];
@@ -3151,7 +3156,7 @@ function App() {
                 ),
                 stepTasks.map(task => h('div', { key: task.id, style: { display: "flex",
                   alignItems: "flex-start", gap: "7px", padding: "5px 0",
-                  borderTop: "1px dashed " + C.border } },
+                  flexWrap: "wrap", borderTop: "1px dashed " + C.border } },
                   h('input', { type: "checkbox", className: "custom-checkbox-interactive",
                     checked: !!checkedItems[task.id], onChange: () => toggleCheck(task.id),
                     "aria-label": task.text + "の完了" }),
@@ -3162,14 +3167,15 @@ function App() {
                     task.text),
                   h('span', { style: { whiteSpace: "nowrap", fontSize: "11px",
                     color: catInfo.color, fontWeight: 800 } },
-                    "目安" + formatTaskMinutes(taskMinutes(task)) + "（仮）"),
+                    taskEstimateLabel(task)),
                   h('button', { type: "button", className: "btn-action",
                     onClick: () => {
                       setManualStepByTask(prev => ({ ...prev, [item.id + ":" + task.id]: task.stepId }));
                       setOpenTodayLinkFor(prev =>
                         prev === item.id + ":" + task.id ? null : item.id + ":" + task.id);
                     }, style: { fontSize: "10px", background: C.studyBg, color: C.studyText } },
-                    "変更")
+                    "変更"),
+                  renderTaskMeasurement(task)
                 ))
               );
             }),
@@ -3971,7 +3977,7 @@ function App() {
               s.subtasks.map(st => h('div', {
                 key: st.id, id: "riff-task-" + st.id,
                 style: { display: "flex", gap: "8px", alignItems: "flex-start",
-                  marginBottom: "6px", padding: "3px",
+                  flexWrap: "wrap", marginBottom: "6px", padding: "3px",
                   background: highlightedTaskId === st.id ? "#FEF08A" : "transparent",
                   outline: highlightedTaskId === st.id ? "2px solid #EAB308" : "none",
                   borderRadius: "5px" }
@@ -3986,7 +3992,8 @@ function App() {
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5",
                     fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
-                  "目安" + formatTaskMinutes(taskMinutes(st)) + "（仮）")
+                  taskEstimateLabel(st)),
+                renderTaskMeasurement(st)
               ))
             )
           ));
@@ -4063,7 +4070,7 @@ function App() {
               s.subtasks.map(st => h('div', {
                 key: st.id, id: "riff-task-" + st.id,
                 style: { display: "flex", gap: "8px", alignItems: "flex-start",
-                  marginBottom: "6px", padding: "3px",
+                  flexWrap: "wrap", marginBottom: "6px", padding: "3px",
                   background: highlightedTaskId === st.id ? "#FEF08A" : "transparent",
                   outline: highlightedTaskId === st.id ? "2px solid #EAB308" : "none",
                   borderRadius: "5px" }
@@ -4078,7 +4085,8 @@ function App() {
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5",
                     fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
-                  "目安" + formatTaskMinutes(taskMinutes(st)) + "（仮）")
+                  taskEstimateLabel(st)),
+                renderTaskMeasurement(st)
               ))
             )
           ));
