@@ -874,6 +874,16 @@ const defaultSchedulesData = {
   }
 };
 
+// Category is inferred for legacy schedule items; a saved explicit category takes precedence.
+const getScheduleCategory = item => {
+  if (["study", "music", "python", "other"].includes(item.category)) return item.category;
+  const description = String(item.a || "");
+  if (/🎸|🎵|ギター|録音|DTM|作曲|ライブ|音楽|演奏/.test(description)) return "music";
+  if (/💻|開発|Python|コード|Mountain of Sound|ゲーム制作|プログラミング/.test(description)) return "python";
+  if (/📚|🇬🇧|英会話|英語|学習|勉強|宿題|ワーク|暗記|受験|テスト|図書室|読書/.test(description)) return "study";
+  return "other";
+};
+
 const defaultMusicTracks = [
   { id: "track-a", name: "曲A", pct: 75 },
   { id: "track-b", name: "曲B", pct: 50 },
@@ -2516,6 +2526,51 @@ function App() {
     );
   };
 
+  // All three sections use the same schedule rows and date-specific completion keys.
+  const todayActivities = { study: [], music: [], python: [] };
+  todaySched.items.forEach(item => {
+    const category = getScheduleCategory(item);
+    if (todayActivities[category]) todayActivities[category].push(item);
+  });
+  const scheduleCategoryInfo = {
+    study: { label: "学習", color: C.study, tab: "study" },
+    music: { label: "音楽", color: C.music, tab: "music" },
+    python: { label: "開発", color: C.code, tab: "python" }
+  };
+  const renderTodayActivitySection = (category, title, open, toggleOpen, color) => {
+    const matchingItems = todayActivities[category];
+    return h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: "1px solid " + C.border, overflow: "hidden" } },
+      h('div', { onClick: toggleOpen, style: { padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" } },
+        h('span', { style: { fontSize: "15px", fontWeight: 900, color: color } }, title),
+        h('span', { style: { fontSize: "12px", color: C.muted } }, matchingItems.length + "件 " + (open ? "▲" : "▼"))
+      ),
+      open && h('div', { style: { padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: "8px" } },
+        matchingItems.length === 0 && h('div', { style: { color: C.muted, fontSize: "12px", padding: "8px 0" } },
+          "今日の時間割にこの分野は登録されていません。時間割の編集から追加できます。"),
+        matchingItems.map(item => {
+          const checked = !!checkedItems[scheduleCheckKey(item.id)];
+          return h('div', { key: item.id, style: {
+            display: "flex", gap: "8px", alignItems: "center", padding: "9px 10px",
+            background: checked ? "#F8FAFC" : "#FFFFFF",
+            border: "1px solid " + C.border, borderLeft: "3px solid " + scheduleCategoryInfo[category].color,
+            borderRadius: "8px"
+          } },
+            h('input', { type: "checkbox", className: "custom-checkbox-interactive",
+              checked: checked, onChange: () => toggleCheck(scheduleCheckKey(item.id)) }),
+            h('div', { style: { flex: 1, minWidth: 0 } },
+              h('div', { style: { fontSize: "11.5px", color: C.muted, fontWeight: 800 } }, item.t),
+              h('div', { style: { fontSize: "13px", color: checked ? C.muted : C.text,
+                textDecoration: checked ? "line-through" : "none" } }, item.a)
+            )
+          );
+        }),
+        h('button', { className: "btn-action", style: {
+          color: "#FFFFFF", background: scheduleCategoryInfo[category].color, alignSelf: "flex-start", padding: "6px 10px"
+        }, onClick: () => setTab(scheduleCategoryInfo[category].tab) }, "詳細タブで単元・ステップを選ぶ ↗")
+      )
+    );
+  };
+
   return h('div', { style: { minHeight: "100dvh", background: C.bg, color: C.text } },
     h('div', { className: 'fixed-header' },
       h('div', { style: { maxWidth: 880, margin: "0 auto", padding: "10px 14px 4px" } },
@@ -2737,114 +2792,13 @@ function App() {
           )
         ),
 
-        /* 2. 今日の学習（アコーディオン） */
-        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" } },
-          h('div', {
-            onClick: () => setOpenTodayStudy(!openTodayStudy),
-            style: {
-              padding: "12px 14px", background: "#FFFFFF", display: "flex",
-              justifyContent: "space-between", alignItems: "center", cursor: "pointer"
-            }
-          },
-            h('div', { style: { display: "flex", alignItems: "center", gap: "8px" } },
-              h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.studyText } }, "📚 今日の学習"),
-              h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#DC2626", background: "#FEE2E2", padding: "2px 7px", borderRadius: "4px" } },
-                `Sランク確認 ${checkedSRankUnits}/${totalSRankUnits}`
-              )
-            ),
-            h('span', { style: { fontSize: "12px", color: C.muted } }, openTodayStudy ? "▲" : "▼")
-          ),
-          openTodayStudy && h('div', { style: { padding: "0 14px 14px" } },
-            h('div', {
-              style: {
-                fontSize: "13px", fontWeight: 800, color: "#1D4ED8", background: "#EFF6FF",
-                padding: "8px 12px", borderRadius: "6px", marginBottom: "10px"
-              }
-            }, "⏱️ 今日の学習候補：期限と未完了を基に表示。時間配分は時間割と本人の予定で調整してください。"),
-
-            todayStudySuggestions.filter(u => u.rank === "S").slice(0, 3).map(u => {
-              const subObj = studySubjectsData.find(s => s.units.some(x => x.id === u.id)) || {};
-              return renderStudyTaskCard(u, subObj, "study");
-            }),
-
-            h('div', { style: { fontSize: "13.5px", fontWeight: 900, color: C.sub, margin: "14px 0 8px" } },
-              "その他の学習候補（A/Bランク・定着確認）"
-            ),
-            todayStudySuggestions.filter(u => u.rank !== "S").slice(0, 3).map(u => {
-              const subObj = studySubjectsData.find(s => s.units.some(x => x.id === u.id)) || {};
-              return renderStudyTaskCard(u, subObj, "study");
-            })
-          )
-        ),
-
-        /* 3. 今日の音楽（アコーディオン） */
-        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" } },
-          h('div', {
-            onClick: () => setOpenTodayMusic(!openTodayMusic),
-            style: {
-              padding: "12px 14px", background: "#FFFFFF", display: "flex",
-              justifyContent: "space-between", alignItems: "center", cursor: "pointer"
-            }
-          },
-            h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.musicText } }, "🎸 今日の音楽候補"),
-            h('span', { style: { fontSize: "12px", color: C.muted } }, openTodayMusic ? "▲" : "▼")
-          ),
-          openTodayMusic && h('div', { style: { padding: "0 14px 14px" } },
-            todayMusicSuggestions.slice(0, 2).map(s => h('div', {
-              key: s.id,
-              style: {
-                background: C.musicBg, border: `1px solid ${C.musicBorder}`, borderRadius: "8px",
-                padding: "8px 12px", marginBottom: "6px"
-              }
-            },
-              h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" } },
-                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
-                h('button', {
-                  className: "btn-action",
-                  onClick: () => jumpToTask("music", s.id),
-                  style: { color: "#FFFFFF", background: C.music, padding: "2px 7px", fontSize: "11px" }
-                }, "詳細 ↗")
-              ),
-              h('div', { style: { fontSize: "13.5px", fontWeight: 800, color: C.musicText } }, s.title)
-            ))
-          )
-        ),
-
-        /* 4. 今日の開発（アコーディオン） */
-        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" } },
-          h('div', {
-            onClick: () => setOpenTodayCode(!openTodayCode),
-            style: {
-              padding: "12px 14px", background: "#FFFFFF", display: "flex",
-              justifyContent: "space-between", alignItems: "center", cursor: "pointer"
-            }
-          },
-            h('span', { style: { fontSize: "15px", fontWeight: 900, color: C.codeText } }, "💻 今日の開発候補"),
-            h('span', { style: { fontSize: "12px", color: C.muted } }, openTodayCode ? "▲" : "▼")
-          ),
-          openTodayCode && h('div', { style: { padding: "0 14px 14px" } },
-            todayCodeSuggestions.slice(0, 2).map(s => h('div', {
-              key: s.id,
-              style: {
-                background: C.codeBg, border: `1px solid ${C.codeBorder}`, borderRadius: "8px",
-                padding: "8px 12px", marginBottom: "6px"
-              }
-            },
-              h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" } },
-                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
-                h('button', {
-                  className: "btn-action",
-                  onClick: () => jumpToTask("python", s.id),
-                  style: { color: "#FFFFFF", background: C.code, padding: "2px 7px", fontSize: "11px" }
-                }, "詳細 ↗")
-              ),
-              h('div', { style: { fontSize: "13.5px", fontWeight: 800, color: C.codeText } }, s.title)
-            ))
-          )
-        )
+          /* 今日の三分野は上の時間割と同一の活動・チェックを表示する */
+        renderTodayActivitySection("study", "📚 今日の学習", openTodayStudy, () => setOpenTodayStudy(!openTodayStudy), C.studyText),
+        renderTodayActivitySection("music", "🎸 今日の音楽", openTodayMusic, () => setOpenTodayMusic(!openTodayMusic), C.musicText),
+        renderTodayActivitySection("python", "💻 今日の開発", openTodayCode, () => setOpenTodayCode(!openTodayCode), C.codeText)
       ),
 
-      /* GANTT TAB — two date-accurate bands, preserving 2028-02 entrance exam */
+            /* GANTT TAB — two date-accurate bands, preserving 2028-02 entrance exam */
       tab === "gantt" && h('div', { style: { display: "flex", flexDirection: "column", gap: "16px" } },
         h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "14px" } },
           h('div', { style: { fontSize: "15px", fontWeight: 900, marginBottom: "6px" } }, "全体スケジュール（2026年10月〜2031年4月）"),
