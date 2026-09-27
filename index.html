@@ -2241,8 +2241,15 @@ function App() {
   });
   const [taskSessionDrafts, setTaskSessionDrafts] = useState({});
   const [taskEstimateOverrides, setTaskEstimateOverrides] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("riff_task_estimate_overrides_v1") || "{}"); }
-    catch (e) { return {}; }
+    try {
+      const prior = JSON.parse(localStorage.getItem("riff_task_estimate_overrides_v1") || "{}");
+      // FB: Amber i2の手動1分は解除して、指定された初期目安5分へ戻す。他の設定は維持。
+      if (Object.prototype.hasOwnProperty.call(prior, "mus-1-1")) {
+        delete prior["mus-1-1"];
+        localStorage.setItem("riff_task_estimate_overrides_v1", JSON.stringify(prior));
+      }
+      return prior;
+    } catch (e) { return {}; }
   });
   const setTaskEstimateOverride = (id, value) => setTaskEstimateOverrides(prev => {
     const next = { ...prev };
@@ -2593,7 +2600,8 @@ function App() {
     setOpenSchoolCards(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const [openStudyVisionCard, setOpenStudyVisionCard] = useState(true);
+  const [openStudyVisionCard, setOpenStudyVisionCard] = useState(false);
+  const [openStudyCapacity, setOpenStudyCapacity] = useState(false);
   const [openStudySubjects, setOpenStudySubjects] = useState({
     math: true, eng: true, sci: true, soc: true, jpn: true
   });
@@ -4541,15 +4549,15 @@ function App() {
 
       /* STUDY TAB */
       tab === "study" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
-        h('div', { className: 'dark-card-banner' },
-          h('div', {
-            onClick: () => setOpenStudyVisionCard(!openStudyVisionCard),
-            style: { display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
-          },
-            h('div', { style: { fontSize: "14.5px", fontWeight: 900 } },
-              "📚【学習のビジョン】都立武蔵丘高合格（換算内申44＋360点確保）を成し遂げ、表現者としての土台を固める"
+        h('div', { className: 'dark-card-banner', style: { order: 10 } },
+          h('button', { type: "button", className: "riff-fold",
+            "aria-expanded": openStudyVisionCard,
+            onClick: () => setOpenStudyVisionCard(prev => !prev),
+            style: { color: "#FFFFFF", background: "transparent" } },
+            h('span', { style: { fontSize: "15px", fontWeight: 900 } },
+              "📚 学習の目標・くわしい計画"
             ),
-            h('span', { style: { fontSize: "12px", color: "#D1D1D6" } }, openStudyVisionCard ? "▲" : "▼")
+            h('span', { className: "riff-fold-arrow" }, openStudyVisionCard ? "▲" : "▼")
           ),
           openStudyVisionCard && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.15)" } },
             h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" } },
@@ -4580,8 +4588,8 @@ function App() {
           )
         ),
 
-        /* 統合された学習タブの進み具合カード（ダークテーマ） */
-        h('div', { className: 'dark-card-banner' },
+        /* 進捗は科目一覧より下に。 */
+        h('div', { className: 'dark-card-banner', style: { order: 11 } },
           h('button', { type: "button", className: "accordion-trigger",
             "aria-expanded": openStudyProgress,
             onClick: () => setOpenStudyProgress(prev => !prev),
@@ -4643,11 +4651,17 @@ function App() {
           ))
         ),
 
-        h('div', { style: { background: "#FFFFFF", border: "1px solid " + C.border,
-          borderRadius: "10px", padding: "14px", display: "flex",
-          flexDirection: "column", gap: "10px" } },
-          h('div', { style: { fontSize: "15px", fontWeight: 900, color: C.studyText } },
-            "🎯 目標の日までに、何を勉強する？"),
+        h('div', { style: { order: 12, background: "#FFFFFF", border: "1px solid " + C.border,
+          borderRadius: "10px", padding: "12px", display: "flex",
+          flexDirection: "column", gap: "8px" } },
+          h('button', { type: "button", className: "riff-fold",
+            "aria-expanded": openStudyCapacity,
+            onClick: () => setOpenStudyCapacity(prev => !prev),
+            style: { background: "#EFF6FF", color: C.studyText } },
+            h('span', null, "📅 受験までの勉強時間は足りる？"),
+            h('span', { className: "riff-fold-arrow" }, openStudyCapacity ? "▲" : "▼")
+          ),
+          openStudyCapacity && h(React.Fragment, null,
           h('div', { style: { fontSize: "12px", color: C.sub } },
             "目標の日と、1週間に勉強できる時間を入れてね。残りのやることに何分必要か比べられます。高校入学後の課題は数えません。合否を予想するものではありません。"),
           h('div', { style: { display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" } },
@@ -4691,10 +4705,11 @@ function App() {
             (studyCapacityGap > 0 ? "｜不足 " + formatTaskMinutes(studyCapacityGap) :
               "｜想定上の余裕 " + formatTaskMinutes(-studyCapacityGap))),
           h('div', { style: { fontSize: "12px", color: C.sub, lineHeight: 1.5 } },
-            "時間が足りないときは、下のステップで「必要か考える」や「あとでやる」を選べます。大事な勉強まで勝手に消さないので、真くんと家族で相談して決めてね。")
+            "時間が足りないときは、各科目のステップで「必要か考える」や「あとでやる」を選べます。大事な勉強まで勝手に消さないので、真くんと家族で相談して決めてね。")
+          )
         ),
 
-        h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } },
+        h('div', { style: { order: -2, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } },
           h('div', { style: { display: "flex", gap: "6px", flexWrap: "wrap" } },
             h('button', {
               className: "chip-switch",
@@ -4754,7 +4769,8 @@ function App() {
 
           return h('div', {
             key: subject.id,
-            style: { background: subject.bg, borderRadius: "10px", border: `2px solid ${subject.border}`, overflow: "hidden" }
+            style: { order: -1, background: subject.bg, borderRadius: "10px",
+              border: `2px solid ${subject.border}`, overflow: "hidden" }
           },
             h('div', {
               onClick: () => toggleStudySubject(subject.id),
