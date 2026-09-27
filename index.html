@@ -3273,6 +3273,11 @@ function App() {
               marginBottom: "8px" } }, "自動割当" + formatTaskMinutes(used) +
               " / " + formatTaskMinutes(budget) + "（残り" +
               formatTaskMinutes(Math.max(0, budget - used)) + "）"),
+            used > budget && h('div', { style: { fontSize: "12px", fontWeight: 900,
+              marginBottom: "8px", color: "#B91C1C", padding: "7px",
+              background: "#FEF2F2", borderRadius: "5px" } },
+              "実測補正後、" + formatTaskMinutes(used - budget) +
+              "超過しています。作業の割当は保持しています。必要なら「未完了から再割当」で調整してください。"),
             stepIds.map(stepId => {
               const stepTasks = tasks.filter(task => task.stepId === stepId);
               const first = stepTasks[0], stage = stageInfo[first.stageKey] || {};
