@@ -222,9 +222,18 @@
   .riff-task-title[aria-expanded] { text-decoration: underline;
     text-decoration-style: dotted; text-underline-offset: 4px; }
   .riff-task-title:hover { text-decoration-style: solid; }
-  .riff-task-detail { font-size: 14px; line-height: 1.7; background: #F8FAFC;
-    color: #1E293B; padding: 10px 12px; margin: 5px 0 8px 0;
-    border-left: 3px solid #64748B; border-radius: 5px; }
+  .riff-task-detail { display: inline-flex; flex: 0 0 auto; flex-wrap: wrap;
+    align-items: center; margin: 0; padding: 0; background: transparent;
+    border: 0; font-size: 13px; line-height: 1.5; color: #1E293B; }
+  .riff-task-detail summary { list-style: none; display: inline-flex;
+    align-items: center; padding: 5px 8px; min-height: 32px;
+    color: #1D4ED8; background: #EFF6FF; border: 1px solid #BFDBFE;
+    border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 800; }
+  .riff-task-detail summary::-webkit-details-marker { display: none; }
+  .riff-task-detail[open] { flex-basis: 100%; }
+  .riff-task-detail[open] > div { flex: 1 1 100%; margin-top: 6px;
+    padding: 8px 10px; background: #F8FAFC; border-left: 3px solid #64748B;
+    border-radius: 5px; font-size: 14px; line-height: 1.7; }
   .riff-task-note { font-size: 13px !important; line-height: 1.6; }
   .riff-gantt-link { display: flex; gap: 5px; align-items: center; width: 100%;
     padding: 5px 0; border: none; border-bottom: 1px solid #E5E7EB;
@@ -931,6 +940,7 @@ const inferTaskMinutes = (task, domain) => {
 // 一覧は短い題名を先に。説明は「説明を見る」で全文を開ける。
 const taskShortTitle = full => {
   const value = String(full || "").trim();
+  if (value.startsWith("Amber i2前面のINPUT選択ボタンを順次押し")) return "Amber i2の入力をHI-Zにする";
   if (value.length <= 38) return value;
   const comma = value.indexOf("、");
   if (comma >= 15 && comma <= 38) return value.slice(0, comma);
@@ -3237,11 +3247,11 @@ function App() {
           h('option', { value: "defer" }, "あとでやる")
         ),
 
-        h('button', {
+        targetTab !== "study" && h('button', {
           className: "btn-action",
           onClick: (e) => { e.stopPropagation(); jumpToTask(targetTab, u.id); },
-          style: { color: "#FFFFFF", background: C.study, padding: "2.5px 8px", fontSize: "11.5px", fontWeight: 600, letterSpacing: "0.03em" }
-        }, "詳細 ↗")
+          style: { color: "#FFFFFF", background: C.study, padding: "6px 9px", fontSize: "12px" }
+        }, "学習のステップへ ↗")
       )
     );
   };
@@ -3299,15 +3309,15 @@ function App() {
               lineHeight: 1.45
             }
           },
-            h('div', { style: { color: "#1D4ED8", fontWeight: 700, marginBottom: "3px" } }, `📖 教科書・ワーク対応: 【${u.textbookRef}】`),
-            h('div', { style: { color: C.sub, marginBottom: "6px" } },
-              `🎯 学習メモ: ${u.memo}`),
+            h('details', { className: "riff-task-detail" },
+              h('summary', null, "このステップの学習メモ ▼"),
+              h('div', null, u.memo)),
             h('div', { style: { color: C.studyText, fontWeight: 900, margin: "6px 0" } },
               "📚 やること（" + stepTimeLabel(u) + "）"),
-            u.subtasks.map(task => h(React.Fragment, { key: task.id }, h('label', {
+            u.subtasks.map(task => h(React.Fragment, { key: task.id }, h('div', {
               id: "riff-task-" + task.id,
-              style: { display: "flex", alignItems: "flex-start", gap: "8px",
-                padding: "7px 0", borderTop: "1px solid #E5E7EB", cursor: "pointer",
+              style: { display: "flex", alignItems: "center", gap: "7px",
+                flexWrap: "wrap", padding: "5px 0", borderTop: "1px solid #E5E7EB",
                 background: highlightedTaskId === task.id ? "#FEF08A" : "transparent",
                 outline: highlightedTaskId === task.id ? "2px solid #EAB308" : "none",
                 borderRadius: "4px" } },
@@ -3320,10 +3330,10 @@ function App() {
                   checkedItems[task.id] ? C.muted : C.text,
                 textDecoration: checkedItems[task.id] ? "line-through" : "none" } },
                 taskShortTitle(task.text)),
-              h('span', { style: { flexShrink: 0, color: "#047857", fontWeight: 800 } },
-                taskEstimateLabel(task))
+              h('span', { style: { flexShrink: 0, color: "#047857", fontWeight: 800,
+                fontSize: "12px" } }, taskEstimateLabel(task)),
+              taskExplanation(task, u.textbookRef)
               ),
-              taskExplanation(task),
               renderTaskMeasurement(task)
             )),
             h('div', { style: { marginTop: "5px", fontSize: "11px", color: C.muted } },
@@ -3531,13 +3541,17 @@ function App() {
 
   };
 
-  const taskExplanation = task => String(task.text || "").trim() !== taskShortTitle(task.text)
-    ? h('details', { className: "riff-task-detail" },
-        h('summary', { style: { cursor: "pointer", fontWeight: 800,
-          fontSize: "14px", color: "#1D4ED8" } }, "くわしい説明を見る ▼"),
-        h('p', { style: { paddingTop: "7px", fontSize: "15px",
-          lineHeight: 1.7 } }, task.text))
-    : null;
+  const taskExplanation = (task, studyReference = "") =>
+    (String(task.text || "").trim() !== taskShortTitle(task.text) || !!studyReference)
+      ? h('details', { className: "riff-task-detail" },
+          h('summary', null, "説明 ▼"),
+          h('div', null,
+            h('p', { style: { fontSize: "15px", lineHeight: 1.65 } }, task.text),
+            studyReference && h('p', { style: { marginTop: "6px", color: "#475569" } },
+              task.textbookPages
+                ? "📖 このやることの対応ページ：" + task.textbookPages
+                : "📖 このやることの正確なページ：確認中。単元の参考範囲：" + studyReference))
+        ) : null;
 
   const helpSection = (heading, summary, details) =>
     h('details', { className: "riff-help-section" },
