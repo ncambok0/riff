@@ -194,6 +194,11 @@
     align-items: center;
     gap: 5px;
   }
+  /* 全年月を表示するため、小画面だけガントを横スクロール可能にする。 */
+  @media (max-width: 760px) {
+    .riff-gantt-band { overflow-x: auto; }
+    .riff-gantt-band > div { min-width: 760px; }
+  }
 </style>
 </head>
 <body>
@@ -235,10 +240,10 @@ const PLAN_END = "2031-04";
 // 2028年2月の高校入試は固定したまま、進学までの学年を正しくつなぐ。
 const stageInfo = {
   p1: { label: "ステージ 1", shortLabel: "St1", title: "現在地の確認・ワンフェス発表・基礎の再編", period: "2026年10月", color: "#087F5B", bg: "#ECFDF5", border: "#6EE7B7", text: "#065F46" },
-  p2: { label: "ステージ 2", shortLabel: "St2", title: "音声・MIDIプロトタイプと中2の学び直し", period: "2026年11月〜2027年3月", color: "#D97706", bg: "#FFFBEB", border: "#FCD34D", text: "#92400E" },
-  p3: { label: "ステージ 3", shortLabel: "St3", title: "中3前半：作品開発・学校学習・受験基礎", period: "2027年4〜7月", color: C.study, bg: C.studyBg, border: C.studyBorder, text: C.studyText },
+  p2: { label: "ステージ 2", shortLabel: "St2", title: "音声・MIDIプロトタイプと中2の学び直し", period: "2026年11月〜2027年3月", color: "#B45309", bg: "#FFFBEB", border: "#FCD34D", text: "#92400E" },
+  p3: { label: "ステージ 3", shortLabel: "St3", title: "中3前半：作品開発・学校学習・受験基礎", period: "2027年4〜7月", color: "#1D4ED8", bg: "#EFF6FF", border: "#93C5FD", text: "#1E40AF" },
   p4: { label: "ステージ 4", shortLabel: "St4", title: "高校受験準備と音楽・開発の継続", period: "2027年8月〜2028年2月", color: "#B91C1C", bg: "#FEF2F2", border: "#FCA5A5", text: "#7F1D1D" },
-  p5: { label: "ステージ 5", shortLabel: "St5", title: "高校進学・軽音と制作活動の本格化", period: "2028年3月〜2029年3月", color: "#8B5CF6", bg: "#F5F3FF", border: "#C4B5FD", text: "#5B21B6" },
+  p5: { label: "ステージ 5", shortLabel: "St5", title: "高校進学・軽音と制作活動の本格化", period: "2028年3月〜2029年3月", color: "#6D28D9", bg: "#F5F3FF", border: "#C4B5FD", text: "#5B21B6" },
   p6: { label: "ステージ 6", shortLabel: "St6", title: "高校2年：作品・基礎学力・進路条件の確認", period: "2029年4月〜2030年3月", color: "#0E7490", bg: "#ECFEFF", border: "#67E8F9", text: "#155E75" },
   p7: { label: "ステージ 7", shortLabel: "St7", title: "高校3年：作品・出願・選抜方式別の準備", period: "2030年4月〜2031年3月", color: "#BE185D", bg: "#FDF2F8", border: "#F9A8D4", text: "#9D174D" },
   p8: { label: "ステージ 8", shortLabel: "St8", title: "進学・次の制作環境へ（進学先は本人と相談）", period: "2031年4月", color: "#334155", bg: "#F1F5F9", border: "#94A3B8", text: "#1E293B" }
@@ -2505,18 +2510,22 @@ function App() {
   // 古い単元の完了チェックはそのまま保存し、勝手に387件の小タスクへ転記しない。
   const allStudyTasks = allStudyUnits.flatMap(unit =>
     unit.subtasks.map(task => ({ ...task, rank: unit.rank,
-      stepId: unit.id, plan: studyUnitPlan[unit.id] || "active" })));
+      targetPeriod: unit.targetPeriod, stepId: unit.id,
+      plan: studyUnitPlan[unit.id] || "active" })));
+  // 高校受験の試算には目標管理日までの学習だけを含め、高校進学後の単元は混ぜない。
+  const studyScopeTasks = allStudyTasks.filter(task =>
+    task.targetPeriod <= studyTargetDate.slice(0,7));
   const studyRemainingByRank = ["S","A","B"].map(rank => ({
-    rank, minutes: allStudyTasks
+    rank, minutes: studyScopeTasks
       .filter(task => task.rank === rank && task.plan === "active" && !checkedItems[task.id])
       .reduce((total, task) => total + effectiveTaskMinutes(task), 0),
-    tasks: allStudyTasks.filter(task => task.rank === rank &&
+    tasks: studyScopeTasks.filter(task => task.rank === rank &&
       task.plan === "active" && !checkedItems[task.id]).length
   }));
-  const studyReviewMinutes = allStudyTasks.filter(task =>
+  const studyReviewMinutes = studyScopeTasks.filter(task =>
     task.plan === "review" && !checkedItems[task.id])
     .reduce((total, task) => total + effectiveTaskMinutes(task), 0);
-  const studyDeferredMinutes = allStudyTasks.filter(task =>
+  const studyDeferredMinutes = studyScopeTasks.filter(task =>
     task.plan === "defer" && !checkedItems[task.id])
     .reduce((total, task) => total + effectiveTaskMinutes(task), 0);
   const studyRemainingMinutes = studyRemainingByRank.reduce((sum,r) => sum+r.minutes,0);
@@ -3621,8 +3630,10 @@ function App() {
         openGantt && GANTT_ROWS.map(row => {
           const monthCount = row.months.length;
           const inRow = (date) => row.start <= date && date <= row.end;
-          return h('div', { key: row.start, style: { background: "#FFFFFF", borderRadius: "10px",
-            border: "1px solid " + C.border, padding: "10px", minWidth: 0 } },
+          return h('div', { key: row.start, className: "riff-gantt-band",
+            style: { background: "#FFFFFF", borderRadius: "10px",
+            border: "1px solid " + C.border, padding: "10px", minWidth: 0,
+            overflowX: "auto" } },
             h('div', { style: { fontSize: "13px", fontWeight: 900, color: C.studyText, marginBottom: "8px" } }, row.title),
             h('div', { style: { display: "flex", gap: "5px", minWidth: 0, borderBottom: "2px solid #007AFF", paddingBottom: "5px" } },
               h('div', { style: { width: "27%", minWidth: 0, fontSize: "12px", fontWeight: 900 } }, "プロジェクト"),
@@ -4329,7 +4340,7 @@ function App() {
           h('div', { style: { fontSize: "15px", fontWeight: 900, color: C.studyText } },
             "🎯 目標までの学習計画・取捨選択"),
           h('div', { style: { fontSize: "12px", color: C.sub } },
-            "この試算は入試合否の予測ではありません。目標管理日は仮の日付です。週の学習可能時間を入力し、必要な学びを本人と保護者で選択します。"),
+            "この試算は入試合否の予測ではありません。目標管理日は仮の日付です。期日が目標管理月までの課題だけを集計し、高校進学後の課題は含めません。週の学習可能時間を入力し、必要な学びを本人と保護者で選択します。"),
           h('div', { style: { display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" } },
             h('label', { style: { fontSize: "12px", fontWeight: 800 } }, "目標管理日（仮） ",
               h('input', { type: "date", className: "time-input-inline",
