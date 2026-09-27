@@ -3797,14 +3797,22 @@ function App() {
           const isExpanded = !!expandedDetailTasks[s.id];
           return h(React.Fragment, { key: s.id },
             (index === 0 || musicSteps[index - 1].stage !== s.stage) &&
-              h('div', { style: { background: stageInfo[s.stage].color, color: "#FFFFFF",
-                borderRadius: "8px", padding: "9px 12px", fontWeight: 900,
-                marginTop: "6px" } },
-                stageInfo[s.stage].label + "｜音楽｜" + stageInfo[s.stage].title),
-            h('div', {
+              h('button', { type: "button",
+                "aria-expanded": openGenreStages["music:" + s.stage] !== false,
+                onClick: () => setOpenGenreStages(prev => ({
+                  ...prev, ["music:" + s.stage]: prev["music:" + s.stage] === false
+                })),
+                style: { width: "100%", textAlign: "left",
+                  background: stageInfo[s.stage].color, color: "#FFFFFF",
+                  border: "none", cursor: "pointer", borderRadius: "8px",
+                  padding: "9px 12px", fontWeight: 900, marginTop: "6px" } },
+                stageInfo[s.stage].label + "｜音楽｜" + stageInfo[s.stage].title +
+                (openGenreStages["music:" + s.stage] === false ? " ▼" : " ▲")),
+            openGenreStages["music:" + s.stage] !== false && h('div', {
             key: s.id,
             id: s.id,
-            style: { background: C.musicBg, borderRadius: "10px", border: `1px solid ${C.musicBorder}`, padding: "12px 14px" }
+            style: { background: C.musicBg, borderRadius: "10px", border: `1px solid ${C.musicBorder}`,
+              padding: "12px 14px", marginLeft: "12px", borderLeft: "4px solid " + stageInfo[s.stage].color }
           },
             h('div', {
               onClick: () => toggleTaskDetail(s.id),
@@ -3881,14 +3889,22 @@ function App() {
           const isExpanded = !!expandedDetailTasks[s.id];
           return h(React.Fragment, { key: s.id },
             (index === 0 || pythonSteps[index - 1].stage !== s.stage) &&
-              h('div', { style: { background: stageInfo[s.stage].color, color: "#FFFFFF",
-                borderRadius: "8px", padding: "9px 12px", fontWeight: 900,
-                marginTop: "6px" } },
-                stageInfo[s.stage].label + "｜開発｜" + stageInfo[s.stage].title),
-            h('div', {
+              h('button', { type: "button",
+                "aria-expanded": openGenreStages["python:" + s.stage] !== false,
+                onClick: () => setOpenGenreStages(prev => ({
+                  ...prev, ["python:" + s.stage]: prev["python:" + s.stage] === false
+                })),
+                style: { width: "100%", textAlign: "left",
+                  background: stageInfo[s.stage].color, color: "#FFFFFF",
+                  border: "none", cursor: "pointer", borderRadius: "8px",
+                  padding: "9px 12px", fontWeight: 900, marginTop: "6px" } },
+                stageInfo[s.stage].label + "｜開発｜" + stageInfo[s.stage].title +
+                (openGenreStages["python:" + s.stage] === false ? " ▼" : " ▲")),
+            openGenreStages["python:" + s.stage] !== false && h('div', {
             key: s.id,
             id: s.id,
-            style: { background: C.codeBg, borderRadius: "10px", border: `1px solid ${C.codeBorder}`, padding: "12px 14px" }
+            style: { background: C.codeBg, borderRadius: "10px", border: `1px solid ${C.codeBorder}`,
+              padding: "12px 14px", marginLeft: "12px", borderLeft: "4px solid " + stageInfo[s.stage].color }
           },
             h('div', {
               onClick: () => toggleTaskDetail(s.id),
