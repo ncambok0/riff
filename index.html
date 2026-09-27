@@ -202,7 +202,7 @@
 <script>
 const { useState, useEffect, createElement: h } = React;
 
-const APP_VERSION = "v2.2.2-task-planning-preview";
+const APP_VERSION = "v2.3.0-auto-plan-preview";
 
 const C = {
   music: "#7C3AED", musicBg: "#FAF5FF", musicBorder: "#C4B5FD", musicText: "#5B21B6",
@@ -867,6 +867,92 @@ const stepMinutes = step => (step.subtasks || []).reduce((sum, task) => sum + ta
 const formatTaskMinutes = minutes => minutes >= 60
   ? Math.floor(minutes / 60) + "時間" + (minutes % 60 ? minutes % 60 + "分" : "")
   : minutes + "分";
+
+// 全タブ共有の分類名と色。既存の計画期間（p1〜p8）は保持する。
+const RIFF_TAXONOMY = {
+  tab: "タブ", genre: "ジャンル", grade: "学年", subject: "科目",
+  rank: "ランク", stage: "ステージ", step: "ステップ", task: "やること"
+};
+const RIFF_GENRES = {
+  music: { label: "音楽", icon: "🎸", tab: "music", color: C.music },
+  python: { label: "開発", icon: "💻", tab: "python", color: C.code },
+  study: { label: "学習", icon: "📚", tab: "study", color: C.study }
+};
+// 学習では科目・学年・単元単位でステージを定義する。
+const STUDY_STAGE_BY_UNIT_ID = {};
+studySubjectsData.forEach(subject => {
+  const stageNumbers = new Map();
+  subject.units.forEach(unit => {
+    const key = unit.grade + "|" + unit.unit;
+    if (!stageNumbers.has(key)) stageNumbers.set(key, stageNumbers.size + 1);
+    STUDY_STAGE_BY_UNIT_ID[unit.id] = {
+      number: stageNumbers.get(key), title: unit.unit, subject: subject.name,
+      grade: unit.grade, subjectId: subject.id
+    };
+  });
+});
+const TASK_CATALOG = {
+  music: musicSteps.flatMap(step => step.subtasks.map(task => ({
+    ...task, genre: "music", stepId: step.id, stepNum: step.stepNum,
+    stepTitle: step.title, stageKey: step.stage, tab: "music"
+  }))),
+  python: pythonSteps.flatMap(step => step.subtasks.map(task => ({
+    ...task, genre: "python", stepId: step.id, stepNum: step.stepNum,
+    stepTitle: step.title, stageKey: step.stage, tab: "python"
+  }))),
+  study: studySubjectsData.flatMap(subject => subject.units.flatMap(step =>
+    step.subtasks.map(task => ({
+      ...task, genre: "study", stepId: step.id, stepNum: step.stepNum,
+      stepTitle: step.item, stageKey: step.stage, grade: step.grade,
+      subject: subject.name, subjectId: subject.id, rank: step.rank, tab: "study"
+    }))
+  ))
+};
+const ALL_TASKS_BY_ID = Object.fromEntries(
+  Object.values(TASK_CATALOG).flat().map(task => [task.id, task]));
+const parseScheduleDuration = text => {
+  const [from, to] = String(text || "").split("〜");
+  if (!from || !to) return 0;
+  const toMinutes = value => {
+    const parts = value.trim().split(":").map(Number);
+    return parts.length === 2 && parts.every(Number.isFinite)
+      ? parts[0] * 60 + parts[1] : NaN;
+  };
+  const start = toMinutes(from), end = toMinutes(to);
+  return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : 0;
+};
+const schedulePreferredSubject = item => {
+  const label = String(item.a || "");
+  if (/英語|英会話|英単語|リスニング|英作文|🇬🇧/.test(label)) return "eng";
+  if (/数学|算数/.test(label)) return "math";
+  if (/理科|理科実験/.test(label)) return "sci";
+  if (/社会|地理|歴史|公民/.test(label)) return "soc";
+  if (/国語|漢字|古文/.test(label)) return "jpn";
+  return null;
+};
+// 今日の自動提案：開始時刻順・番号順で、枠を超えず重複させない。
+const proposeDailySlots = (items, completed) => {
+  const slots = {}, occupied = new Set();
+  items.slice().sort((a, b) => String(a.t).localeCompare(String(b.t))).forEach(item => {
+    const genre = getScheduleCategory(item);
+    const duration = parseScheduleDuration(item.t);
+    slots[item.id] = [];
+    if (!TASK_CATALOG[genre] || !duration) return;
+    const subject = genre === "study" ? schedulePreferredSubject(item) : null;
+    let remaining = duration;
+    for (const task of TASK_CATALOG[genre]) {
+      if (subject && task.subjectId !== subject) continue;
+      if (completed[task.id] || occupied.has(task.id)) continue;
+      const minutes = taskMinutes(task);
+      if (minutes > remaining) break; // 順序を保ち、次の必須作業を飛び越さない
+      slots[item.id].push(task.id);
+      occupied.add(task.id);
+      remaining -= minutes;
+      if (!remaining) break;
+    }
+  });
+  return slots;
+};
 
 const defaultSchedulesData = {
   club: {
