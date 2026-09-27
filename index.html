@@ -2559,6 +2559,20 @@ function App() {
       )
     );
   };
+  const [studyMonthOverrides, setStudyMonthOverrides] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_study_month_overrides_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const setStudyMonthOverride = (id,month) => setStudyMonthOverrides(prev => {
+    const updated = { ...prev, [id]: month };
+    try { localStorage.setItem("riff_study_month_overrides_v1", JSON.stringify(updated)); }
+    catch (e) {}
+    return updated;
+  });
+  const [studyTaskCompletedAt, setStudyTaskCompletedAt] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_study_completed_at_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
   const [studyUnitPlan, setStudyUnitPlan] = useState(() => {
     try { return JSON.parse(localStorage.getItem("riff_study_unit_plan_v1") || "{}"); }
     catch (e) { return {}; }
@@ -2576,8 +2590,35 @@ function App() {
     try { localStorage.setItem("riff_study_unit_plan_v1", JSON.stringify(next)); } catch (e) {}
     return next;
   });
-  const studyTaskIsPlanned = task => task.genre !== "study" ||
-    (studyUnitPlan[task.stepId] || "active") === "active";
+  const studyTaskIsPlanned = task => {
+    if (task.genre !== "study") return true;
+    if ((studyUnitPlan[task.stepId] || "active") !== "active") return false;
+    const startMonth = studyMonthOverrides[task.stepId] || task.targetPeriod || "";
+    const monthNow = [currentTime.getFullYear(),
+      String(currentTime.getMonth() + 1).padStart(2,"0")].join("-");
+    // 学校授業・過去問は月の早すぎる割当を避ける。1か月先の予習は可。
+    const nextMonth = new Date(currentTime.getFullYear(),currentTime.getMonth()+1,1);
+    const nextMonthKey = nextMonth.getFullYear()+"-"+String(nextMonth.getMonth()+1).padStart(2,"0");
+    if ((task.taskKind === "current" || task.taskKind === "pastpaper") &&
+        startMonth > nextMonthKey) return false;
+    if (task.reviewOffsetDays) {
+      const source = ALL_STUDY_UNIT_BY_ID[task.stepId];
+      if (!source) return false;
+      const basics = source.subtasks.filter(row => !row.reviewOffsetDays);
+      if (!basics.every(row => !!checkedItems[row.id])) return false;
+      const previous = source.subtasks.filter(row => row.reviewOffsetDays &&
+        row.reviewOffsetDays < task.reviewOffsetDays);
+      if (!previous.every(row => !!checkedItems[row.id])) return false;
+      const lastBaseDate = basics.map(row => studyTaskCompletedAt[row.id])
+        .filter(Boolean).sort().at(-1);
+      // 旧完了チェックは日時を記録していないので、架空の完了日を作らない。
+      // 既存分は基本の完了確認後、最初の復習に進める。
+      if (!lastBaseDate) return task.reviewIndex === 0 || previous.length > 0;
+      return currentTime.getTime() >= Date.parse(lastBaseDate) +
+        task.reviewOffsetDays * 86400000;
+    }
+    return true;
+  };
   const [checkedItems, setCheckedItems] = useState(() => {
     try {
       const saved = window.localStorage ? localStorage.getItem("shin_checks_v9") : null;
@@ -2588,6 +2629,7 @@ function App() {
   });
 
   const toggleCheck = (id) => {
+    const newCompleted = !checkedItems[id];
     setCheckedItems(prev => {
       const updated = { ...prev, [id]: !prev[id] };
       try {
@@ -2595,6 +2637,16 @@ function App() {
       } catch(e) {}
       return updated;
     });
+    if (ALL_TASKS_BY_ID[id]?.genre === "study") {
+      setStudyTaskCompletedAt(prev => {
+        const next = { ...prev };
+        if (newCompleted) next[id] = new Date().toISOString();
+        else delete next[id];
+        try { localStorage.setItem("riff_study_completed_at_v1", JSON.stringify(next)); }
+        catch (e) {}
+        return next;
+      });
+    }
   };
 
   /* Accordions */
@@ -2768,7 +2820,7 @@ function App() {
       plan: studyUnitPlan[unit.id] || "active" })));
   // 高校受験の試算には目標管理日までの学習だけを含め、高校進学後の単元は混ぜない。
   const studyScopeTasks = allStudyTasks.filter(task =>
-    task.targetPeriod <= studyTargetDate.slice(0,7));
+    (studyMonthOverrides[task.stepId] || task.targetPeriod) <= studyTargetDate.slice(0,7));
   const studyRemainingByRank = ["S","A","B"].map(rank => ({
     rank, minutes: studyScopeTasks
       .filter(task => task.rank === rank && task.plan === "active" && !checkedItems[task.id])
@@ -3337,7 +3389,18 @@ function App() {
         h('span', {
           className: "badge-tag",
           style: { color: C.muted, background: "transparent", border: `1px solid ${C.border}`, fontWeight: 600 }
-        }, `期日: ${u.targetPeriod}`),
+        }, `予定: ${studyMonthOverrides[u.id] || u.targetPeriod}`),
+        (u.taskKind === "current" || u.taskKind === "pastpaper") &&
+          h('label', { style: { fontSize: "12px", fontWeight: 700 } },
+            "学ぶ月を変更 ",
+            h('input', { type: "month", className: "time-input-inline",
+              "aria-label": u.item + "の学習月",
+              value: studyMonthOverrides[u.id] || u.targetPeriod,
+              onClick: e => e.stopPropagation(),
+              onChange: e => setStudyMonthOverride(u.id, e.target.value) })),
+        u.curriculumStatus === "tentative" &&
+          h('span', { className: "badge-tag", style: { color: "#92400E",
+            background: "#FFFBEB" } }, "学校の進度を要確認"),
         h('select', { className: "time-input-inline",
           "aria-label": u.item + "の計画上の扱い",
           title: "学習計画の取捨選択。既存チェックは維持し、今日の固定済み割当は再割当するまで変わりません。",
