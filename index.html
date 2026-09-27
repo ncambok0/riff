@@ -2583,7 +2583,11 @@ function App() {
         h('span', {
           className: "badge-tag",
           style: { color: "#0F766E", background: "#F0FDFA", border: "1px solid #99F6E4", fontWeight: 600 }
-        }, `目安${u.timeAlloc}`),
+        }, `旧目安${u.timeAlloc}（単元全体ではなく短い復習用）`),
+        h('span', { className: "badge-tag",
+          style: { color: "#065F46", background: "#ECFDF5",
+            border: "1px solid #6EE7B7", fontWeight: 800 } },
+          "新・作業合計目安" + formatTaskMinutes(stepMinutes(u)) + "（仮）"),
 
         h('span', {
           className: "badge-tag",
@@ -2649,7 +2653,25 @@ function App() {
             }
           },
             h('div', { style: { color: "#1D4ED8", fontWeight: 700, marginBottom: "3px" } }, `📖 教科書・ワーク対応: 【${u.textbookRef}】`),
-            h('div', { style: { color: C.sub } }, `🎯 都立大問攻略メモ: ${u.memo}`)
+            h('div', { style: { color: C.sub, marginBottom: "6px" } },
+              `🎯 学習メモ: ${u.memo}`),
+            h('div', { style: { color: C.studyText, fontWeight: 900, margin: "6px 0" } },
+              "📚 やること（仮の合計目安" + formatTaskMinutes(stepMinutes(u)) + "）"),
+            u.subtasks.map(task => h('label', { key: task.id,
+              style: { display: "flex", alignItems: "flex-start", gap: "8px",
+                padding: "7px 0", borderTop: "1px solid #E5E7EB", cursor: "pointer" } },
+              h('input', { type: "checkbox", className: "custom-checkbox-interactive",
+                checked: !!checkedItems[task.id],
+                onChange: () => toggleCheck(task.id),
+                "aria-label": task.text + "の完了" }),
+              h('span', { style: { flex: 1, color: checkedItems[task.id] ? C.muted : C.text,
+                textDecoration: checkedItems[task.id] ? "line-through" : "none" } },
+                task.text),
+              h('span', { style: { flexShrink: 0, color: "#047857", fontWeight: 800 } },
+                "目安" + formatTaskMinutes(taskMinutes(task)))
+            )),
+            h('div', { style: { marginTop: "5px", fontSize: "11px", color: C.muted } },
+              "単元の完了チェックと、細かいやることのチェックは別々に記録します。")
           )
         ),
         h('button', {
@@ -3506,7 +3528,10 @@ function App() {
             },
               h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
                 h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
-                h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.musicText } }, s.title)
+                h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.musicText } }, s.title),
+                h('span', { className: "badge-tag",
+                  style: { color: "#065F46", background: "#ECFDF5", fontWeight: 800 } },
+                  "合計目安" + formatTaskMinutes(stepMinutes(s)) + "（仮）")
               ),
               h('span', { style: { fontSize: "12px", color: C.musicText } }, isExpanded ? "▲" : "▼")
             ),
@@ -3521,7 +3546,11 @@ function App() {
                 }),
                 h('span', { style: { fontSize: "13px", lineHeight: 1.4, color: checkedItems[st.id] ? C.muted : C.text, textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
                   st.text
-                )
+                ),
+                h('span', { className: "badge-tag",
+                  style: { color: "#065F46", background: "#ECFDF5",
+                    fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
+                  "目安" + formatTaskMinutes(taskMinutes(st)))
               ))
             )
           );
@@ -3566,7 +3595,10 @@ function App() {
             },
               h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
                 h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
-                h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.codeText } }, s.title)
+                h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.codeText } }, s.title),
+                h('span', { className: "badge-tag",
+                  style: { color: "#065F46", background: "#ECFDF5", fontWeight: 800 } },
+                  "合計目安" + formatTaskMinutes(stepMinutes(s)) + "（仮）")
               ),
               h('span', { style: { fontSize: "12px", color: C.codeText } }, isExpanded ? "▲" : "▼")
             ),
@@ -3581,7 +3613,11 @@ function App() {
                 }),
                 h('span', { style: { fontSize: "13px", lineHeight: 1.4, color: checkedItems[st.id] ? C.muted : C.text, textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
                   st.text
-                )
+                ),
+                h('span', { className: "badge-tag",
+                  style: { color: "#065F46", background: "#ECFDF5",
+                    fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
+                  "目安" + formatTaskMinutes(taskMinutes(st)))
               ))
             )
           );
@@ -3628,6 +3664,8 @@ function App() {
         /* 統合された学習タブの進み具合カード（ダークテーマ） */
         h('div', { className: 'dark-card-banner' },
           h('div', { style: { fontSize: "15px", fontWeight: 900, color: "#FFFFFF", marginBottom: "8px" } }, "📚 学習タブの進み具合"),
+          h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginBottom: "8px" } },
+            "各単元に3つのチェック付き「やること」を追加。目安時間は暫定計画値であり、本人の実績ではありません。"),
           /* 上段: 5教科全単元 & Sランク即効 */
           h('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" } },
             h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
