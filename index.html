@@ -2809,8 +2809,12 @@ function App() {
             h('div', { style: { color: C.studyText, fontWeight: 900, margin: "6px 0" } },
               "📚 やること（仮の合計目安" + formatTaskMinutes(stepMinutes(u)) + "）"),
             u.subtasks.map(task => h('label', { key: task.id,
+              id: "riff-task-" + task.id,
               style: { display: "flex", alignItems: "flex-start", gap: "8px",
-                padding: "7px 0", borderTop: "1px solid #E5E7EB", cursor: "pointer" } },
+                padding: "7px 0", borderTop: "1px solid #E5E7EB", cursor: "pointer",
+                background: highlightedTaskId === task.id ? "#FEF08A" : "transparent",
+                outline: highlightedTaskId === task.id ? "2px solid #EAB308" : "none",
+                borderRadius: "4px" } },
               h('input', { type: "checkbox", className: "custom-checkbox-interactive",
                 checked: !!checkedItems[task.id],
                 onChange: () => toggleCheck(task.id),
@@ -3754,8 +3758,12 @@ function App() {
             ),
             isExpanded && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: `1px dashed ${C.musicBorder}` } },
               s.subtasks.map(st => h('div', {
-                key: st.id,
-                style: { display: "flex", gap: "8px", alignItems: "flex-start", marginBottom: "6px" }
+                key: st.id, id: "riff-task-" + st.id,
+                style: { display: "flex", gap: "8px", alignItems: "flex-start",
+                  marginBottom: "6px", padding: "3px",
+                  background: highlightedTaskId === st.id ? "#FEF08A" : "transparent",
+                  outline: highlightedTaskId === st.id ? "2px solid #EAB308" : "none",
+                  borderRadius: "5px" }
               },
                 h('input', {
                   type: "checkbox", className: "custom-checkbox-interactive",
@@ -3834,8 +3842,12 @@ function App() {
             ),
             isExpanded && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: `1px dashed ${C.codeBorder}` } },
               s.subtasks.map(st => h('div', {
-                key: st.id,
-                style: { display: "flex", gap: "8px", alignItems: "flex-start", marginBottom: "6px" }
+                key: st.id, id: "riff-task-" + st.id,
+                style: { display: "flex", gap: "8px", alignItems: "flex-start",
+                  marginBottom: "6px", padding: "3px",
+                  background: highlightedTaskId === st.id ? "#FEF08A" : "transparent",
+                  outline: highlightedTaskId === st.id ? "2px solid #EAB308" : "none",
+                  borderRadius: "5px" }
               },
                 h('input', {
                   type: "checkbox", className: "custom-checkbox-interactive",
@@ -4012,7 +4024,28 @@ function App() {
               h('span', { style: { fontSize: "12px", color: subject.text } }, isSubOpen ? "▲" : "▼")
             ),
             isSubOpen && h('div', { style: { padding: "10px 14px", background: subject.bg } },
-              uList.map(u => renderStudyTaskCard(u, subject, "study"))
+              uList.map((u, index) => {
+                const group = STUDY_STAGE_BY_UNIT_ID[u.id];
+                const previous = index > 0 ? STUDY_STAGE_BY_UNIT_ID[uList[index - 1].id] : null;
+                const newGroup = !previous || previous.number !== group.number ||
+                  previous.grade !== group.grade || previous.title !== group.title;
+                const badge = stageInfo["p" + Math.min(group.number, 8)] || stageInfo.p1;
+                return h(React.Fragment, { key: u.id },
+                  newGroup && h('div', { style: { display: "flex", alignItems: "center",
+                    gap: "7px", flexWrap: "wrap", margin: "12px 0 7px",
+                    padding: "8px", borderRadius: "7px", background: "#FFFFFF",
+                    borderLeft: "4px solid " + badge.color } },
+                    h('span', { className: "badge-tag", style: {
+                      background: badge.color, color: "#FFFFFF", fontWeight: 900 } },
+                      "ステージ" + group.number),
+                    h('span', { className: "badge-tag", style: {
+                      background: "#475569", color: "#FFFFFF" } }, group.grade),
+                    h('span', { style: { fontWeight: 900, fontSize: "13px" } },
+                      group.title)
+                  ),
+                  renderStudyTaskCard(u, subject, "study")
+                );
+              })
             )
           );
         })
