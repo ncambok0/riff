@@ -202,7 +202,7 @@
 <script>
 const { useState, useEffect, createElement: h } = React;
 
-const APP_VERSION = "v2.3.0-auto-plan-preview";
+const APP_VERSION = "v2.3.1-schedule-details-preview";
 
 const C = {
   music: "#7C3AED", musicBg: "#FAF5FF", musicBorder: "#C4B5FD", musicText: "#5B21B6",
@@ -2174,6 +2174,7 @@ function App() {
 
   /* Accordions */
   const [openTodaySched, setOpenTodaySched] = useState(true);
+  const [openTodayScheduleDetails, setOpenTodayScheduleDetails] = useState({});
   const [openTodayStudy, setOpenTodayStudy] = useState(true);
   const [openTodayMusic, setOpenTodayMusic] = useState(true);
   const [openTodayCode, setOpenTodayCode] = useState(true);
@@ -2918,7 +2919,7 @@ function App() {
       h('option', { value: "study" }, "📚 学習"),
       h('option', { value: "music" }, "🎸 音楽"),
       h('option', { value: "python" }, "💻 開発"),
-      h('option', { value: "other" }, "その他")
+      h('option', { value: "other" }, "他")
     );
 
   const renderScheduleStepSelect = (item, index) => {
@@ -2962,43 +2963,25 @@ function App() {
     python: { title: "💻 今日の開発", open: openTodayCode,
       toggle: () => setOpenTodayCode(!openTodayCode), color: C.codeText }
   };
-  const renderTodayActivitySection = (category, title, open, toggleOpen, color) => {
-    const matchingItems = todayActivities[category];
+  // 各時間割行の直下でタスクを開く。重複ジャンルカードは使わない。
+  const renderTodayScheduleDetail = item => {
+    const category = getScheduleCategory(item);
+    if (!TASK_CATALOG[category]) return null;
     const catInfo = scheduleCategoryInfo[category];
-    return h('div', { style: { background: "#FFFFFF", borderRadius: "10px",
-      border: "1px solid " + C.border, overflow: "hidden" } },
-      h('div', { style: { padding: "12px 14px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", gap: "8px" } },
-        h('button', { type: "button", className: "accordion-trigger", onClick: toggleOpen,
-          "aria-expanded": open, style: { flex: 1, minWidth: 0, display: "flex",
-            justifyContent: "space-between", alignItems: "center" } },
-          h('span', { style: { fontSize: "15px", fontWeight: 900, color } }, title),
-          h('span', { style: { fontSize: "12px", color: C.muted } },
-            matchingItems.length + "枠 " + (open ? "▲" : "▼"))
-        )
-      ),
-      open && h('div', { style: { padding: "0 14px 14px",
-        display: "flex", flexDirection: "column", gap: "9px" } },
-        matchingItems.length === 0 && h('div', { style: { fontSize: "12px", color: C.muted } },
-          "今日の時間割にこのジャンルはありません。"),
-        matchingItems.map(item => {
+
           const tasks = (todaySlots[item.id] || []).map(id => ALL_TASKS_BY_ID[id]).filter(Boolean);
           const budget = parseScheduleDuration(item.t);
           const used = tasks.reduce((total, task) => total + taskMinutes(task), 0);
           const complete = tasks.filter(task => checkedItems[task.id]).length;
           const custom = todayCustomTasks[scheduleCheckKey(item.id)] || "";
           const stepIds = [...new Set(tasks.map(task => task.stepId))];
-          return h('div', { key: item.id, style: { border: "1px solid " + C.border,
-            borderLeft: "4px solid " + catInfo.color, borderRadius: "8px", padding: "10px" } },
-            h('div', { style: { display: "flex", justifyContent: "space-between",
-              alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "8px" } },
-              h('div', { style: { fontSize: "12px", fontWeight: 800 } },
-                item.t + "｜" + item.a),
-              h('span', { className: "badge-tag", style: { background: C.codeBg,
-                color: C.codeText } }, "割当" + formatTaskMinutes(used) +
-                " / " + formatTaskMinutes(budget) + "（残り" +
-                formatTaskMinutes(Math.max(0, budget - used)) + "）")
-            ),
+          return h('div', { style: { background: "#FFFFFF",
+            border: "1px solid " + C.border, borderLeft: "4px solid " + catInfo.color,
+            borderRadius: "8px", padding: "10px", margin: "0 0 8px 33px" } },
+            h('div', { style: { fontSize: "11px", fontWeight: 800, color: catInfo.color,
+              marginBottom: "8px" } }, "自動割当" + formatTaskMinutes(used) +
+              " / " + formatTaskMinutes(budget) + "（残り" +
+              formatTaskMinutes(Math.max(0, budget - used)) + "）"),
             stepIds.map(stepId => {
               const stepTasks = tasks.filter(task => task.stepId === stepId);
               const first = stepTasks[0], stage = stageInfo[first.stageKey] || {};
@@ -3084,11 +3067,7 @@ function App() {
               placeholder: "今日だけのやること",
               onChange: e => setTodayCustomTask(item.id, e.target.value) })
           );
-        }),
-        h('div', { style: { fontSize: "11px", color: C.muted } },
-          "チェックは全タブ共通です。自動割当はその日の計画として保存され、完了後も勝手に入れ替わりません。")
-      )
-    );
+
   };
 
   return h('div', { style: { minHeight: "100dvh", background: C.bg, color: C.text } },
@@ -3149,6 +3128,7 @@ function App() {
             { id: "music", label: "🎸音楽" },
             { id: "python", label: "💻開発" },
             { id: "study", label: "📚学習" },
+            { id: "other", label: "🧩他" },
             { id: "sched", label: "⏰時間割" },
             { id: "school", label: "🎯進路" },
             { id: "feedback", label: "📝感想" },
@@ -3231,8 +3211,8 @@ function App() {
                 const isCurrent = checkIsCurrentTimeSlot(item.t, currentTime);
                 const [startPart, endPart] = item.t.includes("〜") ? item.t.split("〜") : [item.t, ""];
 
-                return h('div', {
-                  key: item.id, id: "today-schedule-" + item.id,
+                return h(React.Fragment, { key: item.id }, h('div', {
+                  id: "today-schedule-" + item.id,
                   style: {
                     display: "flex", gap: "9px", alignItems: "center", padding: "8px 10px",
                     background: isCurrent ? "#FEF08A" : (item.hi ? todaySched.bg : "#F8FAFC"),
@@ -3284,13 +3264,20 @@ function App() {
                         )
                       ),
                   !isEditingSchedule
-                    ? h('div', {
-                        style: {
-                          flex: 1, fontSize: "13.5px", fontWeight: item.hi ? 800 : 500,
+                    ? h('button', { type: "button",
+                        disabled: !TASK_CATALOG[getScheduleCategory(item)],
+                        "aria-expanded": !!openTodayScheduleDetails[item.id],
+                        onClick: () => setOpenTodayScheduleDetails(prev =>
+                          ({ ...prev, [item.id]: !prev[item.id] })),
+                        style: { flex: 1, fontSize: "13.5px",
+                          fontWeight: item.hi ? 800 : 500, textAlign: "left",
+                          border: "none", background: "transparent", padding: "4px 0",
+                          cursor: TASK_CATALOG[getScheduleCategory(item)] ? "pointer" : "default",
                           color: isChecked ? C.muted : (isCurrent ? "#713F12" : C.text),
-                          textDecoration: isChecked ? "line-through" : "none"
-                        }
-                      }, item.a)
+                          textDecoration: isChecked ? "line-through" : "none" } },
+                      item.a, TASK_CATALOG[getScheduleCategory(item)] &&
+                        h('span', { style: { marginLeft: "8px", color: C.studyText } },
+                          openTodayScheduleDetails[item.id] ? "▲" : "▼"))
                     : h('input', {
                         type: "text",
                         value: item.a,
@@ -3304,7 +3291,8 @@ function App() {
                     h('button', { onClick: () => moveScheduleItem(schedType, idx, -1), style: { padding: "2px 6px", fontSize: "11px" } }, "▲"),
                     h('button', { onClick: () => moveScheduleItem(schedType, idx, 1), style: { padding: "2px 6px", fontSize: "11px" } }, "▼")
                   )
-                );
+                ), !isEditingSchedule && !!openTodayScheduleDetails[item.id] &&
+                  renderTodayScheduleDetail(item));
               })
             ),
             isEditingSchedule && h('button', {
@@ -3315,15 +3303,31 @@ function App() {
           )
         ),
 
-          /* 今日の三分野は上の時間割と同一の活動・チェックを表示する */
-        orderedTodayCategories.map(category => {
-          const section = todaySectionDisplay[category];
-          return h(React.Fragment, { key: category }, renderTodayActivitySection(
-            category, section.title, section.open, section.toggle, section.color));
-        })
+          h('div', { style: { fontSize: "11px", color: C.muted } },
+            "時間割の予定名を押すと、割り当てたステップとやることが下に開きます。チェックはジャンル・月別・ステージと共通です。")
       ),
 
-            /* GANTT TAB: 27 + 28 months, proportional grid without horizontal scrolling. */
+            /* OTHER TAB: use the same per-day schedule completion record. */
+      tab === "other" && h('div', { style: { display: "flex", flexDirection: "column", gap: "10px" } },
+        h('div', { className: "dark-card-banner" },
+          h('div', { style: { fontSize: "16px", fontWeight: 900 } }, "🧩 他の予定"),
+          h('div', { style: { fontSize: "12px", color: "#E5E5EA" } },
+            "今日の時間割で「他」に分類した予定。今日のチェックと連動します。")),
+        todaySched.items.filter(item => getScheduleCategory(item) === "other").length === 0 &&
+          h('div', { style: { padding: "14px", color: C.muted } }, "今日の「他」の予定はありません。"),
+        todaySched.items.filter(item => getScheduleCategory(item) === "other").map(item =>
+          h('label', { key: item.id, style: { display: "flex", gap: "10px",
+            alignItems: "center", padding: "12px", background: "#FFFFFF",
+            border: "1px solid " + C.border, borderRadius: "8px" } },
+            h('input', { type: "checkbox", className: "custom-checkbox-interactive",
+              checked: !!checkedItems[scheduleCheckKey(item.id)],
+              onChange: () => toggleCheck(scheduleCheckKey(item.id)) }),
+            h('span', { style: { color: C.muted, fontSize: "12px", fontWeight: 800 } }, item.t),
+            h('span', { style: { fontSize: "13px", fontWeight: 700 } }, item.a))
+        )
+      ),
+
+      /* GANTT TAB: 27 + 28 months, proportional grid without horizontal scrolling. */
       tab === "gantt" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
         h('div', { className: "dark-card-banner" },
           h('div', { style: { fontSize: "16px", fontWeight: 900, color: "#FFFFFF" } },
