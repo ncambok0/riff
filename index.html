@@ -234,14 +234,14 @@ const PLAN_END = "2031-04";
 
 // 2028年2月の高校入試は固定したまま、進学までの学年を正しくつなぐ。
 const stageInfo = {
-  p1: { label: "ステージ 1", shortLabel: "St1", title: "現在地の確認・ワンフェス発表・基礎の再編", period: "2026年10月", color: C.code, bg: C.codeBg, border: C.codeBorder, text: C.codeText },
+  p1: { label: "ステージ 1", shortLabel: "St1", title: "現在地の確認・ワンフェス発表・基礎の再編", period: "2026年10月", color: "#087F5B", bg: "#ECFDF5", border: "#6EE7B7", text: "#065F46" },
   p2: { label: "ステージ 2", shortLabel: "St2", title: "音声・MIDIプロトタイプと中2の学び直し", period: "2026年11月〜2027年3月", color: "#D97706", bg: "#FFFBEB", border: "#FCD34D", text: "#92400E" },
   p3: { label: "ステージ 3", shortLabel: "St3", title: "中3前半：作品開発・学校学習・受験基礎", period: "2027年4〜7月", color: C.study, bg: C.studyBg, border: C.studyBorder, text: C.studyText },
   p4: { label: "ステージ 4", shortLabel: "St4", title: "高校受験準備と音楽・開発の継続", period: "2027年8月〜2028年2月", color: "#B91C1C", bg: "#FEF2F2", border: "#FCA5A5", text: "#7F1D1D" },
-  p5: { label: "ステージ 5", shortLabel: "St5", title: "高校進学・軽音と制作活動の本格化", period: "2028年3月〜2029年3月", color: C.music, bg: C.musicBg, border: C.musicBorder, text: C.musicText },
-  p6: { label: "ステージ 6", shortLabel: "St6", title: "高校2年：作品・基礎学力・進路条件の確認", period: "2029年4月〜2030年3月", color: "#047857", bg: "#ECFDF5", border: "#6EE7B7", text: "#064E3B" },
-  p7: { label: "ステージ 7", shortLabel: "St7", title: "高校3年：作品・出願・選抜方式別の準備", period: "2030年4月〜2031年3月", color: "#7C3AED", bg: "#F5F3FF", border: "#C4B5FD", text: "#5B21B6" },
-  p8: { label: "ステージ 8", shortLabel: "St8", title: "進学・次の制作環境へ（進学先は本人と相談）", period: "2031年4月", color: "#6D28D9", bg: "#F5F3FF", border: "#C4B5FD", text: "#4C1D95" }
+  p5: { label: "ステージ 5", shortLabel: "St5", title: "高校進学・軽音と制作活動の本格化", period: "2028年3月〜2029年3月", color: "#8B5CF6", bg: "#F5F3FF", border: "#C4B5FD", text: "#5B21B6" },
+  p6: { label: "ステージ 6", shortLabel: "St6", title: "高校2年：作品・基礎学力・進路条件の確認", period: "2029年4月〜2030年3月", color: "#0E7490", bg: "#ECFEFF", border: "#67E8F9", text: "#155E75" },
+  p7: { label: "ステージ 7", shortLabel: "St7", title: "高校3年：作品・出願・選抜方式別の準備", period: "2030年4月〜2031年3月", color: "#BE185D", bg: "#FDF2F8", border: "#F9A8D4", text: "#9D174D" },
+  p8: { label: "ステージ 8", shortLabel: "St8", title: "進学・次の制作環境へ（進学先は本人と相談）", period: "2031年4月", color: "#334155", bg: "#F1F5F9", border: "#94A3B8", text: "#1E293B" }
 };
 const stageDateRanges = {
   p1: { start: "2026-10", end: "2026-10" },
@@ -2179,6 +2179,7 @@ function App() {
   const [openTodayMusic, setOpenTodayMusic] = useState(true);
   const [openTodayCode, setOpenTodayCode] = useState(true);
   const [openExamPlan, setOpenExamPlan] = useState(false);
+  const [openGantt, setOpenGantt] = useState(true);
   const [openTodayLinkFor, setOpenTodayLinkFor] = useState(null);
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
   const [openMusicProgress, setOpenMusicProgress] = useState(true);
@@ -3329,24 +3330,29 @@ function App() {
 
       /* GANTT TAB: 27 + 28 months, proportional grid without horizontal scrolling. */
       tab === "gantt" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
-        h('div', { className: "dark-card-banner" },
-          h('div', { style: { fontSize: "16px", fontWeight: 900, color: "#FFFFFF" } },
-            "全体スケジュール（2026年10月〜2031年4月）")
+        h('button', { type: "button", className: "dark-card-banner",
+          "aria-expanded": openGantt, onClick: () => setOpenGantt(prev => !prev),
+          style: { width: "100%", border: "none", cursor: "pointer",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            textAlign: "left" } },
+          h('span', { style: { fontSize: "16px", fontWeight: 900, color: "#FFFFFF" } },
+            "全体スケジュール（2026年10月〜2031年4月）"),
+          h('span', { style: { color: "#FFFFFF", fontWeight: 900 } }, openGantt ? "▲" : "▼")
         ),
-        GANTT_ROWS.map(row => {
+        openGantt && GANTT_ROWS.map(row => {
           const monthCount = row.months.length;
           const inRow = (date) => row.start <= date && date <= row.end;
           return h('div', { key: row.start, style: { background: "#FFFFFF", borderRadius: "10px",
             border: "1px solid " + C.border, padding: "10px", minWidth: 0 } },
             h('div', { style: { fontSize: "13px", fontWeight: 900, color: C.studyText, marginBottom: "8px" } }, row.title),
             h('div', { style: { display: "flex", gap: "5px", minWidth: 0, borderBottom: "2px solid #007AFF", paddingBottom: "5px" } },
-              h('div', { style: { width: "27%", minWidth: 0, fontSize: "10px", fontWeight: 800 } }, "プロジェクト"),
+              h('div', { style: { width: "27%", minWidth: 0, fontSize: "12px", fontWeight: 900 } }, "プロジェクト"),
               h('div', { style: { flex: 1, minWidth: 0, display: "grid",
                 gridTemplateColumns: "repeat(" + monthCount + ", minmax(0, 1fr))" } },
                 row.months.map((month, idx) =>
                   h('div', { key: month.date, title: month.date,
                     style: { gridColumn: String(idx + 1), textAlign: "left",
-                      overflow: "visible", whiteSpace: "nowrap", zIndex: 1, fontSize: "9px",
+                      overflow: "visible", whiteSpace: "nowrap", zIndex: 1, fontSize: "11px",
                       color: month.m === 1 ? "#007AFF" : C.text, fontWeight: 800 } },
                     month.m === 1 ? String(month.year).slice(2) + "/1" : String(month.m))
                 )
@@ -3361,7 +3367,7 @@ function App() {
                 style: { display: "flex", gap: "5px", alignItems: "center", minWidth: 0,
                   padding: "4px 0", borderBottom: "1px solid #F2F2F7", cursor: "pointer" } },
                 h('div', { style: { width: "27%", minWidth: 0, overflowWrap: "anywhere",
-                  fontSize: "10px", lineHeight: 1.3, fontWeight: 800 } }, task.nameLines[0]),
+                  fontSize: "12px", lineHeight: 1.4, fontWeight: 800 } }, task.nameLines[0]),
                 h('div', { style: { flex: 1, minWidth: 0, position: "relative", height: "17px",
                   background: "#F2F2F7", borderRadius: "3px" } },
                   h('div', { title: task.nameLines.join("／") + "：" + task.start + "〜" + task.end +
@@ -3379,7 +3385,8 @@ function App() {
               paddingTop: "7px", display: "flex", flexDirection: "column", gap: "5px" } },
               EXAM_PLAN_MILESTONES.filter(x => inRow(x.date)).map(mark =>
                 h('div', { key: mark.date + mark.label, title: mark.full,
-                  style: { display: "flex", gap: "5px", alignItems: "center", minWidth: 0 } },
+                  style: { display: "flex", gap: "5px", alignItems: "center",
+                    minWidth: 0, flexWrap: "wrap" } },
                   h('div', { style: { width: "27%", minWidth: 0, fontSize: "10px",
                     color: mark.color, fontWeight: 900, overflowWrap: "anywhere" } }, mark.label),
                   h('div', { style: { position: "relative", flex: 1, minWidth: 0,
@@ -3397,8 +3404,9 @@ function App() {
                         transform: "translateX(-50%)" } }, "◆")
                   ),
                   activeExamMark === mark.date + mark.label && h('div', {
-                    style: { width: "100%", background: "#F8FAFC", borderLeft: "3px solid " +
-                      mark.color, padding: "7px 9px", fontSize: "11px", lineHeight: 1.5 } },
+                    style: { width: "73%", marginLeft: "27%", background: "#F8FAFC",
+                      borderLeft: "3px solid " + mark.color, padding: "7px 9px",
+                      fontSize: "12px", lineHeight: 1.5 } },
                     h('div', { style: { fontWeight: 900 } }, mark.date + "｜" + mark.label),
                     h('div', null, mark.full),
                     EXAM_REFERENCE_NOTES.filter(note =>
@@ -3417,41 +3425,7 @@ function App() {
               )
             )
           );
-        }),
-        h('div', { style: { background: "#FFFFFF", border: "1px solid " + C.border,
-          borderRadius: "10px", padding: "12px", fontSize: "12px" } },
-          h('div', { style: { fontWeight: 900, color: C.text, marginBottom: "6px" } },
-            "入試予定と2027年度の公式参考日程"),
-          h('button', { type: "button", className: "accordion-trigger",
-            onClick: () => setOpenExamPlan(prev => !prev), "aria-expanded": openExamPlan,
-            style: { background: "#EFF6FF", border: "1px solid #BFDBFE",
-              borderRadius: "7px", padding: "8px 10px", marginBottom: "8px",
-              display: "flex", justifyContent: "space-between", gap: "8px" } },
-            h('span', { style: { fontWeight: 900, color: "#1D4ED8", fontSize: "12px" } },
-              "◆ ガントの受験・出願マークの説明（" + EXAM_PLAN_MILESTONES.length + "件）"),
-            h('span', { style: { color: "#1D4ED8" } }, openExamPlan ? "▲" : "▼")
-          ),
-          openExamPlan && h('div', { style: { marginBottom: "10px",
-            padding: "8px 10px", background: "#F8FAFC", borderRadius: "7px" } },
-            EXAM_PLAN_MILESTONES.map(mark => h('div', { key: mark.date + mark.label,
-              style: { padding: "6px 0", borderBottom: "1px solid #E5E7EB",
-                lineHeight: 1.45 } },
-              h('div', { style: { fontWeight: 900, color: mark.color } },
-                mark.date + "｜" + mark.label + "（仮の計画月）"),
-              h('div', { style: { color: C.sub } }, mark.full)
-            ))
-          ),
-          h('div', { style: { color: C.sub, marginBottom: "8px", lineHeight: 1.5 } },
-            "ガントの受験・出願マークは真の2028年／2031年の予定を考えるための目安です。下記は2027年入学者向けの公式参考情報であり、真の正式試験日ではありません。該当年度の要項公表後に更新します。"),
-          EXAM_REFERENCE_NOTES.map(note => h('div', { key: note.label,
-            style: { borderTop: "1px solid #E5E7EB", padding: "7px 0", lineHeight: 1.5 } },
-            h('div', { style: { fontWeight: 900, color: C.studyText } }, note.label + "｜" + note.status),
-            h('div', { style: { color: C.sub } }, note.detail),
-            note.url && h('a', { href: note.url, target: "_blank", rel: "noopener noreferrer",
-              style: { display: "inline-block", marginTop: "4px", color: C.studyText, fontWeight: 800 } },
-              "公式資料を確認 ↗")
-          ))
-        )
+        })
       ),
 
             /* CALENDAR TAB */
