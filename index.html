@@ -2326,7 +2326,7 @@ function App() {
     ? "本人設定" + formatTaskMinutes(effectiveTaskMinutes(task))
     : (getMeasuredMinutes(task) == null
       ? "目安" + formatTaskMinutes(taskMinutes(task)) + "（仮）"
-      : "実測補正" + formatTaskMinutes(getMeasuredMinutes(task)) + "（中央値）");
+      : "実際に計った目安" + formatTaskMinutes(getMeasuredMinutes(task)) + "（3回以上）");
   const renderTaskMeasurement = task => {
     const opened = !!openTaskMeasurements[task.id];
     const records = taskSessions[task.id] || [];
@@ -2348,24 +2348,24 @@ function App() {
         style: { color: C.studyText, background: C.studyBg, fontSize: "11px" },
         onClick: () => setOpenTaskMeasurements(prev =>
           ({ ...prev, [task.id]: !prev[task.id] })) },
-        "⏱ 実測・難易度" + (records.length ? "（" + records.length + "回）" : "") +
+        "⏱ 時間をはかる・記録" + (records.length ? "（" + records.length + "回）" : "") +
         (opened ? " ▲" : " ▼")),
       opened && h('div', { style: { marginTop: "6px", padding: "9px", borderRadius: "7px",
         background: "#FFFFFF", border: "1px solid " + C.border, color: C.text,
         display: "flex", flexDirection: "column", gap: "7px" } },
         h('div', { style: { color: C.muted } },
-          "初期見積もり " + formatTaskMinutes(taskMinutes(task)) +
-          "｜実測補正 " + (getMeasuredMinutes(task) == null ?
+          "最初の目安 " + formatTaskMinutes(taskMinutes(task)) +
+          "｜計った時間からの目安 "  + (getMeasuredMinutes(task) == null ?
             "3回の記録後（現在" + records.length + "回）" :
             formatTaskMinutes(getMeasuredMinutes(task)) + "（中央値）")),
         h('div', { style: { display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" } },
           h('button', { type: "button", className: "btn-action",
             disabled: running || Object.keys(activeTaskTimers).length > 0,
             style: { color: "#FFFFFF", background: C.code },
-            onClick: () => startTaskTimer(task.id) }, "▶ 計測開始"),
+            onClick: () => startTaskTimer(task.id) }, "▶ 時間をはかる"),
           h('button', { type: "button", className: "btn-action",
             disabled: !running, style: { color: "#FFFFFF", background: C.study },
-            onClick: () => finishTaskTimer(task.id) }, "■ 終了して記録"),
+            onClick: () => finishTaskTimer(task.id) }, "■ 止めて記録"),
           running && h('button', { type: "button", className: "btn-action",
             style: { color: "#991B1B", background: "#FEE2E2" },
             onClick: () => discardTaskTimer(task.id) }, "計測を破棄"),
@@ -2373,16 +2373,19 @@ function App() {
             running ? "計測中 " + Math.floor(elapsed / 60) + "分" +
               (elapsed % 60) + "秒" : "未計測")
         ),
-        h('label', null, "今後の所要時間を本人が調整（分）",
+        h('details', { className: "riff-help-section",
+          style: { background: "#FFFFFF" } },
+          h('summary', null, "必要なら、難しさ・使った教材・次回の時間を記録する ▼"),
+        h('label', null, "次にやるときの目安を変える（分）",
           h('input', { type: "number", min: 1, max: 1440,
             className: "time-input-inline", style: { marginLeft: "7px", width: "85px" },
             value: taskEstimateOverrides[task.id] || "",
             placeholder: "自動",
             onChange: e => setTaskEstimateOverride(task.id, e.target.value) }),
           h('span', { style: { color: C.muted, marginLeft: "6px" } },
-            "空欄なら初期値／3回以上の実測を使用。分割した作業の残り時間は本人が設定。")
+            "空欄のままなら、計った時間から自動で目安を決めます。")
         ),
-        h('label', null, "体感難易度（本人の感覚）",
+        h('label', null, "やってみて、どうだった？",
           h('select', { className: "time-input-inline", value: draft.difficulty || "",
             style: { marginLeft: "7px" },
             onChange: e => setTaskSessionDraft(task.id, "difficulty", e.target.value) },
@@ -2410,7 +2413,8 @@ function App() {
           onChange: e => setTaskSessionDraft(task.id, "material", e.target.value) }),
         h('input', { type: "text", className: "time-input-inline",
           placeholder: "つまずき・次回の確認点（任意）", value: draft.notes || "",
-          onChange: e => setTaskSessionDraft(task.id, "notes", e.target.value) }),
+          onChange: e => setTaskSessionDraft(task.id, "notes", e.target.value) })
+        ),
         draft.error && h('div', { style: { color: "#B91C1C" } }, draft.error),
         records.length > 0 && h('div', { style: { color: C.sub } },
           "直近 " + (records[records.length - 1].seconds / 60).toFixed(1) +
@@ -3173,11 +3177,11 @@ function App() {
         h('span', {
           className: "badge-tag",
           style: { color: "#0F766E", background: "#F0FDFA", border: "1px solid #99F6E4", fontWeight: 600 }
-        }, `旧目安${u.timeAlloc}（算定根拠未確認）`),
+        }, `前の目安${u.timeAlloc}（決め方は未確認）`),
         h('span', { className: "badge-tag",
           style: { color: "#065F46", background: "#ECFDF5",
             border: "1px solid #6EE7B7", fontWeight: 800 } },
-          "新・作業合計目安" + formatTaskMinutes(stepMinutes(u)) + "（仮）"),
+          "やること全部の目安" + formatTaskMinutes(stepMinutes(u)) + "（仮）"),
 
         h('span', {
           className: "badge-tag",
@@ -3191,8 +3195,8 @@ function App() {
           onClick: e => e.stopPropagation(),
           onChange: e => saveStudyUnitPlan(u.id, e.target.value) },
           h('option', { value: "active" }, "計画に残す"),
-          h('option', { value: "review" }, "必要性を見直す"),
-          h('option', { value: "defer" }, "今回は延期")
+          h('option', { value: "review" }, "必要か考える"),
+          h('option', { value: "defer" }, "あとでやる")
         ),
 
         h('button', {
@@ -3391,8 +3395,8 @@ function App() {
             used > budget && h('div', { style: { fontSize: "12px", fontWeight: 900,
               marginBottom: "8px", color: "#B91C1C", padding: "7px",
               background: "#FEF2F2", borderRadius: "5px" } },
-              "実測補正後、" + formatTaskMinutes(used - budget) +
-              "超過しています。作業の割当は保持しています。必要なら「未完了から再割当」で調整してください。"),
+              "計った時間をもとにすると、" + formatTaskMinutes(used - budget) +
+              "長くなります。今日の予定はそのままです。必要なら「残りの予定を組み直す」で変えられます。"),
             stepIds.map(stepId => {
               const stepTasks = tasks.filter(task => task.stepId === stepId);
               const first = stepTasks[0], stage = stageInfo[first.stageKey] || {};
@@ -3471,7 +3475,7 @@ function App() {
               "完了 " + complete + "/" + tasks.length,
               h('button', { type: "button", className: "btn-action",
                 style: { background: catInfo.color, color: "#FFFFFF" },
-                onClick: rebuildDailySlots }, "未完了から再割当")
+                onClick: rebuildDailySlots }, "残りの予定を組み直す")
             ),
             h('label', { style: { display: "block", fontSize: "11px",
               marginTop: "8px", fontWeight: 800 } },
@@ -3538,13 +3542,13 @@ function App() {
             "やることの名前を押すと、音楽・開発・学習のくわしい場所に移動します。"),
           helpSection("② 音楽・開発・学習：くわしく見よう",
             "色のついた「ステージ」を押すと、中のステップを開いたり閉じたりできます。",
-            "ステップの名前を押すと、やることが見えます。各やることの「実測・難易度」で時間を計ったり、使った教材を記録したりできます。"),
+            "ステップの名前を押すと、やることが見えます。「時間をはかる・記録」で使った時間を計れます。"),
           helpSection("③ 時間を計る・次の目安を変える",
-            "やることの「実測・難易度」→「計測開始」→終わったら「終了して記録」。使った時間が残ります。",
-            "同じやることを3回計ると、次の予定づくりに反映します。今日の予定を変えたいときは「未完了から再割当」を押します。自分で「今後の所要時間」を入力することもできます。"),
+            "やることの「時間をはかる・記録」→「時間をはかる」→終わったら「止めて記録」。使った時間が残ります。",
+            "同じやることを3回計ると、新しい予定を作るときの時間が変わります。今日の予定はそのまま。変えたいときは「残りの予定を組み直す」を押してね。1回目から自分で目安を変えることもできます。"),
           helpSection("④ 予定が多すぎるとき",
             "学習タブで、目標までに必要な時間と、使えそうな時間を比べられます。",
-            "「計画に残す」「必要性を見直す」「今回は延期」から選べます。どれを学ぶかは、真くんや家族が決めます。"),
+            "「計画に残す」「必要か考える」「あとでやる」から選べます。どれを学ぶかは、真くんや家族が決めます。"),
           helpSection("⑤ ほかのタブは何をするの？",
             "計画＝長い予定。月別＝月ごとの予定。ステージ＝大きな目標。他＝休けいなど。時間割＝一日の予定のひな型。進路＝学校の候補。感想＝使ってみた意見。",
             "「感想」は、送る前に内容と送り先を確認してね。"),
@@ -4559,9 +4563,9 @@ function App() {
           borderRadius: "10px", padding: "14px", display: "flex",
           flexDirection: "column", gap: "10px" } },
           h('div', { style: { fontSize: "15px", fontWeight: 900, color: C.studyText } },
-            "🎯 目標までの学習計画・取捨選択"),
+            "🎯 目標の日までに、何を勉強する？"),
           h('div', { style: { fontSize: "12px", color: C.sub } },
-            "この試算は入試合否の予測ではありません。目標管理日は仮の日付です。期日が目標管理月までの課題だけを集計し、高校進学後の課題は含めません。週の学習可能時間を入力し、必要な学びを本人と保護者で選択します。"),
+            "目標の日と、1週間に勉強できる時間を入れてね。残りのやることに何分必要か比べられます。高校入学後の課題は数えません。合否を予想するものではありません。"),
           h('div', { style: { display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" } },
             h('label', { style: { fontSize: "12px", fontWeight: 800 } }, "目標管理日（仮） ",
               h('input', { type: "date", className: "time-input-inline",
@@ -4603,7 +4607,7 @@ function App() {
             (studyCapacityGap > 0 ? "｜不足 " + formatTaskMinutes(studyCapacityGap) :
               "｜想定上の余裕 " + formatTaskMinutes(-studyCapacityGap))),
           h('div', { style: { fontSize: "12px", color: C.sub, lineHeight: 1.5 } },
-            "不足時は下の各学習ステップにある「必要性を見直す／今回は延期」を本人が指定できます。Sランクでも入試必須とは限らないため、正答記録と教材・志望校の要件を確認して決めてください。既存の完了記録と今日の確定済み予定は自動削除しません。")
+            "時間が足りないときは、下のステップで「必要か考える」や「あとでやる」を選べます。大事な勉強まで勝手に消さないので、真くんと家族で相談して決めてね。")
         ),
 
         h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } },
