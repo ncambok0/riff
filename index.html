@@ -937,14 +937,44 @@ const inferTaskMinutes = (task, domain) => {
     task.estimateMinutes = inferTaskMinutes(task, domain);
   }));
 });
-// 一覧は短い題名を先に。説明は「説明を見る」で全文を開ける。
-const taskShortTitle = full => {
-  const value = String(full || "").trim();
-  if (value.startsWith("Amber i2前面のINPUT選択ボタンを順次押し")) return "Amber i2の入力をHI-Zにする";
-  if (value.length <= 38) return value;
-  const comma = value.indexOf("、");
-  if (comma >= 15 && comma <= 38) return value.slice(0, comma);
-  return value.slice(0, 36).replace(/[、。・\s]+$/, "") + "…";
+// 全音楽・開発タスクの一覧用の短い題名。詳しい原文は task.text に残す。
+const RIFF_CONCISE_TASK_TITLES = Object.fromEntries([["mus-1-1","Amber i2の入力をHI-Zにする"],["mus-1-2","RAT2とAmber i2の接続を確かめる"],["mus-1-3","ギターの入力音量を調整する"],["mus-1-4","ヘッドホンで遅延なく音を聴く"],["mus-1-5","GarageBandの入力モニターを確認"],["mus-2-1","Amp Designerでクリーン音を選ぶ"],["mus-2-2","RAT2とアンプの二重歪みを防ぐ"],["mus-2-3","RAT2のFilterの効き方を聴く"],["mus-2-4","Pocket Ampで10分の基礎練習"],["mus-3-1","ギター音とMIDI操作の経路を描く"],["mus-3-2","MIDIは音ではなく操作データと理解する"],["mus-3-3","MiniLab 3のMIDI信号を見る"],["mus-3-4","ギター録音とMIDI演奏を比べる"],["mus-4-1","ゲームに使うギターリフを録音"],["mus-4-2","音を整えてWAVを書き出す"],["mus-4-3","オリジナル曲のコード進行を作る"],["mus-5-1","MainStageの準備とMIDI機能を確認"],["mus-5-2","Chocolate PlusのMIDI信号を確認"],["mus-5-3","スイッチA/Bでエフェクトを切り替える"],["mus-5-4","Moog EP-3をワウに連動させる"],["mus-6-1","ダイアトニックと代理コードを聴く"],["mus-6-2","アコギとレスポールを重ねて録音"],["mus-6-3","ライブ前の機材11項目を点検"],["mus-7-1","ゲームの効果音を自作する"],["mus-7-2","BX5の位置を調整してミックス確認"],["mus-7-3","SoundCloudへ制作音源を保存"],["mus-8-1","受験期もギターの指を動かす"],["mus-8-2","思いついたリフを10分で録音"],["mus-9-1","GarageBandの曲をLogicへ移す"],["mus-9-2","HX StompとMoog EP-3を接続"],["mus-9-3","Chocolate Plusの使い道を決める"],["mus-9-4","JBGで作編曲理論を学ぶ"],["mus-10-1","出願用のオリジナル曲を選ぶ"],["mus-10-2","音源をマスタリングする"],["mus-11-1","過去と今の演奏を聴き比べる"],["mus-11-2","制作意図と改善履歴をまとめる"],["mus-12-1","クリーンと歪みと空間系を比較"],["mus-12-2","選んだ音色の設定を残す"],["mus-13-1","ギターと打ち込みでデモを作る"],["mus-13-2","別アレンジを録音して選ぶ"],["mus-14-1","演奏と録音の伝わり方を比べる"],["mus-14-2","演奏か録音を一つ改善する"],["mus-15-1","出願先の作品提出形式を確認"],["mus-15-2","提出用の音源と動画を整える"],["mus-16-1","自分の言葉で作品を説明する"],["mus-16-2","講師の意見から改善点を選ぶ"],["mus-17-1","進学先に合う制作環境を選ぶ"],["py-1-1","ギター音をsounddeviceで受け取る"],["py-1-2","NumPyで音量と周波数を計算"],["py-2-1","dequeに最新の波形をためる"],["py-2-2","Pygameに波形の線を描く"],["py-3-1","音声と画面のデータ競合を防ぐ"],["py-3-2","60FPSとスクロール速度を合わせる"],["py-4-1","波形からキャラの接地点を計算"],["py-4-2","重力とジャンプの動きを作る"],["py-5-1","無音と障害物のゲームオーバーを作る"],["py-5-2","クリア画面とファンファーレを作る"],["py-6-1","展示PCで動く版を完成させる"],["py-6-2","フェス用の説明資料を準備"],["py-7-1","midoをインストールして確認"],["py-7-2","MIDI機器のポート名を調べる"],["py-8-1","MIDI値をゲームの数値に変換"],["py-8-2","ノブで速度と波形の大きさを動かす"],["py-9-1","MIDI受信を別スレッドにする"],["py-9-2","画面を止めずMIDIを取り出す"],["py-10-1","ゲーム画面を4分割する"],["py-10-2","4画面に同じ波形を描く"],["py-11-1","フットスイッチで足型を登場させる"],["py-11-2","キャラを隣の画面へ蹴り飛ばす"],["py-12-1","移動先の画面を拡大する"],["py-12-2","再押下で4画面に戻す"],["py-13-1","Pythonから仮想MIDIを送る準備"],["py-13-2","ピンチでギターをファズ音にする"],["py-14-1","HX StompからMIDIを受信する"],["py-14-2","音色とゲーム画面を同時切替"],["py-15-1","コードとREADMEを整理する"],["py-15-2","実機デモと出願作品を準備"],["py-16-1","再現できる不具合を記録"],["py-16-2","数学と理科を作品で試す"],["py-17-1","音声の反応と遅延を比べる"],["py-17-2","端末を変えて動作をテスト"],["py-18-1","音の数値とキャラの動きを比べる"],["py-18-2","先取りの理数知識を実装で確認"],["py-19-1","公開範囲と開発の判断を整理"],["py-19-2","出願用の動画と作品説明を作る"],["py-20-1","機材なしのデモ方法を考える"],["py-20-2","試してもらい改善点を直す"],["py-21-1","素材の権利と個人情報を確認"],["py-21-2","別の環境でも動く手順を整える"],["py-22-1","進学後のコードをバックアップ"]]);
+[musicSteps, pythonSteps].forEach(steps => steps.forEach(step =>
+  step.subtasks.forEach(task => { task.shortTitle = RIFF_CONCISE_TASK_TITLES[task.id]; })
+));
+const studyTopicTitle = unit => {
+  const original = String(unit.item || unit.unit || "");
+  if (/be動詞と一般動詞の区別・三人称単数現在形/.test(original))
+    return "be / 一般動詞の区別・三人称単数現在形";
+  const core = original.replace(/^「|」$/g, "").split(/[（(]/)[0].split(/[、，。]/)[0].trim();
+  return core.length <= 29 ? core : unit.unit;
+};
+studySubjectsData.forEach(subject => subject.units.forEach(unit => {
+  const topic = studyTopicTitle(unit);
+  const future = ["高1","高2","高3","進学後"].includes(unit.grade);
+  unit.subtasks.forEach((task, index) => {
+    if (unit.id === "m-1") {
+      task.shortTitle = ["正負の数の符号と累乗を確認","四則計算の基本問題を3問解く","かっこ付き計算を自力で解く"][index];
+    } else if (unit.taskKind === "current") {
+      task.shortTitle = task.shortTitle || task.text;
+    } else if (future) {
+      task.shortTitle = ["「" + topic + "」の準備","「" + topic + "」を実際に試す","「" + topic + "」の次の作業を決める"][index];
+    } else {
+      task.shortTitle = ["「" + topic + "」の要点の確認",
+        "「" + topic + "」の基本練習","「" + topic + "」の間違い直し"][index];
+    }
+  });
+}));
+// 一覧は個別に要約した題名、説明は省略しない原文を表示する。
+const taskShortTitle = source => {
+  if (source && typeof source === "object" && source.shortTitle)
+    return source.shortTitle;
+  const value = String(source && typeof source === "object" ? source.text : source || "").trim();
+  if (/be動詞と一般動詞の区別・三人称単数現在形/.test(value) && /要点/.test(value))
+    return "「be / 一般動詞の区別・三人称単数現在形」の要点の確認";
+  const pattern = value.match(/^「(.+?)」の要点を教科書や授業ノートで確認する/);
+  if (pattern) return "「" + pattern[1].split(/[（(]/)[0] + "」の要点の確認";
+  return value.length > 36 ? value.split(/[、。]/)[0].replace(/を(確認|記録|実施)する.*$/, "を$1") : value;
 };
 const taskMinutes = task => task.estimateMinutes || 0;
 const stepMinutes = step => (step.subtasks || []).reduce((sum, task) => sum + taskMinutes(task), 0);
@@ -3367,7 +3397,7 @@ function App() {
                 color: highlightedTaskId === task.id ? "#713F12" :
                   checkedItems[task.id] ? C.muted : C.text,
                 textDecoration: checkedItems[task.id] ? "line-through" : "none" } },
-                taskShortTitle(task.text)),
+                taskShortTitle(task)),
               h('span', { style: { flexShrink: 0, color: "#047857", fontWeight: 800,
                 fontSize: "12px" } }, taskEstimateLabel(task)),
               h('span', { className: "badge-tag", style: { color: "#1D4ED8",
@@ -3409,7 +3439,7 @@ function App() {
         h('span', { title: task.text, style: { flex: 1, lineHeight: 1.6,
           fontSize: "14px",
           textDecoration: checkedItems[task.id] ? "line-through" : "none" } },
-          taskShortTitle(task.text)),
+          taskShortTitle(task)),
         h('span', { style: { flexShrink: 0, fontSize: "12px",
           color: dark ? "#A7F3D0" : C.codeText, fontWeight: 800 } },
           taskEstimateLabel(task)),
@@ -3524,7 +3554,7 @@ function App() {
                     onClick: () => jumpToTask(task.tab, task.id),
                     style: { color: checkedItems[task.id] ? C.muted : "#1D4ED8",
                       textDecoration: "underline", textUnderlineOffset: "3px" } },
-                    taskShortTitle(task.text) + " ↗"),
+                    taskShortTitle(task) + " ↗"),
                   h('span', { style: { whiteSpace: "nowrap", fontSize: "11px",
                     color: catInfo.color, fontWeight: 800 } },
                     taskEstimateLabel(task)),
@@ -3586,7 +3616,7 @@ function App() {
   };
 
   const taskExplanation = (task, studyReference = "") =>
-    (String(task.text || "").trim() !== taskShortTitle(task.text) || !!studyReference)
+    (String(task.text || "").trim() !== taskShortTitle(task) || !!studyReference)
       ? h('details', { className: "riff-task-detail" },
           h('summary', null, "説明 ▼"),
           h('div', null,
@@ -3602,7 +3632,7 @@ function App() {
                 "確認できたページを記録",
                 h('input', { type: "text", className: "time-input-inline",
                   value: taskTextbookPages[task.id] || "",
-                  "aria-label": taskShortTitle(task.text) + "の教科書ページ",
+                  "aria-label": taskShortTitle(task) + "の教科書ページ",
                   placeholder: "例：p.14〜16（教材の版も確認）",
                   style: { flex: "1 1 190px", padding: "6px" },
                   onChange: e => updateTaskTextbookPage(task.id, e.target.value) })
@@ -4565,7 +4595,7 @@ function App() {
                   color: highlightedTaskId === st.id ? "#713F12" :
                     checkedItems[st.id] ? C.muted : C.text,
                   textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
-                  taskShortTitle(st.text)
+                  taskShortTitle(st)
                 ),
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5",
@@ -4666,7 +4696,7 @@ function App() {
                   color: highlightedTaskId === st.id ? "#713F12" :
                     checkedItems[st.id] ? C.muted : C.text,
                   textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
-                  taskShortTitle(st.text)
+                  taskShortTitle(st)
                 ),
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5",
