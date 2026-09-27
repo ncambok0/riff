@@ -3353,6 +3353,12 @@ function App() {
                 taskShortTitle(task.text)),
               h('span', { style: { flexShrink: 0, color: "#047857", fontWeight: 800,
                 fontSize: "12px" } }, taskEstimateLabel(task)),
+              h('span', { className: "badge-tag", style: { color: "#1D4ED8",
+                background: "#EFF6FF", maxWidth: "150px", overflow: "hidden",
+                textOverflow: "ellipsis", whiteSpace: "nowrap" },
+                title: taskTextbookPages[task.id] || task.textbookPages ||
+                  "このやることの教科書ページは未確認です。" },
+                "📖 " + (taskTextbookPages[task.id] || task.textbookPages || "ページ未確認")),
               taskExplanation(task, u.textbookRef),
               renderTaskMeasurement(task)
               )
