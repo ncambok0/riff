@@ -2179,6 +2179,12 @@ function App() {
   const [openTodayCode, setOpenTodayCode] = useState(true);
   const [openExamPlan, setOpenExamPlan] = useState(false);
   const [openTodayLinkFor, setOpenTodayLinkFor] = useState(null);
+  const [highlightedTaskId, setHighlightedTaskId] = useState(null);
+  const [openMusicProgress, setOpenMusicProgress] = useState(true);
+  const [openPythonProgress, setOpenPythonProgress] = useState(true);
+  const [activeExamMark, setActiveExamMark] = useState(null);
+  const [manualStepByTask, setManualStepByTask] = useState({});
+  const [assignmentWarning, setAssignmentWarning] = useState("");
   const [todayCustomTasks, setTodayCustomTasks] = useState(() => {
     try { return JSON.parse(localStorage.getItem("shin_today_custom_tasks_v1") || "{}"); }
     catch (e) { return {}; }
@@ -2296,6 +2302,55 @@ function App() {
       catch (e) {}
       return updated;
     });
+  };
+  const dailyPlanKey = todayDateKey + "@" + schedType;
+  const dailyTemplateFingerprint = JSON.stringify(todaySched.items.map(item =>
+    [item.id, item.t, item.a, getScheduleCategory(item)]));
+  const [dailyPlans, setDailyPlans] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_daily_plans_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const priorDailyPlan = dailyPlans[dailyPlanKey];
+  const todaySlots = priorDailyPlan && priorDailyPlan.fingerprint === dailyTemplateFingerprint
+    ? priorDailyPlan.slots : proposeDailySlots(todaySched.items, checkedItems);
+  const persistDailySlots = slots => {
+    setDailyPlans(prev => {
+      const next = { ...prev, [dailyPlanKey]: {
+        fingerprint: dailyTemplateFingerprint, slots } };
+      try { localStorage.setItem("riff_daily_plans_v1", JSON.stringify(next)); }
+      catch (e) {}
+      return next;
+    });
+  };
+  useEffect(() => {
+    if (!priorDailyPlan || priorDailyPlan.fingerprint !== dailyTemplateFingerprint) {
+      persistDailySlots(todaySlots);
+    }
+  }, [dailyPlanKey, dailyTemplateFingerprint]);
+  const rebuildDailySlots = () => {
+    persistDailySlots(proposeDailySlots(todaySched.items, checkedItems));
+    setAssignmentWarning("");
+  };
+  const updateDailyTask = (slotId, oldId, replacementId) => {
+    const slot = todaySched.items.find(item => item.id === slotId);
+    const replacement = ALL_TASKS_BY_ID[replacementId];
+    if (!slot || !replacement || replacement.genre !== getScheduleCategory(slot)) return;
+    const occupied = Object.entries(todaySlots).some(([id, ids]) =>
+      ids.includes(replacementId) && !(id === slotId && replacementId === oldId));
+    if (occupied) {
+      setAssignmentWarning("そのやることは、今日の別の枠に既にあります。");
+      return;
+    }
+    const withoutOld = (todaySlots[slotId] || []).filter(id => id !== oldId);
+    const used = withoutOld.reduce((total, id) => total +
+      taskMinutes(ALL_TASKS_BY_ID[id] || {}), 0);
+    if (used + taskMinutes(replacement) > parseScheduleDuration(slot.t)) {
+      setAssignmentWarning("時間枠を超えるため変更できません。短い作業を選んでください。");
+      return;
+    }
+    persistDailySlots({ ...todaySlots, [slotId]: [...withoutOld, replacementId] });
+    setAssignmentWarning("");
+    setOpenTodayLinkFor(null);
   };
   const completedSchedCount = todaySched.items.filter(it => checkedItems[scheduleCheckKey(it.id)]).length;
 
@@ -2594,20 +2649,30 @@ function App() {
 
   /* Helper to jump to specific target tab */
   const jumpToTask = (targetTab, taskId) => {
-    // 学習の絞り込みや折りたたみでリンク先が隠れないよう、先に表示する。
+    const task = ALL_TASKS_BY_ID[taskId];
+    const stepId = task ? task.stepId : taskId;
     if (targetTab === "study") {
       setStudyFilterRankS(false);
       setStudyFilterWeak(false);
       setStudyFilterSubjects({ math: false, eng: false, sci: false, soc: false, jpn: false });
-      const subject = studySubjectsData.find(s => s.units.some(u => u.id === taskId));
+      const subject = studySubjectsData.find(s => s.units.some(u => u.id === stepId));
       if (subject) setOpenStudySubjects(prev => ({ ...prev, [subject.id]: true }));
     }
     setTab(targetTab);
-    setExpandedDetailTasks(prev => ({ ...prev, [taskId]: true }));
+    setExpandedDetailTasks({ [stepId]: true });
+    setHighlightedTaskId(taskId);
     setTimeout(() => {
-      const el = document.getElementById(taskId);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 120);
+      const el = document.getElementById(task ? "riff-task-" + taskId : stepId);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 160);
+  };
+  const jumpToStage = stageKey => {
+    setOpenStageCards(prev => ({ ...prev, [stageKey]: true }));
+    setTab("stage");
+    setTimeout(() => {
+      const el = document.getElementById("riff-stage-" + stageKey);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 160);
   };
 
   const renderStandardTaskTags = (u, subObj, targetTab = "study") => {
