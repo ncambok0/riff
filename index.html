@@ -2250,6 +2250,16 @@ function App() {
     catch (e) { return {}; }
   });
   const [taskSessionDrafts, setTaskSessionDrafts] = useState({});
+  const [taskTextbookPages, setTaskTextbookPages] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_task_textbook_pages_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const updateTaskTextbookPage = (id, value) => setTaskTextbookPages(prev => {
+    const next = { ...prev, [id]: value };
+    try { localStorage.setItem("riff_task_textbook_pages_v1", JSON.stringify(next)); }
+    catch (e) {}
+    return next;
+  });
   const [taskEstimateOverrides, setTaskEstimateOverrides] = useState(() => {
     try {
       const prior = JSON.parse(localStorage.getItem("riff_task_estimate_overrides_v1") || "{}");
@@ -3558,10 +3568,24 @@ function App() {
           h('summary', null, "説明 ▼"),
           h('div', null,
             h('p', { style: { fontSize: "15px", lineHeight: 1.65 } }, task.text),
-            studyReference && h('p', { style: { marginTop: "6px", color: "#475569" } },
-              task.textbookPages
-                ? "📖 このやることの対応ページ：" + task.textbookPages
-                : "📖 このやることの正確なページ：確認中。単元の参考範囲：" + studyReference))
+            studyReference && h('div', { style: { marginTop: "6px", color: "#475569",
+              display: "flex", flexDirection: "column", gap: "6px" } },
+              h('div', null, (taskTextbookPages[task.id] || task.textbookPages)
+                ? "📖 このやることのページ：" +
+                    (taskTextbookPages[task.id] || task.textbookPages)
+                : "📖 このやることのページ：未確認（単元全体の参考：" + studyReference + "）"),
+              h('label', { style: { display: "flex", flexWrap: "wrap",
+                gap: "6px", alignItems: "center" } },
+                "確認できたページを記録",
+                h('input', { type: "text", className: "time-input-inline",
+                  value: taskTextbookPages[task.id] || "",
+                  "aria-label": taskShortTitle(task.text) + "の教科書ページ",
+                  placeholder: "例：p.14〜16（教材の版も確認）",
+                  style: { flex: "1 1 190px", padding: "6px" },
+                  onChange: e => updateTaskTextbookPage(task.id, e.target.value) })
+              ),
+              h('div', { style: { fontSize: "12px", color: "#64748B" } },
+                "ページは自動で調べていません。教材の版と実物を確認して入力してね。")))
         ) : null;
 
   const helpSection = (heading, summary, details) =>
