@@ -1520,26 +1520,33 @@ const ganttTasks = [
 ];
 
 // Reference dates are for the historical 2026-entry cycles; none is a confirmed 2028/2031 exam date.
-// Reference: official admissions material for the 2026 entry cycle. The user's exams are in later entry years.
+// 2027-entry official reference cycle (NOT the user's 2028 high-school / 2031 university admission cycle).
+// Dates in autumn 2026 belong to the 2027 academic-year entrance selection.
 const EXAM_REFERENCE_NOTES = [
-  { label: "都立高校・2026年度入学者選抜", status: "過去年度の確定日",
-    detail: "推薦選抜：2026年1月26・27日／第一次募集の学力検査：2026年2月21日。真が受験する2028年の試験日ではありません。",
-    url: "https://www.kyoiku.metro.tokyo.lg.jp/admission/high_school/archives/exam/nyuusenn_o_2025052201" },
-  { label: "洗足・2026年度 総合型選抜（旧AOに相当）", status: "過去年度の確定日",
-    detail: "第1回：2025年9月20・21日／第2回：10月18・19日／第3回：11月22・23日／第4回：12月25日／第5回：2026年2月7・8日。受験するコースによって実施日・提出内容が異なります。",
-    url: "https://www.senzoku.ac.jp/music/admission_guide/navi/schedule.html" },
-  { label: "洗足・2026年度 一般選抜", status: "過去年度の確定日",
-    detail: "一般選抜A：2026年2月7・8日／一般選抜B：2026年3月5・6日。真の2031年度入試の日程としては使用しません。",
-    url: "https://www.senzoku.ac.jp/music/admission_guide/navi/schedule.html" },
-  { label: "洗足・2026年度 学校推薦型選抜（指定校）", status: "学校に確認",
-    detail: "詳細は大学から各指定校へ通知されます。受験年度・在籍高校・対象コースの条件を高校へ確認するまで日付を登録しません。",
-    url: "https://www.senzoku.ac.jp/music/admission_guide/navi/schedule.html" },
-  { label: "洗足・音楽音響クリエイティブ表現コース", status: "年度・コースを区別",
-    detail: "同コースの募集は2027年度入試案内で確認できます。2026年度の別コースの試験日を同コースの試験日とみなさず、音楽・音響デザインとそれぞれの該当年度要項で確認します。",
+  { label: "都立高校・令和9年度（2027年入学者）選抜", status: "2027年度公式日程",
+    detail: "推薦に基づく選抜：2027年1月26日（火）・27日（水）／第一次募集の学力検査：2027年2月21日（日）。真が受験する2028年入学者選抜の確定日ではありません。",
+    url: "https://www.kyoiku.metro.tokyo.lg.jp/admission/high_school/exam/nyuusenn_9_20260528" },
+  { label: "洗足・2027年度の募集コース", status: "両コースを正式掲載",
+    detail: "音楽・音響デザインと音楽音響クリエイティブ表現（キーボード／Eギター／Eベース／二胡）の両コースを2027年度総合型選抜・一般選抜要項で確認。試験科目と提出形式はそれぞれのコース別要項で確認します。",
+    url: "https://www.senzoku.ac.jp/music/admission/pdf/nyuushi_yoko.pdf" },
+  { label: "洗足・2027年度 総合型選抜（旧AO）", status: "2027年度公式日程",
+    detail: "第1回：2026年9月19・20日／第2回：10月17・18日／第3回：11月21・22日／第4回：12月24日／第5回：2027年2月6・7日。第2回は音楽・音響デザインが17・18日またはいずれか1日、音楽音響クリエイティブ表現は18日のみ。その他の回も受験日の詳細は大学からの案内に従います。",
     url: "https://www.senzoku.ac.jp/music/admission/advance" },
-  { label: "Goldsmiths・2026年入学の出願", status: "試験日ではなく出願期限",
-    detail: "2026年入学の多くの学士課程でUCASの主要な出願期限は2026年1月14日。Creative Computingの募集要件を確認し、Music Computingの現行募集状況・選考形式は別途公式に確認します。両コース共通の『入学試験日』は登録しません。",
-    url: "https://www.gold.ac.uk/ug/apply/applying-through-ucas/" }
+  { label: "洗足・2027年度 一般選抜A日程", status: "2027年度公式日程",
+    detail: "2027年2月6日（土）・7日（日）。音楽・音響デザインと音楽音響クリエイティブ表現は、それぞれのコース別専門試験に従います。個人の試験日程は2027年1月29日以降の大学発表で確認します。",
+    url: "https://www.senzoku.ac.jp/music/admission/exam_a_schedule" },
+  { label: "洗足・2027年度 一般選抜B日程", status: "実施・募集コースは条件付き",
+    detail: "2027年3月4日（木）・5日（金）の予定。募集人員に達した場合は実施しない可能性があり、一部コース限定の場合もあります。音楽・音響デザインと音楽音響クリエイティブ表現の実施有無は大学の12月中の発表と、2027年2月26日以降の試験日程で確認します。",
+    url: "https://www.senzoku.ac.jp/music/admission/exam_b_schedule" },
+  { label: "洗足・2027年度 学校推薦型選抜（指定校）", status: "在籍高校への確認が必要",
+    detail: "2027年度の指定校推薦は詳細を各指定校へ通知。志望コースで利用可能か、推薦条件、選抜日程は高校側の案内で確認します。公開ページから一律の試験日を推測しません。",
+    url: "https://www.senzoku.ac.jp/music/admission/recommendation" },
+  { label: "Goldsmiths・2027年入学：Creative Computing", status: "UCASの公式出願期限",
+    detail: "2027年入学の一般的な学士課程のUCAS主要出願期限は2027年1月13日（水）18:00（英国時間）。BSc Creative Computingの募集条件は大学のコース案内も確認します。これは入学試験日ではなく、面接等の個別日程は別途通知・確認となります。",
+    url: "https://www.ucas.com/applying/applying-to-university/dates-and-deadlines-for-uni-applications" },
+  { label: "Goldsmiths・2027年入学：Music Computing系", status: "現行コース名・募集方式を確認",
+    detail: "旧称Music Computingとして検討している分野は、大学の現行学部案内にBMus/BSc Electronic Music, Computing & Technologyとして掲載。2027年入学の一般的なUCAS主要出願期限は2027年1月13日（水）18:00（英国時間）。個別試験・面接日の一律の公表値は確認できないため、正式な募集要項と招待案内で確認します。",
+    url: "https://www.gold.ac.uk/ug/computing/" }
 ];
 // These marks are planning windows, NOT university-announced dates for the user's entry year.
 const EXAM_PLAN_MILESTONES = [
@@ -2915,9 +2922,9 @@ function App() {
         h('div', { style: { background: "#FFFFFF", border: "1px solid " + C.border,
           borderRadius: "10px", padding: "12px", fontSize: "12px" } },
           h('div', { style: { fontWeight: 900, color: C.text, marginBottom: "6px" } },
-            "入試予定と過去年度の参考日程"),
+            "入試予定と2027年度の公式参考日程"),
           h('div', { style: { color: C.sub, marginBottom: "8px", lineHeight: 1.5 } },
-            "ガントの受験・出願マークは真の予定を考えるための目安です。該当年度の正式日程が公表されたら更新します。"),
+            "ガントの受験・出願マークは真の2028年／2031年の予定を考えるための目安です。下記は2027年入学者向けの公式参考情報であり、真の正式試験日ではありません。該当年度の要項公表後に更新します。"),
           EXAM_REFERENCE_NOTES.map(note => h('div', { key: note.label,
             style: { borderTop: "1px solid #E5E7EB", padding: "7px 0", lineHeight: 1.5 } },
             h('div', { style: { fontWeight: 900, color: C.studyText } }, note.label + "｜" + note.status),
