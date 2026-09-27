@@ -883,6 +883,12 @@ const getScheduleCategory = item => {
   return "other";
 };
 
+// Track colors are defined by stable track IDs, so older localStorage records retain their existing contents.
+const MUSIC_TRACK_COLORS = {
+  "track-a": "#FBBF24", "track-b": "#34D399", "track-c": "#60A5FA", "track-d": "#F472B6"
+};
+const trackColor = id => MUSIC_TRACK_COLORS[id] || C.music;
+
 const defaultMusicTracks = [
   { id: "track-a", name: "曲A", pct: 75 },
   { id: "track-b", name: "曲B", pct: 50 },
@@ -2896,7 +2902,7 @@ function App() {
             `${yr.year}（${yr.grade}）`
           ),
           yr.months.map((mo, mi) => {
-            const isCur = isCurrentMonth(yr.year, mo.m, currentTime);
+            const isCur = mo.date === (currentMonthKey < PLAN_START ? PLAN_START : currentMonthKey > PLAN_END ? PLAN_END : currentMonthKey);
             const moKey = `${yr.year}_${mo.m}`;
             const isMoOpen = openMonths[moKey] !== false;
             const stageNum = mo.stage ? mo.stage.replace("p", "") : "1";
@@ -2926,15 +2932,18 @@ function App() {
               },
                 h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
                   h('span', { style: { fontSize: "16px", fontWeight: 900, color: isCur ? "#60A5FA" : "#007AFF" } }, mo.m),
-                  h('span', {
-                    style: {
-                      fontSize: "14px", fontWeight: 900,
-                      color: isCur ? "#FFFFFF" : sInfo.text || C.sub,
-                      background: isCur ? "rgba(255,255,255,0.18)" : sInfo.bg || "#F2F2F7",
-                      padding: "2px 8px", borderRadius: "6px",
-                      border: `1px solid ${isCur ? "rgba(255,255,255,0.3)" : sInfo.border || C.border}`
-                    }
-                  }, stageInfo[mo.stage].label),
+                  /* Badge colors match music / development / study step tags. */
+                  (moMusSteps.length || moPySteps.length || moStudyUnits.length)
+                    ? h('div', { style: { display: "flex", gap: "4px", flexWrap: "wrap" } },
+                        moMusSteps.length > 0 && h('span', { className: "badge-tag",
+                          style: { color: "#FFFFFF", background: C.music } }, "🎸 " + stageInfo[mo.stage].label),
+                        moPySteps.length > 0 && h('span', { className: "badge-tag",
+                          style: { color: "#FFFFFF", background: C.code } }, "💻 " + stageInfo[mo.stage].label),
+                        moStudyUnits.length > 0 && h('span', { className: "badge-tag",
+                          style: { color: "#FFFFFF", background: C.study } }, "📚 " + stageInfo[mo.stage].label)
+                      )
+                    : h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.study } },
+                        stageInfo[mo.stage].label),
                   h('span', { style: { fontSize: "13px", fontWeight: 800, color: isCur ? "#FEF08A" : "#B45309" } }, `🎯 ${mo.target}`)
                 ),
                 h('div', { style: { display: "flex", alignItems: "center", gap: "6px" } },
@@ -3222,9 +3231,9 @@ function App() {
                 style: { background: "rgba(255,255,255,0.08)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" }
               },
                 h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" } },
-                  h('span', { style: { fontSize: "12.5px", fontWeight: 900, color: "#FFFFFF" } }, trk.name),
+                  h('span', { style: { fontSize: "12.5px", fontWeight: 900, color: trackColor(trk.id) } }, trk.name),
                   !isEditingTracks
-                    ? h('span', { style: { fontSize: "14px", fontWeight: 900, color: "#C4B5FD" } }, `${trk.pct}%`)
+                    ? h('span', { style: { fontSize: "14px", fontWeight: 900, color: trackColor(trk.id) } }, `${trk.pct}%`)
                     : h('select', {
                         value: trk.pct,
                         onChange: (e) => updateTrackPct(trk.id, e.target.value),
@@ -3235,7 +3244,7 @@ function App() {
                       )
                 ),
                 h('div', { style: { height: "6px", background: "rgba(255,255,255,0.14)", borderRadius: "3px", overflow: "hidden" } },
-                  h('div', { style: { width: `${trk.pct}%`, height: "100%", background: "#C4B5FD" } })
+                  h('div', { style: { width: `${trk.pct}%`, height: "100%", background: trackColor(trk.id) } })
                 )
               ))
             )
