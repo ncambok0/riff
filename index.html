@@ -4725,7 +4725,7 @@ function App() {
 
       /* STUDY TAB */
       tab === "study" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
-        h('div', { className: 'dark-card-banner', style: { order: 10 } },
+        h('div', { className: 'dark-card-banner', style: { order: 0 } },
           h('button', { type: "button", className: "riff-fold",
             "aria-expanded": openStudyVisionCard,
             onClick: () => setOpenStudyVisionCard(prev => !prev),
@@ -4765,15 +4765,21 @@ function App() {
         ),
 
         /* 進捗は科目一覧より下に。 */
-        h('div', { className: 'dark-card-banner', style: { order: 11 } },
-          h('button', { type: "button", className: "accordion-trigger",
-            "aria-expanded": openStudyProgress,
-            onClick: () => setOpenStudyProgress(prev => !prev),
-            style: { display: "flex", justifyContent: "space-between", width: "100%",
-              fontSize: "15px", fontWeight: 900, color: "#FFFFFF",
-              marginBottom: openStudyProgress ? "8px" : 0 } },
-            h('span', null, "📚 学習タブの進み具合"),
-            h('span', null, openStudyProgress ? "▲" : "▼")),
+        h('div', { className: 'dark-card-banner', style: { order: 1 } },
+          h('div', { style: { display: "flex", alignItems: "center",
+            justifyContent: "space-between", gap: "8px", minHeight: "42px",
+            marginBottom: openStudyProgress ? "8px" : 0 } },
+            h('span', { style: { fontSize: "15px", fontWeight: 900,
+              userSelect: "text", WebkitUserSelect: "text", color: "#FFFFFF" } },
+              "📚 学習タブの進み具合"),
+            h('button', { type: "button", className: "btn-action",
+              "aria-label": "学習タブの進み具合を" + (openStudyProgress ? "閉じる" : "開く"),
+              "aria-expanded": openStudyProgress,
+              style: { flexShrink: 0, minWidth: "48px", color: "#FFFFFF",
+                background: "#475569", border: "1px solid #CBD5E1" },
+              onClick: () => setOpenStudyProgress(prev => !prev) },
+              openStudyProgress ? "▲" : "▼")
+          ),
           openStudyProgress && h(React.Fragment, null,
           h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginBottom: "8px" } },
             "各単元に3つのチェック付き「やること」を追加。目安時間は暫定計画値であり、本人の実績ではありません。元の「目安5分」等の算定根拠は未確認です。"),
@@ -4827,7 +4833,7 @@ function App() {
           ))
         ),
 
-        h('div', { style: { order: 12, background: "#FFFFFF", border: "1px solid " + C.border,
+        h('div', { style: { order: 2, background: "#FFFFFF", border: "1px solid " + C.border,
           borderRadius: "10px", padding: "12px", display: "flex",
           flexDirection: "column", gap: "8px" } },
           h('button', { type: "button", className: "riff-fold",
@@ -4885,7 +4891,7 @@ function App() {
           )
         ),
 
-        h('div', { style: { order: -2, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } },
+        h('div', { style: { order: 3, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } },
           h('div', { style: { display: "flex", gap: "6px", flexWrap: "wrap" } },
             h('button', {
               className: "chip-switch",
@@ -4945,7 +4951,7 @@ function App() {
 
           return h('div', {
             key: subject.id,
-            style: { order: -1, background: subject.bg, borderRadius: "10px",
+            style: { order: 4, background: subject.bg, borderRadius: "10px",
               border: `2px solid ${subject.border}`, overflow: "hidden" }
           },
             h('div', {
