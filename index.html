@@ -2697,7 +2697,7 @@ function App() {
         h('span', {
           className: "badge-tag",
           style: { color: "#FFFFFF", background: C.study, fontWeight: 600 }
-        }, `${stageObj.label.replace(" ", "")}ステップ${u.stepNum}`),
+        }, `ステップ${u.stepNum}`),
 
         h('span', {
           className: "badge-tag",
@@ -2819,7 +2819,7 @@ function App() {
                 textDecoration: checkedItems[task.id] ? "line-through" : "none" } },
                 task.text),
               h('span', { style: { flexShrink: 0, color: "#047857", fontWeight: 800 } },
-                "目安" + formatTaskMinutes(taskMinutes(task)))
+                "目安" + formatTaskMinutes(taskMinutes(task)) + "（仮）")
             )),
             h('div', { style: { marginTop: "5px", fontSize: "11px", color: C.muted } },
               "単元の完了チェックと、細かいやることのチェックは別々に記録します。")
@@ -3444,7 +3444,7 @@ function App() {
                     openMonthSubGroups[`${moKey}_mus`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
                       moMusSteps.map(s => h('div', { key: s.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                         h('div', null,
-                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[s.stage].color, fontWeight: 600, marginRight: "6px" } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
+                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[s.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${s.stepNum}`),
                           h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title)
                         ),
                         h('button', {
@@ -3471,7 +3471,7 @@ function App() {
                     openMonthSubGroups[`${moKey}_py`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
                       moPySteps.map(s => h('div', { key: s.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                         h('div', null,
-                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[s.stage].color, fontWeight: 600, marginRight: "6px" } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
+                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[s.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${s.stepNum}`),
                           h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title)
                         ),
                         h('button', {
@@ -3501,7 +3501,7 @@ function App() {
                         const stageObj = stageInfo[u.stage] || { label: `ステージ${stageNum}` };
                         return h('div', { key: u.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", alignItems: "center", justifyContent: "space-between" } },
                           h('div', { style: { display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" } },
-                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageObj.color || C.study, fontWeight: 600 } }, `${stageObj.label.replace(" ", "")}ステップ${u.stepNum}`),
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageObj.color || C.study, fontWeight: 600 } }, `ステップ${u.stepNum}`),
                             h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: "#475569", fontWeight: 600 } }, u.grade),
                             h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: u.rank === "S" ? "#DC2626" : C.study, fontWeight: 600 } }, `${u.rank}ランク`),
                             h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: subObj.color || C.study, fontWeight: 600 } }, subObj.name || "教科"),
@@ -3604,7 +3604,7 @@ function App() {
                   openStageCategory[`${sKey}_mus`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
                     sMusSteps.map(st => h('div', { key: st.id, style: { fontSize: "12.5px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                       h('div', null,
-                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[st.stage].color, fontWeight: 600, marginRight: "6px" } }, `${stageInfo[st.stage].label.replace(" ", "")}ステップ${st.stepNum}`),
+                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[st.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${st.stepNum}`),
                         h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title)
                       ),
                       h('button', {
@@ -3628,7 +3628,7 @@ function App() {
                   openStageCategory[`${sKey}_py`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
                     sPySteps.map(st => h('div', { key: st.id, style: { fontSize: "12.5px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                       h('div', null,
-                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[st.stage].color, fontWeight: 600, marginRight: "6px" } }, `${stageInfo[st.stage].label.replace(" ", "")}ステップ${st.stepNum}`),
+                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[st.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${st.stepNum}`),
                         h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title)
                       ),
                       h('button', {
@@ -3734,7 +3734,7 @@ function App() {
               style: { display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
             },
               h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
-                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music } }, `ステップ${s.stepNum}`),
                 h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.musicText } }, s.title),
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5", fontWeight: 800 } },
@@ -3757,7 +3757,7 @@ function App() {
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5",
                     fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
-                  "目安" + formatTaskMinutes(taskMinutes(st)))
+                  "目安" + formatTaskMinutes(taskMinutes(st)) + "（仮）")
               ))
             )
           );
@@ -3801,7 +3801,7 @@ function App() {
               style: { display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
             },
               h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
-                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code } }, `${stageInfo[s.stage].label.replace(" ", "")}ステップ${s.stepNum}`),
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code } }, `ステップ${s.stepNum}`),
                 h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.codeText } }, s.title),
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5", fontWeight: 800 } },
@@ -3824,7 +3824,7 @@ function App() {
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5",
                     fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
-                  "目安" + formatTaskMinutes(taskMinutes(st)))
+                  "目安" + formatTaskMinutes(taskMinutes(st)) + "（仮）")
               ))
             )
           );
