@@ -2583,7 +2583,7 @@ function App() {
         h('span', {
           className: "badge-tag",
           style: { color: "#0F766E", background: "#F0FDFA", border: "1px solid #99F6E4", fontWeight: 600 }
-        }, `旧目安${u.timeAlloc}（単元全体ではなく短い復習用）`),
+        }, `旧目安${u.timeAlloc}（算定根拠未確認）`),
         h('span', { className: "badge-tag",
           style: { color: "#065F46", background: "#ECFDF5",
             border: "1px solid #6EE7B7", fontWeight: 800 } },
@@ -3331,6 +3331,8 @@ function App() {
           const sMusSteps = musicSteps.filter(x => x.stage === sKey);
           const sPySteps = pythonSteps.filter(x => x.stage === sKey);
           const sStudyUnits = allStudyUnits.filter(x => x.stage === sKey);
+          const stageEstimatedMinutes = [...sMusSteps, ...sPySteps, ...sStudyUnits]
+            .reduce((total, step) => total + stepMinutes(step), 0);
 
           return h('div', {
             key: sKey,
@@ -3359,6 +3361,8 @@ function App() {
               ),
               h('div', { style: { display: "flex", alignItems: "center", gap: "6px" } },
                 h('span', { className: "badge-tag", style: { color: isCur ? "#E5E5EA" : C.sub, background: isCur ? "rgba(255,255,255,0.12)" : "#F2F2F7" } }, s.period),
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: s.color,
+                  fontWeight: 800 } }, "全作業目安" + formatTaskMinutes(stageEstimatedMinutes) + "（仮）"),
                 h('span', { style: { fontSize: "12px", color: isCur ? "#E5E5EA" : C.muted } }, isStageOpen ? "▲" : "▼")
               )
             ),
@@ -3665,7 +3669,7 @@ function App() {
         h('div', { className: 'dark-card-banner' },
           h('div', { style: { fontSize: "15px", fontWeight: 900, color: "#FFFFFF", marginBottom: "8px" } }, "📚 学習タブの進み具合"),
           h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginBottom: "8px" } },
-            "各単元に3つのチェック付き「やること」を追加。目安時間は暫定計画値であり、本人の実績ではありません。"),
+            "各単元に3つのチェック付き「やること」を追加。目安時間は暫定計画値であり、本人の実績ではありません。元の「目安5分」等の算定根拠は未確認です。"),
           /* 上段: 5教科全単元 & Sランク即効 */
           h('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" } },
             h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
