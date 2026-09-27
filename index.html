@@ -1059,6 +1059,8 @@ const TASK_CATALOG = {
 };
 const ALL_TASKS_BY_ID = Object.fromEntries(
   Object.values(TASK_CATALOG).flat().map(task => [task.id, task]));
+const ALL_STUDY_UNIT_BY_ID = Object.fromEntries(
+  studySubjectsData.flatMap(subject => subject.units).map(unit => [unit.id, unit]));
 const parseScheduleDuration = text => {
   const [from, to] = String(text || "").split("〜");
   if (!from || !to) return 0;
@@ -1090,11 +1092,18 @@ const proposeDailySlots = (items, completed, minutesForTask = taskMinutes,
     if (!TASK_CATALOG[genre] || !duration) return;
     const subject = genre === "study" ? schedulePreferredSubject(item) : null;
     let remaining = duration;
-    for (const task of TASK_CATALOG[genre]) {
+    const orderedTasks = genre === "study" ? TASK_CATALOG.study.slice().sort((a,b) => {
+      // 期限が来た思い出す練習・学校授業・基礎の学び直し・過去問の順。
+      const priority = task => task.reviewOffsetDays ? 0 :
+        task.taskKind === "current" ? 1 :
+        task.taskKind === "pastpaper" ? 3 : 2;
+      return priority(a)-priority(b);
+    }) : TASK_CATALOG[genre];
+    for (const task of orderedTasks) {
       if (subject && task.subjectId !== subject) continue;
       if (!includeTask(task) || completed[task.id] || occupied.has(task.id)) continue;
       const minutes = minutesForTask(task);
-      if (minutes > remaining) break; // 順序を保ち、次の必須作業を飛び越さない
+      if (minutes > remaining) break; // 同じ優先グループの順序を保ち、次に回す
       slots[item.id].push(task.id);
       occupied.add(task.id);
       remaining -= minutes;
