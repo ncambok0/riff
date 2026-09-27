@@ -2322,6 +2322,11 @@ function App() {
   const effectiveTaskMinutes = task =>
     Number(taskEstimateOverrides[task.id]) > 0 ? Number(taskEstimateOverrides[task.id]) :
     (getMeasuredMinutes(task) || taskMinutes(task));
+  const effectiveStepMinutes = step =>
+    (step.subtasks || []).reduce((sum, task) => sum + effectiveTaskMinutes(task), 0);
+  const stepTimeLabel = step => "合計目安" + formatTaskMinutes(effectiveStepMinutes(step)) +
+    ((step.subtasks || []).some(task => Number(taskEstimateOverrides[task.id]) > 0 ||
+      getMeasuredMinutes(task) != null) ? "（記録を反映）" : "（仮）");
   const taskEstimateLabel = task => Number(taskEstimateOverrides[task.id]) > 0
     ? "本人設定" + formatTaskMinutes(effectiveTaskMinutes(task))
     : (getMeasuredMinutes(task) == null
@@ -3181,7 +3186,7 @@ function App() {
         h('span', { className: "badge-tag",
           style: { color: "#065F46", background: "#ECFDF5",
             border: "1px solid #6EE7B7", fontWeight: 800 } },
-          "やること全部の目安" + formatTaskMinutes(stepMinutes(u)) + "（仮）"),
+          stepTimeLabel(u)),
 
         h('span', {
           className: "badge-tag",
@@ -3265,7 +3270,7 @@ function App() {
             h('div', { style: { color: C.sub, marginBottom: "6px" } },
               `🎯 学習メモ: ${u.memo}`),
             h('div', { style: { color: C.studyText, fontWeight: 900, margin: "6px 0" } },
-              "📚 やること（仮の合計目安" + formatTaskMinutes(stepMinutes(u)) + "）"),
+              "📚 やること（" + stepTimeLabel(u) + "）"),
             u.subtasks.map(task => h(React.Fragment, { key: task.id }, h('label', {
               id: "riff-task-" + task.id,
               style: { display: "flex", alignItems: "flex-start", gap: "8px",
@@ -3320,7 +3325,7 @@ function App() {
           taskShortTitle(task.text)),
         h('span', { style: { flexShrink: 0, fontSize: "12px",
           color: dark ? "#A7F3D0" : C.codeText, fontWeight: 800 } },
-          formatTaskMinutes(taskMinutes(task)) + "（仮）")
+          taskEstimateLabel(task))
       ),
       taskExplanation(task)
     ))
@@ -3471,7 +3476,7 @@ function App() {
                   TASK_CATALOG[category].filter(option => option.stepId ===
                     (manualStepByTask[item.id + ":" + task.id] || task.stepId)).map(option =>
                     h('option', { key: option.id, value: option.id, disabled: !!checkedItems[option.id] },
-                      option.text + "｜" + formatTaskMinutes(taskMinutes(option)))) )
+                      taskShortTitle(option.text) + "｜" + formatTaskMinutes(effectiveTaskMinutes(option)))) )
               )),
             assignmentWarning && h('div', { style: { color: "#B91C1C", fontSize: "12px" } },
               assignmentWarning),
@@ -4106,7 +4111,7 @@ function App() {
           const sPySteps = pythonSteps.filter(x => x.stage === sKey);
           const sStudyUnits = allStudyUnits.filter(x => x.stage === sKey);
           const stageEstimatedMinutes = [...sMusSteps, ...sPySteps, ...sStudyUnits]
-            .reduce((total, step) => total + stepMinutes(step), 0);
+            .reduce((total, step) => total + effectiveStepMinutes(step), 0);
 
           return h('div', {
             key: sKey, id: "riff-stage-" + sKey,
@@ -4329,7 +4334,7 @@ function App() {
                 h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.musicText } }, s.title),
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5", fontWeight: 800 } },
-                  "合計目安" + formatTaskMinutes(stepMinutes(s)) + "（仮）")
+                  stepTimeLabel(s))
               ),
               h('span', { style: { fontSize: "12px", color: C.musicText } }, isExpanded ? "▲" : "▼")
             ),
@@ -4427,7 +4432,7 @@ function App() {
                 h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.codeText } }, s.title),
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5", fontWeight: 800 } },
-                  "合計目安" + formatTaskMinutes(stepMinutes(s)) + "（仮）")
+                  stepTimeLabel(s))
               ),
               h('span', { style: { fontSize: "12px", color: C.codeText } }, isExpanded ? "▲" : "▼")
             ),
