@@ -2510,6 +2510,10 @@ function App() {
   const [examPopupAnchor, setExamPopupAnchor] = useState(null);
   const [examPopupTop, setExamPopupTop] = useState(null);
   const [openTodayLinkFor, setOpenTodayLinkFor] = useState(null);
+  const [newOtherTitle, setNewOtherTitle] = useState("");
+  const [newOtherTime, setNewOtherTime] = useState("17:00〜17:15");
+  const [editingOtherId, setEditingOtherId] = useState(null);
+  const [otherMessage, setOtherMessage] = useState("");
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
   const [openMusicProgress, setOpenMusicProgress] = useState(true);
   const [openPythonProgress, setOpenPythonProgress] = useState(true);
@@ -3871,20 +3875,75 @@ function App() {
       tab === "other" && h('div', { style: { display: "flex", flexDirection: "column", gap: "10px" } },
         h('div', { className: "dark-card-banner" },
           h('div', { style: { fontSize: "16px", fontWeight: 900 } }, "🧩 他の予定"),
-          h('div', { style: { fontSize: "12px", color: "#E5E5EA" } },
-            "今日の時間割で「他」に分類した予定。今日のチェックと連動します。")),
+          h('div', { style: { fontSize: "13px", color: "#E5E5EA" } },
+            "着替えや休けいなど。ここで編集すると、今使っている時間割にも反映されます。")),
+        h('div', { style: { background: "#FFFFFF", padding: "12px",
+          border: "1px solid " + C.border, borderRadius: "9px",
+          display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" } },
+          h('input', { type: "text", className: "time-input-inline",
+            placeholder: "例：着替え・水分補給", "aria-label": "新しい他の予定",
+            value: newOtherTitle, style: { flex: "1 1 180px", padding: "8px" },
+            onChange: e => setNewOtherTitle(e.target.value) }),
+          h('input', { type: "text", className: "time-input-inline",
+            value: newOtherTime, "aria-label": "他の予定の時間帯",
+            style: { flex: "0 1 145px", padding: "8px" },
+            onChange: e => setNewOtherTime(e.target.value) }),
+          h('button', { type: "button", className: "btn-action",
+            style: { background: C.study, color: "#FFFFFF" },
+            onClick: () => {
+              const title = newOtherTitle.trim();
+              if (!title || parseScheduleDuration(newOtherTime) <= 0) {
+                setOtherMessage("予定名と時間を確認してね。例：17:00〜17:15"); return;
+              }
+              const next = { ...schedules, [schedType]: {
+                ...schedules[schedType], items: [...schedules[schedType].items,
+                  { id: "other-" + Date.now(), a: title, t: newOtherTime,
+                    category: "other", hi: false }] } };
+              saveSchedules(next);
+              setNewOtherTitle("");
+              setOtherMessage("追加しました。今日の時間割にも表示されます。");
+            } }, "＋ 追加"),
+          otherMessage && h('span', { style: { fontSize: "13px", color: C.studyText } },
+            otherMessage)
+        ),
         todaySched.items.filter(item => getScheduleCategory(item) === "other").length === 0 &&
           h('div', { style: { padding: "14px", color: C.muted } }, "今日の「他」の予定はありません。"),
-        todaySched.items.filter(item => getScheduleCategory(item) === "other").map(item =>
-          h('label', { key: item.id, style: { display: "flex", gap: "10px",
-            alignItems: "center", padding: "12px", background: "#FFFFFF",
-            border: "1px solid " + C.border, borderRadius: "8px" } },
+        todaySched.items.filter(item => getScheduleCategory(item) === "other").map(item => {
+          const index = todaySched.items.findIndex(row => row.id === item.id);
+          return h('div', { key: item.id, style: { display: "flex", gap: "8px",
+            alignItems: "center", padding: "10px", background: "#FFFFFF",
+            border: "1px solid " + C.border, borderRadius: "8px", flexWrap: "wrap" } },
             h('input', { type: "checkbox", className: "custom-checkbox-interactive",
               checked: !!checkedItems[scheduleCheckKey(item.id)],
-              onChange: () => toggleCheck(scheduleCheckKey(item.id)) }),
-            h('span', { style: { color: C.muted, fontSize: "12px", fontWeight: 800 } }, item.t),
-            h('span', { style: { fontSize: "13px", fontWeight: 700 } }, item.a))
-        )
+              onChange: () => toggleCheck(scheduleCheckKey(item.id)),
+              "aria-label": item.a + "の完了" }),
+            editingOtherId === item.id ? h(React.Fragment, null,
+              h('input', { type: "text", className: "time-input-inline",
+                value: item.t, "aria-label": "時間帯",
+                style: { flex: "0 1 130px", padding: "7px" },
+                onChange: e => updateScheduleItemField(schedType, index, "t", e.target.value) }),
+              h('input', { type: "text", className: "time-input-inline",
+                value: item.a, "aria-label": "予定名",
+                style: { flex: "1 1 160px", padding: "7px" },
+                onChange: e => updateScheduleItemField(schedType, index, "a", e.target.value) })
+            ) : h('span', { style: { flex: "1 1 180px",
+              color: checkedItems[scheduleCheckKey(item.id)] ? C.muted : C.text,
+              fontSize: "14px", fontWeight: 700 } }, item.t + "｜" + item.a),
+            h('button', { type: "button", className: "btn-action",
+              style: { background: "#EFF6FF", color: C.studyText },
+              onClick: () => setEditingOtherId(prev => prev === item.id ? null : item.id) },
+              editingOtherId === item.id ? "編集を閉じる" : "✏️ 編集"),
+            h('button', { type: "button", className: "btn-action",
+              style: { background: "#FEF2F2", color: "#991B1B" },
+              onClick: () => {
+                if (!window.confirm || window.confirm("「" + item.a + "」を時間割から削除する？")) {
+                  saveSchedules({ ...schedules, [schedType]: { ...schedules[schedType],
+                    items: schedules[schedType].items.filter(row => row.id !== item.id) } });
+                  setEditingOtherId(null);
+                }
+              } }, "削除")
+          );
+        })
       ),
 
       /* GANTT TAB: 27 + 28 months, proportional grid without horizontal scrolling. */
