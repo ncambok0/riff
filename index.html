@@ -3674,14 +3674,18 @@ function App() {
         h('div', { className: 'dark-card-banner' },
           h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" } },
             h('div', { style: { fontSize: "15px", fontWeight: 900, color: "#FFFFFF" } }, "🎸 音楽タブの進み具合"),
-            h('button', {
+            h('button', { type: "button", className: "btn-action",
+              onClick: () => setOpenMusicProgress(prev => !prev),
+              style: { color: "#FFFFFF", background: "rgba(255,255,255,0.18)",
+                marginLeft: "auto" } }, openMusicProgress ? "▲ 閉じる" : "▼ 開く"),
+            openMusicProgress && h('button', {
               className: "btn-action",
               onClick: () => setIsEditingTracks(!isEditingTracks),
               style: { color: "#FFFFFF", background: isEditingTracks ? "#10B981" : "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.25)" }
             }, isEditingTracks ? "完了" : "✏️ 編集")
           ),
           /* 音楽ステップ棒グラフ */
-          h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "10px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)", marginBottom: "12px" } },
+          openMusicProgress && h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "10px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)", marginBottom: "12px" } },
             h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" } },
               h('span', { style: { fontSize: "13px", fontWeight: 800, color: "#C4B5FD" } }, "音楽ステップ進捗"),
               h('div', { style: { display: "flex", gap: "8px", alignItems: "baseline" } },
@@ -3694,7 +3698,7 @@ function App() {
             )
           ),
           /* オリジナル曲進捗 */
-          h('div', null,
+          openMusicProgress && h('div', null,
             h('div', { style: { fontSize: "12.5px", fontWeight: 800, color: "#E5E5EA", marginBottom: "8px" } }, "🎵 オリジナル曲 制作進捗"),
             h('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px" } },
               musicTracks.map((trk) => h('div', {
@@ -3722,9 +3726,15 @@ function App() {
           )
         ),
 
-        musicSteps.map(s => {
+        musicSteps.map((s, index) => {
           const isExpanded = !!expandedDetailTasks[s.id];
-          return h('div', {
+          return h(React.Fragment, { key: s.id },
+            (index === 0 || musicSteps[index - 1].stage !== s.stage) &&
+              h('div', { style: { background: stageInfo[s.stage].color, color: "#FFFFFF",
+                borderRadius: "8px", padding: "9px 12px", fontWeight: 900,
+                marginTop: "6px" } },
+                stageInfo[s.stage].label + "｜音楽｜" + stageInfo[s.stage].title),
+            h('div', {
             key: s.id,
             id: s.id,
             style: { background: C.musicBg, borderRadius: "10px", border: `1px solid ${C.musicBorder}`, padding: "12px 14px" }
@@ -3760,7 +3770,7 @@ function App() {
                   "目安" + formatTaskMinutes(taskMinutes(st)) + "（仮）")
               ))
             )
-          );
+          ));
         })
       ),
 
@@ -3774,8 +3784,15 @@ function App() {
 
         /* 統合された開発タブの進み具合カード（ダークテーマ） */
         h('div', { className: 'dark-card-banner' },
-          h('div', { style: { fontSize: "15px", fontWeight: 900, color: "#FFFFFF", marginBottom: "8px" } }, "💻 開発タブの進み具合"),
-          h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "10px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+          h('button', { type: "button", className: "accordion-trigger",
+            onClick: () => setOpenPythonProgress(prev => !prev),
+            "aria-expanded": openPythonProgress,
+            style: { color: "#FFFFFF", fontSize: "15px", fontWeight: 900,
+              marginBottom: openPythonProgress ? "8px" : 0,
+              display: "flex", justifyContent: "space-between" } },
+            h('span', null, "💻 開発タブの進み具合"),
+            h('span', null, openPythonProgress ? "▲" : "▼")),
+          openPythonProgress && h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "10px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
             h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" } },
               h('span', { style: { fontSize: "13px", fontWeight: 800, color: "#6EE7B7" } }, "Mountain of Sound 開発進捗"),
               h('div', { style: { display: "flex", gap: "8px", alignItems: "baseline" } },
@@ -3789,9 +3806,15 @@ function App() {
           )
         ),
 
-        pythonSteps.map(s => {
+        pythonSteps.map((s, index) => {
           const isExpanded = !!expandedDetailTasks[s.id];
-          return h('div', {
+          return h(React.Fragment, { key: s.id },
+            (index === 0 || pythonSteps[index - 1].stage !== s.stage) &&
+              h('div', { style: { background: stageInfo[s.stage].color, color: "#FFFFFF",
+                borderRadius: "8px", padding: "9px 12px", fontWeight: 900,
+                marginTop: "6px" } },
+                stageInfo[s.stage].label + "｜開発｜" + stageInfo[s.stage].title),
+            h('div', {
             key: s.id,
             id: s.id,
             style: { background: C.codeBg, borderRadius: "10px", border: `1px solid ${C.codeBorder}`, padding: "12px 14px" }
@@ -3827,7 +3850,7 @@ function App() {
                   "目安" + formatTaskMinutes(taskMinutes(st)) + "（仮）")
               ))
             )
-          );
+          ));
         })
       ),
 
