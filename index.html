@@ -928,6 +928,14 @@ const inferTaskMinutes = (task, domain) => {
     task.estimateMinutes = inferTaskMinutes(task, domain);
   }));
 });
+// 一覧は短い題名を先に。説明は「説明を見る」で全文を開ける。
+const taskShortTitle = full => {
+  const value = String(full || "").trim();
+  if (value.length <= 38) return value;
+  const comma = value.indexOf("、");
+  if (comma >= 15 && comma <= 38) return value.slice(0, comma);
+  return value.slice(0, 36).replace(/[、。・\s]+$/, "") + "…";
+};
 const taskMinutes = task => task.estimateMinutes || 0;
 const stepMinutes = step => (step.subtasks || []).reduce((sum, task) => sum + taskMinutes(task), 0);
 const formatTaskMinutes = minutes => minutes >= 60
@@ -3265,12 +3273,15 @@ function App() {
                 checked: !!checkedItems[task.id],
                 onChange: () => toggleCheck(task.id),
                 "aria-label": task.text + "の完了" }),
-              h('span', { style: { flex: 1, color: checkedItems[task.id] ? C.muted : C.text,
+              h('span', { style: { flex: 1, fontSize: "15px", lineHeight: 1.6,
+                color: highlightedTaskId === task.id ? "#713F12" :
+                  checkedItems[task.id] ? C.muted : C.text,
                 textDecoration: checkedItems[task.id] ? "line-through" : "none" } },
-                task.text),
+                taskShortTitle(task.text)),
               h('span', { style: { flexShrink: 0, color: "#047857", fontWeight: 800 } },
                 taskEstimateLabel(task))
               ),
+              taskExplanation(task),
               renderTaskMeasurement(task)
             )),
             h('div', { style: { marginTop: "5px", fontSize: "11px", color: C.muted } },
@@ -3407,11 +3418,12 @@ function App() {
                   h('input', { type: "checkbox", className: "custom-checkbox-interactive",
                     checked: !!checkedItems[task.id], onChange: () => toggleCheck(task.id),
                     "aria-label": task.text + "の完了" }),
-                  h('button', { type: "button", onClick: () => jumpToTask(task.tab, task.id),
-                    style: { flex: 1, textAlign: "left", background: "none", border: "none",
-                      cursor: "pointer", fontSize: "12px", color: checkedItems[task.id] ? C.muted : C.text,
-                      textDecoration: checkedItems[task.id] ? "line-through" : "none" } },
-                    task.text),
+                  h('button', { type: "button", className: "riff-task-title",
+                    title: task.text + "（タップするとくわしいページへ）",
+                    onClick: () => jumpToTask(task.tab, task.id),
+                    style: { color: checkedItems[task.id] ? C.muted : "#1D4ED8",
+                      textDecoration: "underline", textUnderlineOffset: "3px" } },
+                    taskShortTitle(task.text) + " ↗"),
                   h('span', { style: { whiteSpace: "nowrap", fontSize: "11px",
                     color: catInfo.color, fontWeight: 800 } },
                     taskEstimateLabel(task)),
@@ -3422,6 +3434,7 @@ function App() {
                         prev === item.id + ":" + task.id ? null : item.id + ":" + task.id);
                     }, style: { fontSize: "10px", background: C.studyBg, color: C.studyText } },
                     "変更"),
+                  taskExplanation(task),
                   renderTaskMeasurement(task)
                 ))
               );
@@ -3470,6 +3483,14 @@ function App() {
           );
 
   };
+
+  const taskExplanation = task => String(task.text || "").trim() !== taskShortTitle(task.text)
+    ? h('details', { className: "riff-task-detail" },
+        h('summary', { style: { cursor: "pointer", fontWeight: 800,
+          fontSize: "14px", color: "#1D4ED8" } }, "くわしい説明を見る ▼"),
+        h('p', { style: { paddingTop: "7px", fontSize: "15px",
+          lineHeight: 1.7 } }, task.text))
+    : null;
 
   const helpSection = (heading, summary, details) =>
     h('details', { className: "riff-help-section" },
@@ -4309,13 +4330,18 @@ function App() {
                   type: "checkbox", className: "custom-checkbox-interactive",
                   checked: !!checkedItems[st.id], onChange: () => toggleCheck(st.id)
                 }),
-                h('span', { style: { fontSize: "13px", lineHeight: 1.4, color: checkedItems[st.id] ? C.muted : C.text, textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
-                  st.text
+                h('span', { style: { fontSize: "15px", lineHeight: 1.65,
+                  flex: 1, minWidth: "160px",
+                  color: highlightedTaskId === st.id ? "#713F12" :
+                    checkedItems[st.id] ? C.muted : C.text,
+                  textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
+                  taskShortTitle(st.text)
                 ),
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5",
                     fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
                   taskEstimateLabel(st)),
+                taskExplanation(st),
                 renderTaskMeasurement(st)
               ))
             )
@@ -4402,13 +4428,18 @@ function App() {
                   type: "checkbox", className: "custom-checkbox-interactive",
                   checked: !!checkedItems[st.id], onChange: () => toggleCheck(st.id)
                 }),
-                h('span', { style: { fontSize: "13px", lineHeight: 1.4, color: checkedItems[st.id] ? C.muted : C.text, textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
-                  st.text
+                h('span', { style: { fontSize: "15px", lineHeight: 1.65,
+                  flex: 1, minWidth: "160px",
+                  color: highlightedTaskId === st.id ? "#713F12" :
+                    checkedItems[st.id] ? C.muted : C.text,
+                  textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
+                  taskShortTitle(st.text)
                 ),
                 h('span', { className: "badge-tag",
                   style: { color: "#065F46", background: "#ECFDF5",
                     fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
                   taskEstimateLabel(st)),
+                taskExplanation(st),
                 renderTaskMeasurement(st)
               ))
             )
