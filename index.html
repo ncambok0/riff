@@ -2706,6 +2706,11 @@ function App() {
   };
 
   const [exportScope, setExportScope] = useState("latest"); // "latest" or "all"
+  const [feedbackPrivateRepo, setFeedbackPrivateRepo] = useState(() => {
+    try { return localStorage.getItem("riff_feedback_private_repo_v1") || ""; }
+    catch (e) { return ""; }
+  });
+  const [confirmPrivateRepo, setConfirmPrivateRepo] = useState(false);
   const [feedbackSavedMessage, setFeedbackSavedMessage] = useState("");
 
   const handleSaveFeedback = () => {
@@ -2794,6 +2799,48 @@ function App() {
     return feedbacks;
   };
 
+  // 認証情報はHTMLに保存しない。GitHubのログイン済み画面でユーザーが
+  // Privateリポジトリを確認して送信する。ここではIssue下書きを開くだけ。
+  const openPrivateGithubFeedbackDraft = () => {
+    const repo = feedbackPrivateRepo.trim();
+    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) {
+      setFeedbackSavedMessage("保存先のGitHub Privateリポジトリを owner/repo 形式で入力してください。");
+      return;
+    }
+    if (repo.toLowerCase() === "ncambok0/riff") {
+      setFeedbackSavedMessage("公開RIFF本体は保存先にできません。Privateリポジトリを指定してください。");
+      return;
+    }
+    if (!confirmPrivateRepo) {
+      setFeedbackSavedMessage("GitHub側でPrivate設定と共有範囲を確認してからチェックしてください。");
+      return;
+    }
+    const targets = getTargetFeedbacksForExport();
+    if (targets.length === 0) {
+      setFeedbackSavedMessage("先に感想を保存してください。");
+      return;
+    }
+    const title = "[RIFF Feedback] " + new Date().toISOString().slice(0,10) +
+      " " + targets.length + "件";
+    const contents = targets.map(fb => ({
+      feedback_id: fb.feedback_id, app_version: fb.app_version,
+      submitted_at: fb.submitted_at,
+      // 氏名はIssue本文へ自動転記しない。内容を確認してから送信する。
+      answers: fb.answers
+    }));
+    const body = "RIFF改善用フィードバック（投稿前に個人情報を確認）\n\n" +
+      "回答者名・アカウント情報は自動転記していません。\n\n" +
+      "\x60\x60\x60json\n" + JSON.stringify(contents, null, 2) + "\n\x60\x60\x60";
+    const base = "https://github.com/" + repo + "/issues/new";
+    const url = base + "?title=" + encodeURIComponent(title) +
+      "&body=" + encodeURIComponent(body);
+    if (url.length > 7500) {
+      setFeedbackSavedMessage("本文が長いためURL転記を中止しました。既存のJSONエクスポートを使い、Private Issueに添付してください。");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+    setFeedbackSavedMessage("GitHubにIssueの下書きを開きました。Private設定と本文を確認し、GitHub側で投稿してください。");
+  };
   const copyFeedbackText = () => {
     const targets = getTargetFeedbacksForExport();
     if (targets.length === 0) {
@@ -4782,6 +4829,38 @@ function App() {
             ),
             feedbackSavedMessage && h('span', { style: { fontSize: "13px", fontWeight: 800, color: "#059669" } }, feedbackSavedMessage)
           )
+        ),
+
+        /* クラウド共有: 自動投稿ではなくPrivate GitHub Issueの確認画面へ引き継ぐ。 */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px",
+          border: "1px solid " + C.border, padding: "16px",
+          display: "flex", flexDirection: "column", gap: "9px" } },
+          h('div', { style: { fontSize: "15px", fontWeight: 900 } },
+            "☁️ RIFF開発へ感想を共有（GitHub Private）"),
+          h('div', { style: { fontSize: "12px", color: C.sub, lineHeight: 1.5 } },
+            "保存済みの感想をPrivate GitHub Issueの下書きに転記します。公開RIFF本体には送信しません。ここでの操作はまだ投稿ではなく、GitHub側で内容を確認して送信するとクラウドに保存され、この開発チャットでも許可されたリポジトリから確認できます。"),
+          h('input', { type: "text", className: "time-input-inline",
+            "aria-label": "共有先のGitHub Privateリポジトリ",
+            placeholder: "Privateリポジトリ（owner/repo）",
+            value: feedbackPrivateRepo, style: { padding: "8px" },
+            onChange: e => {
+              setFeedbackPrivateRepo(e.target.value);
+              setConfirmPrivateRepo(false);
+              try { localStorage.setItem("riff_feedback_private_repo_v1", e.target.value); }
+              catch (err) {}
+            } }),
+          h('label', { style: { display: "flex", alignItems: "flex-start", gap: "8px",
+            fontSize: "12px", color: C.sub, cursor: "pointer" } },
+            h('input', { type: "checkbox", checked: confirmPrivateRepo,
+              onChange: e => setConfirmPrivateRepo(e.target.checked) }),
+            "GitHub側でこのリポジトリがPrivateであり、共有範囲・本文を確認することに同意します。"),
+          h('button', { type: "button", className: "btn-action",
+            style: { alignSelf: "flex-start", background: C.study, color: "#FFFFFF",
+              padding: "8px 12px" },
+            onClick: openPrivateGithubFeedbackDraft },
+            "GitHub Private Issueの下書きを開く ↗"),
+          h('div', { style: { fontSize: "11px", color: C.muted } },
+            "GitHubのアクセストークンやパスワードはRIFFに入力・保存しません。完全自動同期は認証付きバックエンドの整備後に実装します。")
         ),
 
         /* 入力内容のエクスポートカード */
