@@ -4245,6 +4245,40 @@ function App() {
             "武蔵丘高校を目標に、洗足学園音楽大学とGoldsmiths学士課程への進学可能性を並行して検討。ほかの候補も比較する。"
           )
         ),
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px",
+          border: "1px solid " + C.border, padding: "12px 14px" } },
+          h('div', { style: { fontWeight: 900, fontSize: "14px", marginBottom: "7px" } },
+            "＋ 教育機関を追加"),
+          h('div', { style: { fontSize: "11.5px", color: C.muted, marginBottom: "9px" } },
+            "追加直後は調査待ちです。公式情報が確認できるまでは詳細を推測して表示しません。"),
+          h('div', { style: { display: "flex", flexWrap: "wrap", gap: "7px" } },
+            h('select', { className: "time-input-inline",
+              value: newSchool.section,
+              onChange: e => setNewSchool(prev => ({ ...prev, section: e.target.value })),
+              style: { flex: "1 1 210px", padding: "7px" } },
+              schoolCardsData.map(sec => h('option', { key: sec.key, value: sec.key }, sec.title))),
+            [{ key: "name", label: "教育機関名（必須）" },
+             { key: "location", label: "所在地・通学メモ" },
+             { key: "url", label: "公式サイトURL（確認できているもの）" }].map(field =>
+              h('input', { key: field.key, type: "text",
+                className: "time-input-inline", style: { flex: "1 1 210px", padding: "7px" },
+                value: newSchool[field.key], placeholder: field.label,
+                onChange: e => setNewSchool(prev =>
+                  ({ ...prev, [field.key]: e.target.value })) }))
+          ),
+          h('div', { style: { display: "flex", gap: "8px", marginTop: "10px",
+            alignItems: "center", flexWrap: "wrap" } },
+            h('button', { type: "button", className: "btn-action",
+              style: { background: C.study, color: "#FFFFFF", padding: "7px 12px" },
+              onClick: addSchool }, "＋ 候補に追加"),
+            h('button', { type: "button", className: "btn-action",
+              style: { background: "#F2F2F7", color: C.sub },
+              onClick: () => setShowArchivedSchools(prev => !prev) },
+              showArchivedSchools ? "削除済みを隠す" : "削除済みも表示"),
+            schoolEditorMessage && h('span', { style: { fontSize: "12px", color: C.sub } },
+              schoolEditorMessage)
+          )
+        ),
         schoolCardsData.map(sec => {
           const isOpen = openSchoolCards[sec.key] === true;
           return h('div', {
@@ -4262,8 +4296,12 @@ function App() {
               h('span', { style: { fontSize: "12px", color: C.muted } }, isOpen ? "▲" : "▼")
             ),
             isOpen && h('div', { style: { padding: "12px 14px", display: "flex", flexDirection: "column", gap: "12px" } },
-              sec.group.map((sch, si) => h('div', {
-                key: si,
+              [...sec.group.map(sch => ({ ...sch,
+                  id: "original:" + sec.key + ":" + sch.name })),
+                 ...customSchools.filter(sch => sch.section === sec.key)]
+                .filter(sch => showArchivedSchools || !hiddenSchools.includes(sch.id))
+                .map((sch, si) => h('div', {
+                key: sch.id,
                 style: { background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 14px" }
               },
                 h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexWrap: "wrap", gap: "6px" } },
@@ -4274,8 +4312,17 @@ function App() {
                   sch.url && h('a', {
                     href: sch.url, target: "_blank", rel: "noopener noreferrer",
                     className: "btn-action", style: { color: "#007AFF", background: "#EFF6FF", border: "1px solid #BFDBFE" }
-                  }, "🌐 公式サイト ↗")
+                  }, sch.sourceStatus ? "🌐 入力URL ↗" : "🌐 公式サイト ↗"),
+                  h('button', { type: "button", className: "btn-action",
+                    style: { color: hiddenSchools.includes(sch.id) ? C.codeText : "#B91C1C",
+                      background: hiddenSchools.includes(sch.id) ? C.codeBg : "#FEF2F2" },
+                    onClick: () => saveHiddenSchools(hiddenSchools.includes(sch.id)
+                      ? hiddenSchools.filter(id => id !== sch.id)
+                      : [...hiddenSchools, sch.id]) },
+                    hiddenSchools.includes(sch.id) ? "復元" : "削除")
                 ),
+                sch.sourceStatus && h('div', { style: { fontSize: "11px",
+                  color: "#B45309", padding: "5px 0" } }, sch.sourceStatus),
                 sch.location && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "6px" } },
                   h('strong', null, "📍 所在地・通学時間: "), sch.location
                 ),
