@@ -2837,6 +2837,25 @@ function App() {
     );
   };
 
+  // 同じtask.idを使うため「今日・月別・ステージ・各ジャンル」のチェックが連動する。
+  const renderMiniTaskChecklist = step => h('div', {
+    style: { display: "flex", flexDirection: "column", gap: "4px",
+      marginTop: "6px", width: "100%", fontSize: "11.5px" }
+  },
+    (step.subtasks || []).map(task => h('label', { key: task.id,
+      style: { display: "flex", gap: "6px", alignItems: "flex-start", cursor: "pointer",
+        color: checkedItems[task.id] ? C.muted : C.text } },
+      h('input', { type: "checkbox", className: "custom-checkbox-interactive",
+        checked: !!checkedItems[task.id], onChange: () => toggleCheck(task.id),
+        "aria-label": task.text + "の完了",
+        style: { width: "16px", height: "16px" } }),
+      h('span', { style: { flex: 1, lineHeight: 1.35,
+        textDecoration: checkedItems[task.id] ? "line-through" : "none" } }, task.text),
+      h('span', { style: { flexShrink: 0, color: C.codeText, fontWeight: 800 } },
+        formatTaskMinutes(taskMinutes(task)) + "（仮）")
+    ))
+  );
+
   const renderScheduleCategorySelect = (item, index) =>
     h('select', { className: "time-input-inline", value: getScheduleCategory(item),
       "aria-label": "時間割項目の分野", title: "今日の学習・音楽・開発の表示先",
@@ -3449,7 +3468,8 @@ function App() {
                       moMusSteps.map(s => h('div', { key: s.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                         h('div', null,
                           h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[s.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${s.stepNum}`),
-                          h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title)
+                          h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title),
+                        renderMiniTaskChecklist(s)
                         ),
                         h('button', {
                           className: "btn-action",
@@ -3476,7 +3496,8 @@ function App() {
                       moPySteps.map(s => h('div', { key: s.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                         h('div', null,
                           h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[s.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${s.stepNum}`),
-                          h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title)
+                          h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title),
+                        renderMiniTaskChecklist(s)
                         ),
                         h('button', {
                           className: "btn-action",
@@ -3509,7 +3530,8 @@ function App() {
                             h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: "#475569", fontWeight: 600 } }, u.grade),
                             h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: u.rank === "S" ? "#DC2626" : C.study, fontWeight: 600 } }, `${u.rank}ランク`),
                             h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: subObj.color || C.study, fontWeight: 600 } }, subObj.name || "教科"),
-                            h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, u.item)
+                            h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, u.item),
+                             renderMiniTaskChecklist(u)
                           ),
                           h('button', {
                             className: "btn-action",
@@ -3609,7 +3631,8 @@ function App() {
                     sMusSteps.map(st => h('div', { key: st.id, style: { fontSize: "12.5px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                       h('div', null,
                         h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[st.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${st.stepNum}`),
-                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title)
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title),
+                      renderMiniTaskChecklist(st)
                       ),
                       h('button', {
                         className: "btn-action",
@@ -3633,7 +3656,8 @@ function App() {
                     sPySteps.map(st => h('div', { key: st.id, style: { fontSize: "12.5px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                       h('div', null,
                         h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[st.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${st.stepNum}`),
-                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title)
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title),
+                      renderMiniTaskChecklist(st)
                       ),
                       h('button', {
                         className: "btn-action",
