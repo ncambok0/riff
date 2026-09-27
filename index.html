@@ -268,7 +268,7 @@
 <script>
 const { useState, useEffect, createElement: h } = React;
 
-const APP_VERSION = "v2.3.2-easy-ui-preview";
+const APP_VERSION = "v2.3.3-compact-planning-preview";
 
 const C = {
   music: "#7C3AED", musicBg: "#FAF5FF", musicBorder: "#C4B5FD", musicText: "#5B21B6",
@@ -2489,6 +2489,9 @@ function App() {
   const [openTodayCode, setOpenTodayCode] = useState(true);
   const [openExamPlan, setOpenExamPlan] = useState(false);
   const [openGantt, setOpenGantt] = useState(true);
+  const [openGanttRows, setOpenGanttRows] = useState({});
+  const [examPopupAnchor, setExamPopupAnchor] = useState(null);
+  const [examPopupTop, setExamPopupTop] = useState(null);
   const [openTodayLinkFor, setOpenTodayLinkFor] = useState(null);
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
   const [openMusicProgress, setOpenMusicProgress] = useState(true);
@@ -2496,6 +2499,15 @@ function App() {
   const [openStudyProgress, setOpenStudyProgress] = useState(true);
   const [openGenreStages, setOpenGenreStages] = useState({});
   const [activeExamMark, setActiveExamMark] = useState(null);
+  useEffect(() => {
+    if (!activeExamMark || !examPopupAnchor) return;
+    const popup = document.getElementById("riff-exam-popup");
+    if (!popup) return;
+    const height = popup.getBoundingClientRect().height;
+    const available = window.innerHeight - 10 - examPopupAnchor.bottom;
+    // ボタン直下に収まればそのまま。収まらなければ画面上端から開く。
+    setExamPopupTop(height <= available ? examPopupAnchor.bottom + 6 : 8);
+  }, [activeExamMark, examPopupAnchor]);
   const [manualStepByTask, setManualStepByTask] = useState({});
   const [assignmentWarning, setAssignmentWarning] = useState("");
   const [todayCustomTasks, setTodayCustomTasks] = useState(() => {
@@ -3089,6 +3101,19 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
+  /* 固定ヘッダーの実際の高さを差し引く。画面幅・折り返しで変わっても見切れない。 */
+  const scrollToRiffTarget = element => {
+    if (!element) return;
+    const header = document.querySelector(".fixed-header");
+    if (typeof window.scrollTo === "function" &&
+        typeof element.getBoundingClientRect === "function") {
+      const offset = (header ? header.getBoundingClientRect().height : 124) + 16;
+      const target = window.scrollY + element.getBoundingClientRect().top - offset;
+      window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+    } else if (typeof element.scrollIntoView === "function") {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
   /* Helper to jump to specific target tab */
   const jumpToTask = (targetTab, taskId) => {
     const task = ALL_TASKS_BY_ID[taskId];
@@ -3111,7 +3136,7 @@ function App() {
     setHighlightedTaskId(taskId);
     setTimeout(() => {
       const el = document.getElementById(task ? "riff-task-" + taskId : stepId);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (el) scrollToRiffTarget(el);
     }, 160);
   };
   const jumpToStage = stageKey => {
@@ -3119,7 +3144,7 @@ function App() {
     setTab("stage");
     setTimeout(() => {
       const el = document.getElementById("riff-stage-" + stageKey);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (el) scrollToRiffTarget(el);
     }, 160);
   };
 
@@ -3854,11 +3879,21 @@ function App() {
         openGantt && GANTT_ROWS.map(row => {
           const monthCount = row.months.length;
           const inRow = (date) => row.start <= date && date <= row.end;
-          return h('div', { key: row.start, className: "riff-gantt-band",
+          const rowOpen = openGanttRows[row.start] !== false;
+          return h('div', { key: row.start,
             style: { background: "#FFFFFF", borderRadius: "10px",
-            border: "1px solid " + C.border, padding: "10px", minWidth: 0,
-            overflowX: "auto" } },
-            h('div', { style: { fontSize: "13px", fontWeight: 900, color: C.studyText, marginBottom: "8px" } }, row.title),
+              border: "1px solid " + C.border, overflow: "hidden" } },
+            h('button', { type: "button", className: "riff-fold",
+              "aria-expanded": rowOpen,
+              onClick: () => setOpenGanttRows(prev =>
+                ({ ...prev, [row.start]: prev[row.start] === false })),
+              style: { background: "#EFF6FF", color: C.studyText, fontSize: "16px",
+                borderRadius: 0, padding: "12px 14px" } },
+              h('span', null, "📅 " + row.title),
+              h('span', { className: "riff-fold-arrow" }, rowOpen ? "▲" : "▼")
+            ),
+            rowOpen && h('div', { className: "riff-gantt-band",
+              style: { padding: "10px", minWidth: 0, overflowX: "auto" } },
             h('div', { style: { display: "flex", gap: "5px", minWidth: 0, borderBottom: "2px solid #007AFF", paddingBottom: "5px" } },
               h('div', { style: { width: "27%", minWidth: 0, fontSize: "12px", fontWeight: 900 } }, "プロジェクト"),
               h('div', { style: { flex: 1, minWidth: 0, display: "grid",
@@ -3912,8 +3947,22 @@ function App() {
                     h('div', { style: { position: "absolute", left: (100 * (getMonthOffset(mark.date,row.start) + 0.5) / monthCount) + "%",
                       top: 0, bottom: 0, borderLeft: "2px dashed " + mark.color } }),
                     h('button', { type: "button", title: mark.label + "｜説明を見る",
-                      onClick: () => setActiveExamMark(prev =>
-                        prev === mark.date + mark.label ? null : mark.date + mark.label),
+                      onClick: e => {
+                        const key = mark.date + mark.label;
+                        if (activeExamMark === key) {
+                          setActiveExamMark(null);
+                          setExamPopupAnchor(null);
+                          return;
+                        }
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const width = Math.min(460, Math.max(280, window.innerWidth - 18));
+                        setExamPopupAnchor({ left: Math.max(8, Math.min(
+                          rect.left + rect.width / 2 - width / 2,
+                          window.innerWidth - width - 8)),
+                          bottom: rect.bottom, width });
+                        setExamPopupTop(null);
+                        setActiveExamMark(key);
+                      },
                       "aria-expanded": activeExamMark === mark.date + mark.label,
                       style: { position: "absolute",
                         left: (100 * (getMonthOffset(mark.date,row.start) + 0.5) / monthCount) + "%",
@@ -3921,11 +3970,32 @@ function App() {
                         padding: 0, fontSize: "12px", fontWeight: 900, color: mark.color,
                         transform: "translateX(-50%)" } }, "◆")
                   ),
-                  activeExamMark === mark.date + mark.label && h('div', {
-                    style: { width: "73%", marginLeft: "27%", background: "#F8FAFC",
-                      borderLeft: "3px solid " + mark.color, padding: "7px 9px",
-                      fontSize: "12px", lineHeight: 1.5 } },
-                    h('div', { style: { fontWeight: 900 } }, mark.date + "｜" + mark.label),
+                  activeExamMark === mark.date + mark.label && h(React.Fragment, null,
+                    h('div', { role: "presentation",
+                      onClick: () => setActiveExamMark(null),
+                      style: { position: "fixed", inset: 0, zIndex: 400,
+                        background: "rgba(15,23,42,0.12)" } }),
+                    h('div', { id: "riff-exam-popup", role: "dialog",
+                      "aria-label": mark.label + "の説明",
+                      style: { position: "fixed", zIndex: 401,
+                        left: examPopupAnchor ? examPopupAnchor.left + "px" : "8px",
+                        top: examPopupTop == null ?
+                          (examPopupAnchor ? examPopupAnchor.bottom + 6 : 8) + "px" :
+                          examPopupTop + "px",
+                        visibility: examPopupTop == null ? "hidden" : "visible",
+                        width: examPopupAnchor ? examPopupAnchor.width + "px" : "min(460px, 95vw)",
+                        maxHeight: "calc(100dvh - 16px)", overflowY: "auto",
+                        background: "#FFFFFF", color: C.text,
+                        border: "2px solid " + mark.color, borderRadius: "10px",
+                        boxShadow: "0 16px 38px rgba(0,0,0,0.27)",
+                        padding: "12px 14px", fontSize: "14px", lineHeight: 1.65 } },
+                    h('div', { style: { display: "flex", gap: "8px",
+                      justifyContent: "space-between", alignItems: "center" } },
+                      h('strong', null, mark.date + "｜" + mark.label),
+                      h('button', { type: "button", className: "btn-action",
+                        style: { color: "#FFFFFF", background: "#334155" },
+                        onClick: () => setActiveExamMark(null) }, "閉じる ✕")
+                    ),
                     h('div', null, mark.full),
                     EXAM_REFERENCE_NOTES.filter(note =>
                       mark.label === "高校受験" ? note.label.includes("都立高校") :
@@ -3938,10 +4008,11 @@ function App() {
                         note.url && h('a', { href: note.url, target: "_blank",
                           rel: "noopener noreferrer" }, "公式資料 ↗")
                       ))
+                    )
                   )
                 )
               )
-            )
+            ))
           );
         })
       ),
