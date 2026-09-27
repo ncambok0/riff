@@ -3221,8 +3221,7 @@ function App() {
                         style: { flex: 1, padding: "4px 8px", fontSize: "13px", border: "1px solid #CCC", borderRadius: "5px" }
                       }),
                   isEditingSchedule && h('div', { style: { display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 } },
-                    renderScheduleCategorySelect(item, idx),
-                    renderScheduleStepSelect(item, idx)
+                    renderScheduleCategorySelect(item, idx)
                   ),
                   isEditingSchedule && h('div', { style: { display: "flex", gap: "3px" } },
                     h('button', { onClick: () => moveScheduleItem(schedType, idx, -1), style: { padding: "2px 6px", fontSize: "11px" } }, "▲"),
@@ -3268,7 +3267,7 @@ function App() {
                     style: { gridColumn: String(idx + 1), textAlign: "left",
                       overflow: "visible", whiteSpace: "nowrap", zIndex: 1, fontSize: "9px",
                       color: month.m === 1 ? "#007AFF" : C.text, fontWeight: 800 } },
-                    month.m === 1 ? String(month.year).slice(2) + "年" : ([4,7,10].includes(month.m) ? String(month.m) + "月" : ""))
+                    month.m === 1 ? String(month.year).slice(2) + "/1" : String(month.m))
                 )
               )
             ),
@@ -3277,7 +3276,7 @@ function App() {
               const last = Math.min(monthCount - 1, getMonthOffset(task.end, row.start));
               const info = stageInfo[task.stage] || {};
               return h('div', { key: task.nameLines.join("/") + row.start,
-                onClick: () => setTab("stage"),
+                onClick: () => jumpToStage(task.stage),
                 style: { display: "flex", gap: "5px", alignItems: "center", minWidth: 0,
                   padding: "4px 0", borderBottom: "1px solid #F2F2F7", cursor: "pointer" } },
                 h('div', { style: { width: "27%", minWidth: 0, overflowWrap: "anywhere",
@@ -3306,9 +3305,32 @@ function App() {
                     height: "22px", background: "#F8FAFC" } },
                     h('div', { style: { position: "absolute", left: (100 * (getMonthOffset(mark.date,row.start) + 0.5) / monthCount) + "%",
                       top: 0, bottom: 0, borderLeft: "2px dashed " + mark.color } }),
-                    h('span', { style: { position: "absolute", left: (100 * (getMonthOffset(mark.date,row.start) + 0.5) / monthCount) + "%",
-                      top: "2px", writingMode: "vertical-rl", textOrientation: "upright",
-                      fontSize: "9px", fontWeight: 900, color: mark.color } }, "◆")
+                    h('button', { type: "button", title: mark.label + "｜説明を見る",
+                      onClick: () => setActiveExamMark(prev =>
+                        prev === mark.date + mark.label ? null : mark.date + mark.label),
+                      "aria-expanded": activeExamMark === mark.date + mark.label,
+                      style: { position: "absolute",
+                        left: (100 * (getMonthOffset(mark.date,row.start) + 0.5) / monthCount) + "%",
+                        top: 0, border: "none", background: "transparent", cursor: "pointer",
+                        padding: 0, fontSize: "12px", fontWeight: 900, color: mark.color,
+                        transform: "translateX(-50%)" } }, "◆")
+                  ),
+                  activeExamMark === mark.date + mark.label && h('div', {
+                    style: { width: "100%", background: "#F8FAFC", borderLeft: "3px solid " +
+                      mark.color, padding: "7px 9px", fontSize: "11px", lineHeight: 1.5 } },
+                    h('div', { style: { fontWeight: 900 } }, mark.date + "｜" + mark.label),
+                    h('div', null, mark.full),
+                    EXAM_REFERENCE_NOTES.filter(note =>
+                      mark.label === "高校受験" ? note.label.includes("都立高校") :
+                      mark.label === "海外出願" ? note.label.includes("Goldsmiths") :
+                      note.label.includes("洗足")).map(note =>
+                      h('div', { key: note.label, style: { marginTop: "5px",
+                        borderTop: "1px solid #E5E7EB", paddingTop: "5px" } },
+                        h('div', { style: { fontWeight: 800 } }, note.label + "｜" + note.status),
+                        h('div', null, note.detail),
+                        note.url && h('a', { href: note.url, target: "_blank",
+                          rel: "noopener noreferrer" }, "公式資料 ↗")
+                      ))
                   )
                 )
               )
@@ -3516,7 +3538,7 @@ function App() {
             .reduce((total, step) => total + stepMinutes(step), 0);
 
           return h('div', {
-            key: sKey,
+            key: sKey, id: "riff-stage-" + sKey,
             style: {
               background: isCur ? "#1C1C1E" : "#FFFFFF",
               color: isCur ? "#FFFFFF" : C.text,
@@ -4073,8 +4095,7 @@ function App() {
                       style: { flex: 1, padding: "4px 8px", fontSize: "13px", border: "1px solid #CCC", borderRadius: "5px" }
                     }),
                 isEditingSchedule && h('div', { style: { display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 } },
-                    renderScheduleCategorySelect(item, idx),
-                    renderScheduleStepSelect(item, idx)
+                    renderScheduleCategorySelect(item, idx)
                   ),
                 isEditingSchedule && h('div', { style: { display: "flex", gap: "3px" } },
                   h('button', { onClick: () => moveScheduleItem(schedType, idx, -1), style: { padding: "2px 6px", fontSize: "11px" } }, "▲"),
