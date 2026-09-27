@@ -2184,6 +2184,8 @@ function App() {
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
   const [openMusicProgress, setOpenMusicProgress] = useState(true);
   const [openPythonProgress, setOpenPythonProgress] = useState(true);
+  const [openStudyProgress, setOpenStudyProgress] = useState(true);
+  const [openGenreStages, setOpenGenreStages] = useState({});
   const [activeExamMark, setActiveExamMark] = useState(null);
   const [manualStepByTask, setManualStepByTask] = useState({});
   const [assignmentWarning, setAssignmentWarning] = useState("");
@@ -2712,6 +2714,9 @@ function App() {
     }
     setTab(targetTab);
     setExpandedDetailTasks({ [stepId]: true });
+    if (task && task.stageKey && (targetTab === "music" || targetTab === "python")) {
+      setOpenGenreStages(prev => ({ ...prev, [targetTab + ":" + task.stageKey]: true }));
+    }
     setHighlightedTaskId(taskId);
     setTimeout(() => {
       const el = document.getElementById(task ? "riff-task-" + taskId : stepId);
@@ -2894,20 +2899,22 @@ function App() {
   };
 
   // 同じtask.idを使うため「今日・月別・ステージ・各ジャンル」のチェックが連動する。
-  const renderMiniTaskChecklist = step => h('div', {
+  const renderMiniTaskChecklist = (step, dark = false) => h('div', {
     style: { display: "flex", flexDirection: "column", gap: "4px",
       marginTop: "6px", width: "100%", fontSize: "11.5px" }
   },
     (step.subtasks || []).map(task => h('label', { key: task.id,
       style: { display: "flex", gap: "6px", alignItems: "flex-start", cursor: "pointer",
-        color: checkedItems[task.id] ? C.muted : C.text } },
+        color: checkedItems[task.id] ? (dark ? "#CBD5E1" : C.muted) :
+          (dark ? "#FFFFFF" : C.text) } },
       h('input', { type: "checkbox", className: "custom-checkbox-interactive",
         checked: !!checkedItems[task.id], onChange: () => toggleCheck(task.id),
         "aria-label": task.text + "の完了",
         style: { width: "16px", height: "16px" } }),
       h('span', { style: { flex: 1, lineHeight: 1.35,
         textDecoration: checkedItems[task.id] ? "line-through" : "none" } }, task.text),
-      h('span', { style: { flexShrink: 0, color: C.codeText, fontWeight: 800 } },
+      h('span', { style: { flexShrink: 0,
+        color: dark ? "#A7F3D0" : C.codeText, fontWeight: 800 } },
         formatTaskMinutes(taskMinutes(task)) + "（仮）")
     ))
   );
@@ -3499,9 +3506,9 @@ function App() {
                     openMonthSubGroups[`${moKey}_mus`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
                       moMusSteps.map(s => h('div', { key: s.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                         h('div', null,
-                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[s.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${s.stepNum}`),
+                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music, fontWeight: 600, marginRight: "6px" } }, `ステップ${s.stepNum}`),
                           h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title),
-                        renderMiniTaskChecklist(s)
+                        renderMiniTaskChecklist(s, isCur)
                         ),
                         h('button', {
                           className: "btn-action",
@@ -3527,9 +3534,9 @@ function App() {
                     openMonthSubGroups[`${moKey}_py`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
                       moPySteps.map(s => h('div', { key: s.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                         h('div', null,
-                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[s.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${s.stepNum}`),
+                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code, fontWeight: 600, marginRight: "6px" } }, `ステップ${s.stepNum}`),
                           h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title),
-                        renderMiniTaskChecklist(s)
+                        renderMiniTaskChecklist(s, isCur)
                         ),
                         h('button', {
                           className: "btn-action",
@@ -3558,12 +3565,12 @@ function App() {
                         const stageObj = stageInfo[u.stage] || { label: `ステージ${stageNum}` };
                         return h('div', { key: u.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", alignItems: "center", justifyContent: "space-between" } },
                           h('div', { style: { display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" } },
-                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageObj.color || C.study, fontWeight: 600 } }, `ステップ${u.stepNum}`),
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.study, fontWeight: 600 } }, `ステップ${u.stepNum}`),
                             h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: "#475569", fontWeight: 600 } }, u.grade),
                             h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: u.rank === "S" ? "#DC2626" : C.study, fontWeight: 600 } }, `${u.rank}ランク`),
                             h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: subObj.color || C.study, fontWeight: 600 } }, subObj.name || "教科"),
                             h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, u.item),
-                             renderMiniTaskChecklist(u)
+                             renderMiniTaskChecklist(u, isCur)
                           ),
                           h('button', {
                             className: "btn-action",
@@ -3662,9 +3669,9 @@ function App() {
                   openStageCategory[`${sKey}_mus`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
                     sMusSteps.map(st => h('div', { key: st.id, style: { fontSize: "12.5px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                       h('div', null,
-                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[st.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${st.stepNum}`),
+                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music, fontWeight: 600, marginRight: "6px" } }, `ステップ${st.stepNum}`),
                         h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title),
-                      renderMiniTaskChecklist(st)
+                      renderMiniTaskChecklist(st, isCur)
                       ),
                       h('button', {
                         className: "btn-action",
@@ -3687,9 +3694,9 @@ function App() {
                   openStageCategory[`${sKey}_py`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
                     sPySteps.map(st => h('div', { key: st.id, style: { fontSize: "12.5px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
                       h('div', null,
-                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: stageInfo[st.stage].color, fontWeight: 600, marginRight: "6px" } }, `ステップ${st.stepNum}`),
+                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code, fontWeight: 600, marginRight: "6px" } }, `ステップ${st.stepNum}`),
                         h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title),
-                      renderMiniTaskChecklist(st)
+                      renderMiniTaskChecklist(st, isCur)
                       ),
                       h('button', {
                         className: "btn-action",
@@ -3961,7 +3968,15 @@ function App() {
 
         /* 統合された学習タブの進み具合カード（ダークテーマ） */
         h('div', { className: 'dark-card-banner' },
-          h('div', { style: { fontSize: "15px", fontWeight: 900, color: "#FFFFFF", marginBottom: "8px" } }, "📚 学習タブの進み具合"),
+          h('button', { type: "button", className: "accordion-trigger",
+            "aria-expanded": openStudyProgress,
+            onClick: () => setOpenStudyProgress(prev => !prev),
+            style: { display: "flex", justifyContent: "space-between", width: "100%",
+              fontSize: "15px", fontWeight: 900, color: "#FFFFFF",
+              marginBottom: openStudyProgress ? "8px" : 0 } },
+            h('span', null, "📚 学習タブの進み具合"),
+            h('span', null, openStudyProgress ? "▲" : "▼")),
+          openStudyProgress && h(React.Fragment, null,
           h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginBottom: "8px" } },
             "各単元に3つのチェック付き「やること」を追加。目安時間は暫定計画値であり、本人の実績ではありません。元の「目安5分」等の算定根拠は未確認です。"),
           /* 上段: 5教科全単元 & Sランク即効 */
@@ -4011,7 +4026,7 @@ function App() {
                 )
               );
             })
-          )
+          ))
         ),
 
         h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } },
