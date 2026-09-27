@@ -2978,6 +2978,9 @@ function App() {
       setStudyFilterSubjects({ math: false, eng: false, sci: false, soc: false, jpn: false });
       const subject = studySubjectsData.find(s => s.units.some(u => u.id === stepId));
       if (subject) setOpenStudySubjects(prev => ({ ...prev, [subject.id]: true }));
+      const group = STUDY_STAGE_BY_UNIT_ID[stepId];
+      if (group) setOpenGenreStages(prev => ({ ...prev,
+        ["study:" + group.subjectId + ":" + group.grade + ":" + group.number]: true }));
     }
     setTab(targetTab);
     setExpandedDetailTasks({ [stepId]: true });
@@ -4431,6 +4434,17 @@ function App() {
           if (uList.length === 0) return null;
 
           const isSubOpen = openStudySubjects[subject.id] !== false;
+          const groupedStudyStages = [];
+          uList.forEach(u => {
+            const meta = STUDY_STAGE_BY_UNIT_ID[u.id];
+            const id = subject.id + ":" + meta.grade + ":" + meta.number;
+            let group = groupedStudyStages.find(entry => entry.id === id);
+            if (!group) {
+              group = { id, ...meta, units: [] };
+              groupedStudyStages.push(group);
+            }
+            group.units.push(u);
+          });
 
           return h('div', {
             key: subject.id,
@@ -4452,26 +4466,33 @@ function App() {
               h('span', { style: { fontSize: "12px", color: subject.text } }, isSubOpen ? "▲" : "▼")
             ),
             isSubOpen && h('div', { style: { padding: "10px 14px", background: subject.bg } },
-              uList.map((u, index) => {
-                const group = STUDY_STAGE_BY_UNIT_ID[u.id];
-                const previous = index > 0 ? STUDY_STAGE_BY_UNIT_ID[uList[index - 1].id] : null;
-                const newGroup = !previous || previous.number !== group.number ||
-                  previous.grade !== group.grade || previous.title !== group.title;
-                const badge = stageInfo["p" + Math.min(group.number, 8)] || stageInfo.p1;
-                return h(React.Fragment, { key: u.id },
-                  newGroup && h('div', { style: { display: "flex", alignItems: "center",
-                    gap: "7px", flexWrap: "wrap", margin: "12px 0 7px",
-                    padding: "8px", borderRadius: "7px", background: "#FFFFFF",
-                    borderLeft: "4px solid " + badge.color } },
+              groupedStudyStages.map(group => {
+                const badge = stageInfo["p" + ((group.number - 1) % 8 + 1)] || stageInfo.p1;
+                const key = "study:" + group.id;
+                const open = openGenreStages[key] !== false;
+                return h('div', { key, style: { background: "#FFFFFF",
+                  border: "1px solid " + subject.border, borderLeft: "4px solid " + badge.color,
+                  borderRadius: "8px", overflow: "hidden", marginBottom: "9px" } },
+                  h('button', { type: "button", className: "accordion-trigger",
+                    "aria-expanded": open,
+                    onClick: () => setOpenGenreStages(prev =>
+                      ({ ...prev, [key]: prev[key] === false })),
+                    style: { padding: "9px 10px", display: "flex", alignItems: "center",
+                      flexWrap: "wrap", gap: "7px", background: "#FFFFFF",
+                      color: C.text, textAlign: "left", fontSize: "12px" } },
                     h('span', { className: "badge-tag", style: {
                       background: badge.color, color: "#FFFFFF", fontWeight: 900 } },
                       "ステージ" + group.number),
                     h('span', { className: "badge-tag", style: {
                       background: "#475569", color: "#FFFFFF" } }, group.grade),
-                    h('span', { style: { fontWeight: 900, fontSize: "13px" } },
-                      group.title)
+                    h('span', { style: { fontWeight: 900, fontSize: "13px",
+                      flex: 1 } }, group.title),
+                    h('span', { style: { fontWeight: 800, color: C.muted } },
+                      group.units.length + "ステップ " + (open ? "▲" : "▼"))
                   ),
-                  renderStudyTaskCard(u, subject, "study")
+                  open && h('div', { style: { padding: "8px 10px 8px 15px",
+                    borderTop: "1px solid " + subject.border, background: subject.bg } },
+                    group.units.map(u => renderStudyTaskCard(u, subject, "study")))
                 );
               })
             )
