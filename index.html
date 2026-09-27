@@ -202,7 +202,7 @@
 <script>
 const { useState, useEffect, createElement: h } = React;
 
-const APP_VERSION = "v2.2.1-linked-steps-preview";
+const APP_VERSION = "v2.2.2-task-planning-preview";
 
 const C = {
   music: "#7C3AED", musicBg: "#FAF5FF", musicBorder: "#C4B5FD", musicText: "#5B21B6",
@@ -809,6 +809,64 @@ futureStudyUnits.forEach(unit => {
   const subjectData = studySubjectsData.find(item => item.id === subject);
   if (subjectData) subjectData.units.push(task);
 });
+
+// 新しい細分化タスク。従来の単元IDとチェック状態は変更せず、独立したIDで保存する。
+// 時間は本人の実測ではなく最初の計画用の仮見積もり。実施後に調整する。
+const buildStudySubtasks = (unit, subjectId) => {
+  if (unit.id === "m-1") return [
+    { id: "m-1-task-1", text: "正負の数の符号と累乗の規則を例題で確認し、途中式を説明する", estimateMinutes: 5 },
+    { id: "m-1-task-2", text: "四則計算と計算順序を使った問題を3問解き、符号ミスを確認する", estimateMinutes: 10 },
+    { id: "m-1-task-3", text: "かっこを含む計算を1問、何も見ずに解いて答え合わせする", estimateMinutes: 5 }
+  ];
+  const future = ["高1", "高2", "高3", "進学後"].includes(unit.grade);
+  const label = unit.item;
+  const practice = {
+    math: "教科書・ワークの基本問題を2〜3問解き、途中式と計算を確かめる",
+    eng: "教科書の例文を声に出し、該当表現で例文を2つ作る",
+    sci: "図・実験・計算のいずれかで具体例を一つ説明する",
+    soc: "資料・地図・年表などを確認し、重要な関係を自分の言葉でまとめる",
+    jpn: "本文・例題を読み、根拠を示して設問を1〜2問解く"
+  }[subjectId] || "基本問題や実例を使って取り組む";
+  return future ? [
+    { id: unit.id + "-task-1", text: "「" + label + "」に必要な教材・現状・達成条件を確認する", estimateMinutes: 10 },
+    { id: unit.id + "-task-2", text: "「" + label + "」を実際の教材や作品で一つ試し、結果を記録する", estimateMinutes: 20 },
+    { id: unit.id + "-task-3", text: "理解できた点と未解決の点を分け、次の作業を決める", estimateMinutes: 10 }
+  ] : [
+    { id: unit.id + "-task-1", text: "「" + label + "」の要点を教科書や授業ノートで確認する", estimateMinutes: 5 },
+    { id: unit.id + "-task-2", text: practice + "（対象：「" + label + "」）", estimateMinutes: 10 },
+    { id: unit.id + "-task-3", text: "間違えた点を直し、「" + label + "」の確認問題を1問、自力で解く", estimateMinutes: 5 }
+  ];
+};
+studySubjectsData.forEach(subject => subject.units.forEach(unit => {
+  unit.subtasks = buildStudySubtasks(unit, subject.id);
+}));
+
+// 各作業の初期見積もり。時間指定が明示された項目は個別に優先する。
+// 「目安」は測定済みの実績ではなく、ユーザーが後から調整する計画値。
+const TASK_TIME_OVERRIDES = {
+  "mus-1-1": 5, "py-1-1": 10, "mus-2-4": 10,
+  "mus-8-1": 10, "mus-8-2": 10
+};
+const inferTaskMinutes = (task, domain) => {
+  if (TASK_TIME_OVERRIDES[task.id]) return TASK_TIME_OVERRIDES[task.id];
+  if (/10分以内|10分基礎|1日10分/.test(task.text)) return 10;
+  if (/毎日|確認|設定|接続|チェック|記録|整理|選定/.test(task.text)) return 10;
+  if (/録音|ミックス|実装|構築|デバッグ|制作|描画|演算|完成/.test(task.text))
+    return domain === "python" ? 40 : 30;
+  if (/練習|演奏|試す|実験|聴き比べ|テスト/.test(task.text)) return 20;
+  return domain === "python" ? 25 : 15;
+};
+[musicSteps, pythonSteps].forEach((steps, index) => {
+  const domain = index === 0 ? "music" : "python";
+  steps.forEach(step => step.subtasks.forEach(task => {
+    task.estimateMinutes = inferTaskMinutes(task, domain);
+  }));
+});
+const taskMinutes = task => task.estimateMinutes || 0;
+const stepMinutes = step => (step.subtasks || []).reduce((sum, task) => sum + taskMinutes(task), 0);
+const formatTaskMinutes = minutes => minutes >= 60
+  ? Math.floor(minutes / 60) + "時間" + (minutes % 60 ? minutes % 60 + "分" : "")
+  : minutes + "分";
 
 const defaultSchedulesData = {
   club: {
@@ -2034,6 +2092,11 @@ function App() {
   const [openTodayMusic, setOpenTodayMusic] = useState(true);
   const [openTodayCode, setOpenTodayCode] = useState(true);
   const [openExamPlan, setOpenExamPlan] = useState(false);
+  const [openTodayLinkFor, setOpenTodayLinkFor] = useState(null);
+  const [todayCustomTasks, setTodayCustomTasks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("shin_today_custom_tasks_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
   const [expandedDetailTasks, setExpandedDetailTasks] = useState({});
 
   const toggleTaskDetail = (id) => {
@@ -2139,6 +2202,15 @@ function App() {
   const todaySched = schedules[schedType] || schedules.club;
   const todayDateKey = [currentTime.getFullYear(), String(currentTime.getMonth() + 1).padStart(2, "0"), String(currentTime.getDate()).padStart(2, "0")].join("-");
   const scheduleCheckKey = (id) => "sched@" + todayDateKey + ":" + schedType + ":" + id;
+  const setTodayCustomTask = (itemId, text) => {
+    const key = scheduleCheckKey(itemId);
+    setTodayCustomTasks(prev => {
+      const updated = { ...prev, [key]: text };
+      try { localStorage.setItem("shin_today_custom_tasks_v1", JSON.stringify(updated)); }
+      catch (e) {}
+      return updated;
+    });
+  };
   const completedSchedCount = todaySched.items.filter(it => checkedItems[scheduleCheckKey(it.id)]).length;
 
   const currentMonthKey = String(currentTime.getFullYear()) + "-" + String(currentTime.getMonth() + 1).padStart(2, "0");
@@ -2686,22 +2758,55 @@ function App() {
               !linkedStep && h('div', { style: { fontSize: "11px", color: C.muted,
                 marginTop: "3px" } }, "計画ステップ：未紐付け")
             ),
-            h('button', { type: "button", className: "btn-action",
-              style: { color: "#FFFFFF", background: linkedStep ? catInfo.color : "#64748B",
-                fontSize: "11px", padding: "5px 9px", whiteSpace: "nowrap", marginLeft: "auto" },
-              onClick: () => {
-                if (linkedStep) return jumpToTask(linkedStep.tab, linkedStep.id);
-                setOpenTodaySched(true);
-                if (!isEditingSchedule) startEditSchedule();
-                setTimeout(() => {
-                  const el = document.getElementById("today-schedule-" + item.id);
-                  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-                }, 120);
-              } }, linkedStep ? "ステップ詳細 ↗" : "ステップを紐付け")
+            h('div', { style: { display: "flex", flexDirection: "column",
+              gap: "5px", width: "100%", marginLeft: "28px" } },
+              h('button', { type: "button", className: "btn-action",
+                style: { color: "#FFFFFF", background: catInfo.color,
+                  fontSize: "11px", padding: "5px 9px", alignSelf: "flex-start" },
+                onClick: () => setOpenTodayLinkFor(prev => prev === item.id ? null : item.id) },
+                openTodayLinkFor === item.id ? "選択を閉じる ▲" :
+                  (linkedStep ? "紐付けを変更する ▼" : "ステップを紐付け／計画外 ▼")),
+              linkedStep && h('button', { type: "button", className: "btn-action",
+                style: { color: "#FFFFFF", background: catInfo.color,
+                  fontSize: "11px", alignSelf: "flex-start" },
+                onClick: () => jumpToTask(linkedStep.tab, linkedStep.id) }, "ステップ詳細 ↗"),
+              todayCustomTasks[scheduleCheckKey(item.id)] && h('div',
+                { style: { fontSize: "12px", color: catInfo.color, fontWeight: 700 } },
+                "計画外のやること：" + todayCustomTasks[scheduleCheckKey(item.id)]),
+              openTodayLinkFor === item.id && h('div', {
+                style: { display: "flex", flexDirection: "column", gap: "7px",
+                  padding: "8px", borderRadius: "7px", background: "#F8FAFC",
+                  border: "1px solid " + C.border } },
+                h('label', { style: { fontSize: "11px", fontWeight: 800 } },
+                  "計画にあるステップをここで選ぶ（時間割の編集は不要）"),
+                h('select', { className: "time-input-inline", value: linkedStep ? linkedStep.id : "",
+                  "aria-label": "紐付けるステップ",
+                  style: { width: "100%", fontSize: "12px", padding: "7px" },
+                  onChange: e => {
+                    const index = todaySched.items.findIndex(row => row.id === item.id);
+                    if (index >= 0) updateScheduleItemField(schedType, index, "linkedStepId", e.target.value);
+                  } },
+                  h('option', { value: "" }, "紐付けなし（今日の予定だけ）"),
+                  (scheduleStepChoices[category] || []).map(step => h('option', {
+                    key: step.id, value: step.id },
+                    stageInfo[step.stage].shortLabel + " ステップ" + step.stepNum +
+                    "｜" + step.taskTitle))),
+                h('label', { style: { fontSize: "11px", fontWeight: 800 } },
+                  "計画にない場合は、今日だけのやることを自由入力"),
+                h('input', { type: "text", className: "time-input-inline",
+                  value: todayCustomTasks[scheduleCheckKey(item.id)] || "",
+                  placeholder: "例：新しく思いついたリフを録音する",
+                  "aria-label": "今日だけの計画外タスク",
+                  style: { width: "100%", padding: "7px", fontSize: "12px" },
+                  onChange: e => setTodayCustomTask(item.id, e.target.value) }),
+                h('div', { style: { fontSize: "11px", color: C.muted } },
+                  "計画外の内容は当日・この時間割だけに保存。既存の計画や進捗は変更しません。")
+              )
+            )
           );
         }),
         h('div', { style: { fontSize: "11px", color: C.muted, lineHeight: 1.4 } },
-          "今日の完了チェックと、計画ステップの完了チェックは別々に記録します。")
+          "今日の完了チェックと、計画ステップの完了チェックは別々に記録します。計画にない活動も当日だけのメモとして追加できます。")
       )
     );
   };
