@@ -3859,22 +3859,26 @@ function App() {
               const first = Math.max(0, getMonthOffset(task.start, row.start));
               const last = Math.min(monthCount - 1, getMonthOffset(task.end, row.start));
               const info = stageInfo[task.stage] || {};
-              return h('div', { key: task.nameLines.join("/") + row.start,
-                onClick: () => jumpToStage(task.stage),
-                style: { display: "flex", gap: "5px", alignItems: "center", minWidth: 0,
-                  padding: "4px 0", borderBottom: "1px solid #F2F2F7", cursor: "pointer" } },
-                h('div', { style: { width: "27%", minWidth: 0, overflowWrap: "anywhere",
-                  fontSize: "12px", lineHeight: 1.4, fontWeight: 800 } }, task.nameLines[0]),
-                h('div', { style: { flex: 1, minWidth: 0, position: "relative", height: "17px",
-                  background: "#F2F2F7", borderRadius: "3px" } },
-                  h('div', { title: task.nameLines.join("／") + "：" + task.start + "〜" + task.end +
+              return h('button', { key: task.nameLines.join("/") + row.start,
+                type: "button", className: "riff-gantt-link",
+                "aria-label": task.nameLines[0] + "の" + (info.label || "ステージ") + "へ移動",
+                title: (info.label || "") + "へ移動 ↗",
+                onClick: () => jumpToStage(task.stage) },
+                h('span', { style: { width: "27%", minWidth: 0, overflowWrap: "anywhere",
+                  fontSize: "13px", lineHeight: 1.5, fontWeight: 800, color: C.text } },
+                  task.nameLines[0] + " ↗"),
+                h('span', { style: { flex: 1, minWidth: 0, position: "relative", height: "22px",
+                  background: "#F2F2F7", borderRadius: "4px" } },
+                  h('span', { title: task.nameLines.join("／") + "：" + task.start + "〜" + task.end +
                       "（" + (info.shortLabel || "") + "）",
+                    className: "riff-stage-bar",
                     style: { position: "absolute", left: 100 * first / monthCount + "%",
                       width: 100 * (last - first + 1) / monthCount + "%",
                       top: "2px", bottom: "2px", borderRadius: "3px", background: info.color || C.study,
-                      minWidth: "16px", display: "flex", justifyContent: "center", alignItems: "center",
-                      color: "#FFFFFF", fontSize: "9px", fontWeight: 900, whiteSpace: "nowrap",
-                      textShadow: "0 1px 2px rgba(0,0,0,0.45)" } }, info.shortLabel || "")
+                      minWidth: "32px", display: "flex", justifyContent: "center", alignItems: "center",
+                      color: "#FFFFFF", fontSize: "11px", fontWeight: 900, whiteSpace: "nowrap",
+                      textShadow: "0 1px 2px rgba(0,0,0,0.45)" } },
+                    (info.shortLabel || "") + " ↗")
                 )
               );
             }),
@@ -4287,7 +4291,7 @@ function App() {
           const isExpanded = !!expandedDetailTasks[s.id];
           return h(React.Fragment, { key: s.id },
             (index === 0 || musicSteps[index - 1].stage !== s.stage) &&
-              h('button', { type: "button",
+              h('button', { type: "button", className: "riff-fold",
                 "aria-expanded": openGenreStages["music:" + s.stage] !== false,
                 onClick: () => setOpenGenreStages(prev => ({
                   ...prev, ["music:" + s.stage]: prev["music:" + s.stage] === false
@@ -4385,7 +4389,7 @@ function App() {
           const isExpanded = !!expandedDetailTasks[s.id];
           return h(React.Fragment, { key: s.id },
             (index === 0 || pythonSteps[index - 1].stage !== s.stage) &&
-              h('button', { type: "button",
+              h('button', { type: "button", className: "riff-fold",
                 "aria-expanded": openGenreStages["python:" + s.stage] !== false,
                 onClick: () => setOpenGenreStages(prev => ({
                   ...prev, ["python:" + s.stage]: prev["python:" + s.stage] === false
@@ -4687,7 +4691,7 @@ function App() {
                 return h('div', { key, style: { background: "#FFFFFF",
                   border: "1px solid " + subject.border, borderLeft: "4px solid " + badge.color,
                   borderRadius: "8px", overflow: "hidden", marginBottom: "9px" } },
-                  h('button', { type: "button", className: "accordion-trigger",
+                  h('button', { type: "button", className: "riff-fold",
                     "aria-expanded": open,
                     onClick: () => setOpenGenreStages(prev =>
                       ({ ...prev, [key]: prev[key] === false })),
