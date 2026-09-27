@@ -2227,6 +2227,14 @@ function App() {
     const opened = !!openTaskMeasurements[task.id];
     const records = taskSessions[task.id] || [];
     const draft = taskSessionDrafts[task.id] || {};
+    const materialName = String(draft.material || records[records.length - 1]?.material || "").trim();
+    const sameMaterialScores = materialName ? records.filter(record =>
+      record.material === materialName && Number(record.attempted) > 0 &&
+      record.correct != null) : [];
+    const materialAttempted = sameMaterialScores.reduce((n,record) => n + record.attempted,0);
+    const materialCorrect = sameMaterialScores.reduce((n,record) => n + record.correct,0);
+    const sameMaterialDifficulty = sameMaterialScores.filter(record =>
+      Number.isFinite(record.difficulty));
     const running = Number(activeTaskTimers[task.id]) > 0;
     const elapsed = running ?
       Math.max(0, Math.floor((currentTime.getTime() - activeTaskTimers[task.id]) / 1000)) : 0;
@@ -2290,10 +2298,22 @@ function App() {
         records.length > 0 && h('div', { style: { color: C.sub } },
           "直近 " + (records[records.length - 1].seconds / 60).toFixed(1) +
           "分" + (records[records.length - 1].difficulty ?
-            "｜難易度" + records[records.length - 1].difficulty + "/5" : "") +
+            "｜体感難易度" + records[records.length - 1].difficulty + "/5" : "") +
           (records[records.length - 1].attempted != null ?
             "｜正答" + records[records.length - 1].correct + "/" +
-            records[records.length - 1].attempted : ""))
+            records[records.length - 1].attempted : "")),
+        materialName && h('div', { style: { padding: "7px", background: "#F8FAFC",
+          color: C.sub, borderRadius: "5px" } },
+          "教材「" + materialName + "」の正答データ：" +
+          (sameMaterialScores.length >= 3 ?
+            sameMaterialScores.length + "回・" + materialCorrect + "/" + materialAttempted +
+            "（" + Math.round(100*materialCorrect/materialAttempted) + "%）" +
+            (sameMaterialDifficulty.length >= 3 ?
+              "｜体感難易度平均 " +
+              (sameMaterialDifficulty.reduce((sum,r)=>sum+r.difficulty,0)/sameMaterialDifficulty.length)
+                .toFixed(1) + "/5" : "") :
+            sameMaterialScores.length + "回／比較表示には同じ教材で3回以上の正答記録が必要") +
+          "。教材自体の客観的難易度を保証する値ではありません。")
       )
     );
   };
@@ -2515,6 +2535,12 @@ function App() {
   const checkedStudyUnits = allStudyTasks.filter(task => checkedItems[task.id]).length;
   const studyPct = totalStudyUnits
     ? Math.round(checkedStudyUnits / totalStudyUnits * 100) : 0;
+  const studyWeekStart = currentTime.getTime() - 7 * 86400000;
+  const studyWeekSeconds = allStudyTasks.reduce((total,task) => total +
+    (taskSessions[task.id] || []).filter(record => {
+      const t = Date.parse(record.at);
+      return Number.isFinite(t) && t >= studyWeekStart && t <= currentTime.getTime();
+    }).reduce((sum,record) => sum + Math.max(0, Number(record.seconds) || 0), 0), 0);
 
   /* Music subtasks progress */
   const allMusicSubtasks = musicSteps.flatMap(s => s.subtasks);
@@ -4223,8 +4249,12 @@ function App() {
               ),
               h('div', { style: { background: "rgba(255,255,255,0.08)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
                 h('div', { style: { fontSize: "11px", color: "#86EFAC", fontWeight: 800, marginBottom: "2px" } }, "⚡ 今週のスプリント (週間目標 300分)"),
-                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } }, "今週の学習時間: 実績記録の導入後に集計"),
-                h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } }, "学習時間の実績は現在未計測です。予定と実績は分けて管理します。")
+                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } },
+                  "直近7日間の実測学習時間: " +
+                  (studyWeekSeconds > 0 ? formatTaskMinutes(Math.round(studyWeekSeconds/60)) :
+                    "まだ記録がありません")),
+                h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } },
+                  "各「やること」の計測終了時に保存された時間だけを合計。時間割の予定時間は実績へ加えません。")
               )
             )
           )
