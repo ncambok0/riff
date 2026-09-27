@@ -2364,17 +2364,24 @@ function App() {
     const running = Number(activeTaskTimers[task.id]) > 0;
     const elapsed = running ?
       Math.max(0, Math.floor((currentTime.getTime() - activeTaskTimers[task.id]) / 1000)) : 0;
-    return h('div', { style: { width: "100%", marginTop: "4px",
-      padding: "5px 0", fontSize: "11px" } },
+    return h('div', { style: { flex: opened ? "1 1 100%" : "0 0 auto",
+      width: opened ? "100%" : "auto", margin: "1px 0",
+      padding: 0, fontSize: "13px" } },
       h('button', { type: "button", className: "btn-action",
-        style: { color: C.studyText, background: C.studyBg, fontSize: "11px" },
+        "aria-expanded": opened,
+        title: "時間を計ると、次の予定に必要な時間を考えやすくなります。",
+        style: { color: C.studyText, background: "#EFF6FF",
+          border: "1px solid #BFDBFE", fontSize: "12px", padding: "5px 8px" },
         onClick: () => setOpenTaskMeasurements(prev =>
           ({ ...prev, [task.id]: !prev[task.id] })) },
-        "⏱ 時間をはかる・記録" + (records.length ? "（" + records.length + "回）" : "") +
+        "⏱ 作業時間を記録" + (records.length ? " " + records.length + "回" : "") +
         (opened ? " ▲" : " ▼")),
       opened && h('div', { style: { marginTop: "6px", padding: "9px", borderRadius: "7px",
         background: "#FFFFFF", border: "1px solid " + C.border, color: C.text,
         display: "flex", flexDirection: "column", gap: "7px" } },
+        h('div', { style: { color: C.studyText, fontSize: "14px",
+          fontWeight: 800 } },
+          "この作業に何分かかったか記録して、次の予定の目安に使おう。"),
         h('div', { style: { color: C.muted } },
           "最初の目安 " + formatTaskMinutes(taskMinutes(task)) +
           "｜計った時間からの目安 "  + (getMeasuredMinutes(task) == null ?
@@ -3336,9 +3343,9 @@ function App() {
                 taskShortTitle(task.text)),
               h('span', { style: { flexShrink: 0, color: "#047857", fontWeight: 800,
                 fontSize: "12px" } }, taskEstimateLabel(task)),
-              taskExplanation(task, u.textbookRef)
-              ),
+              taskExplanation(task, u.textbookRef),
               renderTaskMeasurement(task)
+              )
             )),
             h('div', { style: { marginTop: "5px", fontSize: "11px", color: C.muted } },
               "単元の完了チェックと、細かいやることのチェックは別々に記録します。")
@@ -5027,7 +5034,7 @@ function App() {
           h('div', { style: { fontWeight: 900, fontSize: "14px", marginBottom: "7px" } },
             "＋ 教育機関を追加"),
           h('div', { style: { fontSize: "11.5px", color: C.muted, marginBottom: "9px" } },
-            "追加直後は調査待ちです。公式情報が確認できるまでは詳細を推測して表示しません。"),
+            "現在できること：学校名・所在地・公式URLを登録して、候補を追加・非表示にできます。学校の詳しい情報を公式サイトから自動で集める機能は、まだ作成中です。追加した学校は「調査待ち」と表示され、未確認の情報は勝手に書き込みません。"),
           h('div', { style: { display: "flex", flexWrap: "wrap", gap: "7px" } },
             h('select', { className: "time-input-inline",
               value: newSchool.section,
@@ -5295,7 +5302,7 @@ function App() {
           h('div', { style: { fontSize: "15px", fontWeight: 900 } },
             "☁️ RIFF開発へ感想を共有（GitHub Private）"),
           h('div', { style: { fontSize: "12px", color: C.sub, lineHeight: 1.5 } },
-            "保存済みの感想をPrivate GitHub Issueの下書きに転記します。公開RIFF本体には送信しません。ここでの操作はまだ投稿ではなく、GitHub側で内容を確認して送信するとクラウドに保存され、この開発チャットでも許可されたリポジトリから確認できます。"),
+            "現在できること：感想をこのブラウザに保存し、CSV/JSONで書き出せます。GitHubへ自動保存する機能はまだありません。下のボタンはPrivateリポジトリの投稿下書きを開くだけです。GitHubで内容と公開範囲を確認し、自分で「投稿」を押す必要があります。投稿後も、このチャットが自動で読めるわけではありません。読み取り権限が必要です。"),
           h('input', { type: "text", className: "time-input-inline",
             "aria-label": "共有先のGitHub Privateリポジトリ",
             placeholder: "Privateリポジトリ（owner/repo）",
