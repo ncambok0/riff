@@ -3365,9 +3365,9 @@ function App() {
       marginTop: "8px", width: "100%", fontSize: "14px" }
   },
     (step.subtasks || []).map(task => h(React.Fragment, { key: task.id },
-      h('label', {
-        style: { display: "flex", gap: "8px", alignItems: "flex-start", cursor: "pointer",
-          padding: "5px 0",
+      h('div', {
+        style: { display: "flex", gap: "8px", alignItems: "center",
+          flexWrap: "wrap", padding: "4px 0",
           color: checkedItems[task.id] ? (dark ? "#CBD5E1" : C.muted) :
             (dark ? "#FFFFFF" : C.text) } },
         h('input', { type: "checkbox", className: "custom-checkbox-interactive",
@@ -3379,9 +3379,9 @@ function App() {
           taskShortTitle(task.text)),
         h('span', { style: { flexShrink: 0, fontSize: "12px",
           color: dark ? "#A7F3D0" : C.codeText, fontWeight: 800 } },
-          taskEstimateLabel(task))
-      ),
-      taskExplanation(task)
+          taskEstimateLabel(task)),
+        taskExplanation(task)
+      )
     ))
   );
 
@@ -3610,9 +3610,9 @@ function App() {
             "やることの名前を押すと、音楽・開発・学習のくわしい場所に移動します。"),
           helpSection("② 音楽・開発・学習：くわしく見よう",
             "色のついた「ステージ」を押すと、中のステップを開いたり閉じたりできます。",
-            "ステップの名前を押すと、やることが見えます。「時間をはかる・記録」で使った時間を計れます。"),
+            "ステップの名前を押すと、やることが見えます。「作業時間を記録」で使った時間を計れます。"),
           helpSection("③ 時間を計る・次の目安を変える",
-            "やることの「時間をはかる・記録」→「時間をはかる」→終わったら「止めて記録」。使った時間が残ります。",
+            "やることの「作業時間を記録」→「時間をはかる」→終わったら「止めて記録」。使った時間が残ります。",
             "同じやることを3回計ると、新しい予定を作るときの時間が変わります。今日の予定はそのまま。変えたいときは「残りの予定を組み直す」を押してね。1回目から自分で目安を変えることもできます。"),
           helpSection("④ 予定が多すぎるとき",
             "学習タブで、目標までに必要な時間と、使えそうな時間を比べられます。",
@@ -4481,12 +4481,15 @@ function App() {
             openGenreStages["music:" + s.stage] !== false && h('div', {
             key: s.id,
             id: s.id,
-            style: { background: C.musicBg, borderRadius: "10px", border: `1px solid ${C.musicBorder}`,
-              padding: "12px 14px", marginLeft: "12px", borderLeft: "4px solid " + stageInfo[s.stage].color }
+            style: { background: C.musicBg, borderRadius: "8px", border: `1px solid ${C.musicBorder}`,
+              padding: "7px 9px", marginLeft: "6px", borderLeft: "3px solid " + stageInfo[s.stage].color }
           },
-            h('div', {
+            h('button', { type: "button", className: "riff-fold",
+              "aria-expanded": isExpanded,
               onClick: () => toggleTaskDetail(s.id),
-              style: { display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
+              style: { display: "flex", justifyContent: "space-between", alignItems: "center",
+                flexWrap: "wrap", gap: "6px", padding: "5px 6px",
+                color: C.text, background: "transparent" }
             },
               h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
                 h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music } }, `ステップ${s.stepNum}`),
@@ -4579,12 +4582,15 @@ function App() {
             openGenreStages["python:" + s.stage] !== false && h('div', {
             key: s.id,
             id: s.id,
-            style: { background: C.codeBg, borderRadius: "10px", border: `1px solid ${C.codeBorder}`,
-              padding: "12px 14px", marginLeft: "12px", borderLeft: "4px solid " + stageInfo[s.stage].color }
+            style: { background: C.codeBg, borderRadius: "8px", border: `1px solid ${C.codeBorder}`,
+              padding: "7px 9px", marginLeft: "6px", borderLeft: "3px solid " + stageInfo[s.stage].color }
           },
-            h('div', {
+            h('button', { type: "button", className: "riff-fold",
+              "aria-expanded": isExpanded,
               onClick: () => toggleTaskDetail(s.id),
-              style: { display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
+              style: { display: "flex", justifyContent: "space-between", alignItems: "center",
+                flexWrap: "wrap", gap: "6px", padding: "5px 6px",
+                color: C.text, background: "transparent" }
             },
               h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
                 h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code } }, `ステップ${s.stepNum}`),
