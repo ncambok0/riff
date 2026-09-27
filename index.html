@@ -2327,6 +2327,7 @@ function App() {
     return next;
   });
   const [openTaskMeasurements, setOpenTaskMeasurements] = useState({});
+  const [openTaskDescriptions, setOpenTaskDescriptions] = useState({});
   const setTaskSessionDraft = (id, field, value) => {
     setTaskSessionDrafts(prev => ({ ...prev,
       [id]: { ...(prev[id] || {}), [field]: value } }));
@@ -2421,9 +2422,7 @@ function App() {
     const running = Number(activeTaskTimers[task.id]) > 0;
     const elapsed = running ?
       Math.max(0, Math.floor((currentTime.getTime() - activeTaskTimers[task.id]) / 1000)) : 0;
-    return h('div', { style: { flex: opened ? "1 1 100%" : "0 0 auto",
-      width: opened ? "100%" : "auto", margin: "1px 0",
-      padding: 0, fontSize: "13px" } },
+    return h(React.Fragment, null,
       h('button', { type: "button", className: "btn-action",
         "aria-expanded": opened,
         title: "時間を計ると、次の予定に必要な時間を考えやすくなります。",
@@ -2433,7 +2432,8 @@ function App() {
           ({ ...prev, [task.id]: !prev[task.id] })) },
         "⏱ 作業時間を記録" + (records.length ? " " + records.length + "回" : "") +
         (opened ? " ▲" : " ▼")),
-      opened && h('div', { style: { marginTop: "6px", padding: "9px", borderRadius: "7px",
+      opened && h('div', { style: { flex: "1 1 100%", order: 101, width: "100%",
+        marginTop: "6px", padding: "9px", borderRadius: "7px",
         background: "#FFFFFF", border: "1px solid " + C.border, color: C.text,
         display: "flex", flexDirection: "column", gap: "7px" } },
         h('div', { style: { color: C.studyText, fontSize: "14px",
@@ -3615,31 +3615,44 @@ function App() {
 
   };
 
-  const taskExplanation = (task, studyReference = "") =>
-    (String(task.text || "").trim() !== taskShortTitle(task) || !!studyReference)
-      ? h('details', { className: "riff-task-detail" },
-          h('summary', null, "説明 ▼"),
-          h('div', null,
-            h('p', { style: { fontSize: "15px", lineHeight: 1.65 } }, task.text),
-            studyReference && h('div', { style: { marginTop: "6px", color: "#475569",
-              display: "flex", flexDirection: "column", gap: "6px" } },
-              h('div', null, (taskTextbookPages[task.id] || task.textbookPages)
-                ? "📖 このやることのページ：" +
-                    (taskTextbookPages[task.id] || task.textbookPages)
-                : "📖 このやることのページ：未確認（単元全体の参考：" + studyReference + "）"),
-              h('label', { style: { display: "flex", flexWrap: "wrap",
-                gap: "6px", alignItems: "center" } },
-                "確認できたページを記録",
-                h('input', { type: "text", className: "time-input-inline",
-                  value: taskTextbookPages[task.id] || "",
-                  "aria-label": taskShortTitle(task) + "の教科書ページ",
-                  placeholder: "例：p.14〜16（教材の版も確認）",
-                  style: { flex: "1 1 190px", padding: "6px" },
-                  onChange: e => updateTaskTextbookPage(task.id, e.target.value) })
-              ),
-              h('div', { style: { fontSize: "12px", color: "#64748B" } },
-                "ページは自動で調べていません。教材の版と実物を確認して入力してね。")))
-        ) : null;
+  // ボタンはその場所に固定し、開いた説明だけを次の行に置く。
+  // details要素自身の幅を切り替えると操作ボタンがジャンプするため使わない。
+  const taskExplanation = (task, studyReference = "") => {
+    const hasReference = !!studyReference;
+    if (String(task.text || "").trim() === taskShortTitle(task) && !hasReference) return null;
+    const opened = !!openTaskDescriptions[task.id];
+    return h(React.Fragment, null,
+      h('button', { type: "button", className: "btn-action",
+        "aria-expanded": opened,
+        style: { flex: "0 0 auto", fontSize: "12px", padding: "5px 9px",
+          background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" },
+        onClick: () => setOpenTaskDescriptions(prev =>
+          ({ ...prev, [task.id]: !prev[task.id] })) },
+        "説明 " + (opened ? "▲" : "▼")),
+      opened && h('div', { style: { flex: "1 1 100%", order: 100,
+        minWidth: 0, width: "100%", padding: "9px 11px", borderRadius: "6px",
+        background: "#F8FAFC", borderLeft: "3px solid #64748B",
+        color: "#1E293B", fontSize: "15px", lineHeight: 1.7 } },
+        h('div', null, task.text),
+        hasReference && h('div', { style: { marginTop: "8px", fontSize: "13px",
+          display: "flex", flexDirection: "column", gap: "6px" } },
+          h('div', null, (taskTextbookPages[task.id] || task.textbookPages)
+            ? "📖 このやることのページ：" +
+                (taskTextbookPages[task.id] || task.textbookPages)
+            : "📖 このやることのページ：未確認（単元全体の参考：" + studyReference + "）"),
+          h('label', { style: { display: "flex", flexWrap: "wrap",
+            gap: "6px", alignItems: "center" } }, "確認できたページを記録",
+            h('input', { type: "text", className: "time-input-inline",
+              value: taskTextbookPages[task.id] || "",
+              "aria-label": taskShortTitle(task) + "の教科書ページ",
+              placeholder: "例：p.14〜16（教材の版も確認）",
+              style: { flex: "1 1 190px", padding: "6px" },
+              onChange: e => updateTaskTextbookPage(task.id, e.target.value) })),
+          h('div', { style: { fontSize: "12px", color: "#64748B" } },
+            "ページは自動で調べていません。教材の版と実物を確認して入力してね。"))
+      )
+    );
+  };
 
   const helpSection = (heading, summary, details) =>
     h('details', { className: "riff-help-section" },
