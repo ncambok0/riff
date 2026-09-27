@@ -278,7 +278,7 @@
 <script>
 const { useState, useEffect, createElement: h } = React;
 
-const APP_VERSION = "v2.3.4-reset-manual-times-preview";
+const APP_VERSION = "v2.3.5-study-planning-preview";
 
 const C = {
   music: "#7C3AED", musicBg: "#FAF5FF", musicBorder: "#C4B5FD", musicText: "#5B21B6",
@@ -929,14 +929,14 @@ RIFF_SCHOOL_AND_EXAM_UNITS.forEach(entry => {
 // 時間は本人の実測ではなく最初の計画用の仮見積もり。実施後に調整する。
 const buildStudySubtasks = (unit, subjectId) => {
   if (unit.taskKind === "current") return [
-    { id: unit.id + "-task-1", text: "次の授業で扱う「" + unit.item + "」の教科書を読み、わからない言葉と公式を2つまでメモする。授業の進度が異なる場合は学校の予定を優先する", shortTitle: "授業前に教科書を読んで準備", estimateMinutes: 15, estimateSource: "provisional_session_budget" },
-    { id: unit.id + "-task-2", text: "その日の授業で学んだ「" + unit.item + "」をノートを閉じて思い出し、学校ワークの基本問題を2〜4問解く", shortTitle: "授業後に思い出して基本問題", estimateMinutes: 25, estimateSource: "provisional_session_budget" },
-    { id: unit.id + "-task-3", text: "間違えた問題を解説・授業ノートで確認し、解答を見ずにもう一度解いて学校ワークの宿題を進める", shortTitle: "間違い直しと学校ワーク", estimateMinutes: 25, estimateSource: "provisional_session_budget" }
+    { id: unit.id + "-task-1", text: "次の授業で扱う「" + unit.item + "」の教科書を読み、わからない言葉と公式を2つまでメモする。授業の進度が異なる場合は学校の予定を優先する", shortTitle: "授業前に教科書を読んで準備", estimateMinutes: 20, estimateSource: "research_informed_planning_budget" },
+    { id: unit.id + "-task-2", text: "その日の授業で学んだ「" + unit.item + "」をノートを閉じて思い出し、学校ワークの基本問題を2〜4問解く", shortTitle: "授業後に思い出して基本問題", estimateMinutes: 40, estimateSource: "research_informed_planning_budget" },
+    { id: unit.id + "-task-3", text: "間違えた問題を解説・授業ノートで確認し、解答を見ずにもう一度解いて学校ワークの宿題を進める", shortTitle: "間違い直しと学校ワーク", estimateMinutes: 40, estimateSource: "research_informed_planning_budget" }
   ];
   if (unit.taskKind === "pastpaper") return [
     { id: unit.id + "-task-1", text: "声の教育社『東京都立高校 7年間スーパー過去問』から学校の履修範囲で解ける年度・教科を選び、年と制限時間を記録して原則50分で解く。英語はリスニング音声も確認する", shortTitle: "過去問を50分で解く", estimateMinutes: 50, estimateSource: "exam_time_practice" },
-    { id: unit.id + "-task-2", text: "採点して得点と失点分野を記録し、過去問題集の解説と教科書を使ってわからない問題を解きほぐす", shortTitle: "採点・解説・弱点の記録", estimateMinutes: 35, estimateSource: "provisional_session_budget" },
-    { id: unit.id + "-task-3", text: "間違えた問題を解答を見ずに解き直し、次に解く年度と重点分野を決める", shortTitle: "間違い直しと次の対策", estimateMinutes: 30, estimateSource: "provisional_session_budget" }
+    { id: unit.id + "-task-2", text: "採点して得点と失点分野を記録し、過去問題集の解説と教科書を使ってわからない問題を解きほぐす", shortTitle: "採点・解説・弱点の記録", estimateMinutes: 45, estimateSource: "research_informed_planning_budget" },
+    { id: unit.id + "-task-3", text: "間違えた問題を解答を見ずに解き直し、次に解く年度と重点分野を決める", shortTitle: "間違い直しと次の対策", estimateMinutes: 40, estimateSource: "research_informed_planning_budget" }
   ];
   if (unit.id === "m-1") return [
     { id: "m-1-task-1", text: "正負の数の符号と累乗の規則を例題で確認し、途中式を説明する", estimateMinutes: 5 },
@@ -958,12 +958,12 @@ const buildStudySubtasks = (unit, subjectId) => {
     { id: unit.id + "-task-3", text: "理解できた点と未解決の点を分け、次の作業を決める", estimateMinutes: 10 }
   ] : [
     { id: unit.id + "-task-1", text: "「" + label + "」の要点を教科書や授業ノートで確認する",
-      estimateMinutes: 15, estimateSource: "provisional_session_budget" },
+      estimateMinutes: 20, estimateSource: "research_informed_planning_budget" },
     { id: unit.id + "-task-2", text: practice + "（対象：「" + label + "」）",
-      estimateMinutes: unit.level === "苦手" ? 35 : unit.level === "少し苦手" ? 30 : 25,
-      estimateSource: "provisional_session_budget" },
+      estimateMinutes: unit.level === "苦手" ? 55 : unit.level === "少し苦手" ? 45 : 40,
+      estimateSource: "research_informed_planning_budget" },
     { id: unit.id + "-task-3", text: "間違えた点を直し、「" + label + "」の確認問題を1問、自力で解く",
-      estimateMinutes: 20, estimateSource: "provisional_session_budget" }
+      estimateMinutes: 30, estimateSource: "research_informed_planning_budget" }
   ];
 };
 studySubjectsData.forEach(subject => subject.units.forEach(unit => {
@@ -975,8 +975,8 @@ studySubjectsData.forEach(subject => subject.units.forEach(unit => {
       id: unit.id + "-review-" + days,
       text: "「" + unit.item + "」について前に解いた問題から、答えを見ずに思い出す確認をする。間違えたら解説を読み、自力で解き直す（前回の基本学習から" + days + "日後を目安。本人の理解度で変更）",
       shortTitle: days + "日後に思い出して確認",
-      estimateMinutes: [12, 15, 20][index],
-      estimateSource: "provisional_spaced_review_budget",
+      estimateMinutes: [15, 20, 25][index],
+      estimateSource: "research_informed_spaced_review_budget",
       reviewOffsetDays: days,
       reviewIndex: index
     }));
@@ -4965,7 +4965,7 @@ function App() {
           ),
           openStudyProgress && h(React.Fragment, null,
           h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginBottom: "8px" } },
-            "各単元に3つのチェック付き「やること」を追加。目安時間は暫定計画値であり、本人の実績ではありません。元の「目安5分」等の算定根拠は未確認です。"),
+            "基本学習に加えて1・4・14日後の確認を設定。時間は研究で有効性が示された学習方法を参考にした初期予算で、本人の習得時間や実績ではありません。"),
           /* 上段: 5教科全単元 & Sランク即効 */
           h('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" } },
             h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
@@ -5028,7 +5028,7 @@ function App() {
           ),
           openStudyCapacity && h(React.Fragment, null,
           h('div', { style: { fontSize: "12px", color: C.sub } },
-            "目標の日・毎週使える時間・RIFFにまだ入れていない学校の宿題時間を入れてね。新しく学ぶ時間と間隔をあけた復習も含めて比べます。180分/週などの初期値は研究で確定した数字ではありません。高校入学後の課題は数えず、合否も予想しません。"),
+            "目標の日・毎週使える時間・RIFFにまだ入れていない学校の宿題時間を入れてね。授業の予習・復習、間違い直し、間隔をあけた再確認、受験終盤の7年分演習も含めて比べます。180分/週などの初期値は研究で確定した数字ではありません。高校入学後の課題は数えず、合否も予想しません。"),
           h('div', { style: { display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" } },
             h('label', { style: { fontSize: "12px", fontWeight: 800 } }, "目標管理日（仮） ",
               h('input', { type: "date", className: "time-input-inline",
