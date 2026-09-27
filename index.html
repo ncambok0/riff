@@ -920,8 +920,8 @@ const buildStudySubtasks = (unit, subjectId) => {
   ];
   if (unit.id === "m-1") return [
     { id: "m-1-task-1", text: "正負の数の符号と累乗の規則を例題で確認し、途中式を説明する", estimateMinutes: 5 },
-    { id: "m-1-task-2", text: "四則計算と計算順序を使った問題を3問解き、符号ミスを確認する", estimateMinutes: 10 },
-    { id: "m-1-task-3", text: "かっこを含む計算を1問、何も見ずに解いて答え合わせする", estimateMinutes: 5 }
+    { id: "m-1-task-2", text: "四則計算と計算順序を使った問題を3問解き、符号ミスを確認する", estimateMinutes: 15, estimateSource: "provisional_session_budget" },
+    { id: "m-1-task-3", text: "かっこを含む計算を1問、何も見ずに解いて答え合わせする", estimateMinutes: 10, estimateSource: "provisional_session_budget" }
   ];
   const future = ["高1", "高2", "高3", "進学後"].includes(unit.grade);
   const label = unit.item;
@@ -937,9 +937,13 @@ const buildStudySubtasks = (unit, subjectId) => {
     { id: unit.id + "-task-2", text: "「" + label + "」を実際の教材や作品で一つ試し、結果を記録する", estimateMinutes: 20 },
     { id: unit.id + "-task-3", text: "理解できた点と未解決の点を分け、次の作業を決める", estimateMinutes: 10 }
   ] : [
-    { id: unit.id + "-task-1", text: "「" + label + "」の要点を教科書や授業ノートで確認する", estimateMinutes: 5 },
-    { id: unit.id + "-task-2", text: practice + "（対象：「" + label + "」）", estimateMinutes: 10 },
-    { id: unit.id + "-task-3", text: "間違えた点を直し、「" + label + "」の確認問題を1問、自力で解く", estimateMinutes: 5 }
+    { id: unit.id + "-task-1", text: "「" + label + "」の要点を教科書や授業ノートで確認する",
+      estimateMinutes: 15, estimateSource: "provisional_session_budget" },
+    { id: unit.id + "-task-2", text: practice + "（対象：「" + label + "」）",
+      estimateMinutes: unit.level === "苦手" ? 35 : unit.level === "少し苦手" ? 30 : 25,
+      estimateSource: "provisional_session_budget" },
+    { id: unit.id + "-task-3", text: "間違えた点を直し、「" + label + "」の確認問題を1問、自力で解く",
+      estimateMinutes: 20, estimateSource: "provisional_session_budget" }
   ];
 };
 studySubjectsData.forEach(subject => subject.units.forEach(unit => {
@@ -2610,6 +2614,12 @@ function App() {
     try { return JSON.parse(localStorage.getItem("riff_study_unit_plan_v1") || "{}"); }
     catch (e) { return {}; }
   });
+  const [weeklyUnlistedSchoolMinutes, setWeeklyUnlistedSchoolMinutes] = useState(() => {
+    try {
+      const val = localStorage.getItem("riff_unlisted_school_minutes_v1");
+      return val == null ? 180 : Math.max(0,Math.min(10080,Number(val)||0));
+    } catch (e) { return 180; }
+  });
   const [weeklyStudyMinutes, setWeeklyStudyMinutes] = useState(() => {
     try { return Number(localStorage.getItem("riff_weekly_study_budget_v1")) || 300; }
     catch (e) { return 300; }
@@ -2872,7 +2882,9 @@ function App() {
   const remainingDays = Number.isFinite(parsedDeadline.getTime())
     ? Math.max(0, Math.ceil((parsedDeadline.getTime() - currentTime.getTime()) / 86400000)) : 0;
   const studyAvailableMinutes = Math.floor(remainingDays / 7 * weeklyStudyMinutes);
-  const studyCapacityGap = studyRemainingMinutes - studyAvailableMinutes;
+  const studySchoolReserveMinutes = Math.ceil(remainingDays / 7 * weeklyUnlistedSchoolMinutes);
+  const studyFullBudgetMinutes = studyRemainingMinutes + studySchoolReserveMinutes;
+  const studyCapacityGap = studyFullBudgetMinutes - studyAvailableMinutes;
   const totalSRankUnits = allStudyTasks.filter(task => task.rank === "S").length;
   const checkedSRankUnits = allStudyTasks.filter(task =>
     task.rank === "S" && checkedItems[task.id]).length;
@@ -4976,7 +4988,7 @@ function App() {
           ),
           openStudyCapacity && h(React.Fragment, null,
           h('div', { style: { fontSize: "12px", color: C.sub } },
-            "目標の日と、1週間に勉強できる時間を入れてね。残りのやることに何分必要か比べられます。高校入学後の課題は数えません。合否を予想するものではありません。"),
+            "目標の日・毎週使える時間・RIFFにまだ入れていない学校の宿題時間を入れてね。新しく学ぶ時間と間隔をあけた復習も含めて比べます。180分/週などの初期値は研究で確定した数字ではありません。高校入学後の課題は数えず、合否も予想しません。"),
           h('div', { style: { display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" } },
             h('label', { style: { fontSize: "12px", fontWeight: 800 } }, "目標管理日（仮） ",
               h('input', { type: "date", className: "time-input-inline",
@@ -4994,6 +5006,17 @@ function App() {
                   const value = Math.min(10080, Math.max(0, Number(e.target.value) || 0));
                   setWeeklyStudyMinutes(value);
                   try { localStorage.setItem("riff_weekly_study_budget_v1", String(value)); } catch (err) {}
+                } })),
+            h('label', { style: { fontSize: "12px", fontWeight: 800 } },
+              "未登録の学校宿題・定期テスト対策（毎週・分） ",
+              h('input', { type: "number", min: 0, max: 10080, step: 30,
+                className: "time-input-inline", style: { width: "95px" },
+                value: weeklyUnlistedSchoolMinutes,
+                onChange: e => {
+                  const value = Math.min(10080, Math.max(0, Number(e.target.value)||0));
+                  setWeeklyUnlistedSchoolMinutes(value);
+                  try { localStorage.setItem("riff_unlisted_school_minutes_v1", String(value)); }
+                  catch(err) {}
                 } }))
           ),
           h('div', { style: { display: "flex", flexWrap: "wrap", gap: "7px" } },
@@ -5013,7 +5036,10 @@ function App() {
               studyCapacityGap > 0 ? "#FEF2F2" : "#ECFDF5", borderRadius: "7px",
               fontSize: "13px", fontWeight: 800, lineHeight: 1.5,
               color: studyCapacityGap > 0 ? "#991B1B" : "#065F46" } },
-            "残り" + remainingDays + "日｜必要 " + formatTaskMinutes(studyRemainingMinutes) +
+            "残り" + remainingDays + "日｜登録済み課題と反復 " +
+            formatTaskMinutes(studyRemainingMinutes) + "｜未登録の学校宿題など " +
+            formatTaskMinutes(studySchoolReserveMinutes) +
+            "｜必要な時間の合計 " + formatTaskMinutes(studyFullBudgetMinutes) +
             "｜確保できる想定 " + formatTaskMinutes(studyAvailableMinutes) +
             (studyCapacityGap > 0 ? "｜不足 " + formatTaskMinutes(studyCapacityGap) :
               "｜想定上の余裕 " + formatTaskMinutes(-studyCapacityGap))),
