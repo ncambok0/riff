@@ -1001,10 +1001,14 @@ studySubjectsData.forEach(subject => subject.units.forEach(unit => {
   const topic = studyTopicTitle(unit);
   const future = ["高1","高2","高3","進学後"].includes(unit.grade);
   unit.subtasks.forEach((task, index) => {
+    if (!task.shortTitle && unit.taskKind === "current")
+      task.shortTitle = ["授業前の予習","授業後の基本問題","間違い直しと学校ワーク"][index];
+    if (!task.shortTitle && unit.taskKind === "pastpaper")
+      task.shortTitle = ["過去問を時間内に解く","採点・弱点の記録","間違い直し"][index];
     if (unit.id === "m-1") {
       task.shortTitle = ["正負の数の符号と累乗を確認","四則計算の基本問題を3問解く","かっこ付き計算を自力で解く"][index];
     } else if (unit.taskKind === "current" || unit.taskKind === "pastpaper" || task.reviewOffsetDays) {
-      task.shortTitle = task.shortTitle || task.text;
+      task.shortTitle = task.shortTitle || (task.reviewOffsetDays ? task.reviewOffsetDays + "日後の確認" : taskShortTitle(task));
     } else if (future) {
       task.shortTitle = ["「" + topic + "」の準備","「" + topic + "」を実際に試す","「" + topic + "」の次の作業を決める"][index];
     } else {
@@ -1020,9 +1024,15 @@ const taskShortTitle = source => {
   const value = String(source && typeof source === "object" ? source.text : source || "").trim();
   if (/be動詞と一般動詞の区別・三人称単数現在形/.test(value) && /要点/.test(value))
     return "「be / 一般動詞の区別・三人称単数現在形」の要点の確認";
-  const pattern = value.match(/^「(.+?)」の要点を教科書や授業ノートで確認する/);
-  if (pattern) return "「" + pattern[1].split(/[（(]/)[0] + "」の要点の確認";
-  return value.length > 36 ? value.split(/[、。]/)[0].replace(/を(確認|記録|実施)する.*$/, "を$1") : value;
+  const match = value.match(/^「(.+?)」の要点を教科書や授業ノートで確認する/);
+  if (match) return "「" + match[1].split(/[（(]/)[0] + "」の要点の確認";
+  const shortened = value.replace(/教科書や授業ノートで確認する/g, "を確認")
+    .replace(/授業の進度が異なる場合は学校の予定を優先する/g, "")
+    .replace(/わからない言葉と公式を2つまでメモする/g, "疑問点をメモ")
+    .replace(/学校ワークの宿題を進める/g, "宿題を進める")
+    .replace(/（対象：「(.+?)」）/g, "（$1）");
+  return shortened.length <= 38 ? shortened :
+    shortened.slice(0, 31).replace(/[、，のを・]+$/, "") + "…";
 };
 const taskMinutes = task => task.estimateMinutes || 0;
 const stepMinutes = step => (step.subtasks || []).reduce((sum, task) => sum + taskMinutes(task), 0);
