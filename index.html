@@ -2314,13 +2314,20 @@ function App() {
   };
   const getLinkedStep = item => (scheduleStepChoices[getScheduleCategory(item)] || [])
     .find(step => step.id === item.linkedStepId) || null;
-  const totalSRankUnits = allStudyUnits.filter(u => u.rank === "S").length;
-  const checkedSRankUnits = allStudyUnits.filter(u => u.rank === "S" && checkedItems[u.id]).length;
-  const sRankPct = Math.round((checkedSRankUnits / totalSRankUnits) * 100);
+  // 学習進捗は「やること」の共有チェックを基準に算出する。
+  // 古い単元の完了チェックはそのまま保存し、勝手に387件の小タスクへ転記しない。
+  const allStudyTasks = allStudyUnits.flatMap(unit =>
+    unit.subtasks.map(task => ({ ...task, rank: unit.rank })));
+  const totalSRankUnits = allStudyTasks.filter(task => task.rank === "S").length;
+  const checkedSRankUnits = allStudyTasks.filter(task =>
+    task.rank === "S" && checkedItems[task.id]).length;
+  const sRankPct = totalSRankUnits
+    ? Math.round(checkedSRankUnits / totalSRankUnits * 100) : 0;
 
-  const totalStudyUnits = allStudyUnits.length;
-  const checkedStudyUnits = allStudyUnits.filter(u => checkedItems[u.id]).length;
-  const studyPct = Math.round((checkedStudyUnits / totalStudyUnits) * 100);
+  const totalStudyUnits = allStudyTasks.length;
+  const checkedStudyUnits = allStudyTasks.filter(task => checkedItems[task.id]).length;
+  const studyPct = totalStudyUnits
+    ? Math.round(checkedStudyUnits / totalStudyUnits * 100) : 0;
 
   /* Music subtasks progress */
   const allMusicSubtasks = musicSteps.flatMap(s => s.subtasks);
@@ -2801,6 +2808,7 @@ function App() {
   const renderStudyTaskCard = (u, subObj, targetTab = "study") => {
     const isChecked = !!checkedItems[u.id];
     const isExpanded = !!expandedDetailTasks[u.id];
+    const completedTasks = u.subtasks.filter(task => checkedItems[task.id]).length;
 
     return h('div', {
       key: u.id,
@@ -2824,6 +2832,9 @@ function App() {
         }),
         h('div', { style: { flex: 1, minWidth: 0 } },
           renderStandardTaskTags(u, subObj, targetTab),
+          h('div', { style: { fontSize: "11px", color: C.studyText,
+            fontWeight: 800, marginBottom: "4px" } },
+            "やること完了 " + completedTasks + "/" + u.subtasks.length),
           h('div', {
             onClick: () => toggleTaskDetail(u.id),
             style: {
@@ -3979,7 +3990,7 @@ function App() {
           h('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" } },
             h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
               h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" } },
-                h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#93C5FD" } }, "5教科全単元"),
+                h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#93C5FD" } }, "5教科・全やること"),
                 h('div', { style: { display: "flex", gap: "6px", alignItems: "baseline" } },
                   h('span', { style: { fontSize: "16px", fontWeight: 900, color: "#60A5FA" } }, `${studyPct}%`),
                   h('span', { style: { fontSize: "11px", color: "#E5E5EA" } }, `${checkedStudyUnits}/${totalStudyUnits}`)
@@ -3991,7 +4002,7 @@ function App() {
             ),
             h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
               h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" } },
-                h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#FCA5A5" } }, "🔥 Sランク即効"),
+                h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#FCA5A5" } }, "🔥 Sランクのやること"),
                 h('div', { style: { display: "flex", gap: "6px", alignItems: "baseline" } },
                   h('span', { style: { fontSize: "16px", fontWeight: 900, color: "#EF4444" } }, `${sRankPct}%`),
                   h('span', { style: { fontSize: "11px", color: "#E5E5EA" } }, `${checkedSRankUnits}/${totalSRankUnits}`)
@@ -4005,8 +4016,9 @@ function App() {
           /* 下段: 数・英・理・社・国の各教科進捗 */
           h('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "6px" } },
             studySubjectsData.map((sub) => {
-              const subDone = sub.units.filter(u => checkedItems[u.id]).length;
-              const subTotal = sub.units.length;
+              const subjectTasks = sub.units.flatMap(u => u.subtasks);
+              const subDone = subjectTasks.filter(task => checkedItems[task.id]).length;
+              const subTotal = subjectTasks.length;
               const subPct = Math.round((subDone / subTotal) * 100);
               return h('div', {
                 key: sub.id,
