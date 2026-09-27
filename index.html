@@ -1008,7 +1008,7 @@ studySubjectsData.forEach(subject => subject.units.forEach(unit => {
     if (unit.id === "m-1") {
       task.shortTitle = ["正負の数の符号と累乗を確認","四則計算の基本問題を3問解く","かっこ付き計算を自力で解く"][index];
     } else if (unit.taskKind === "current" || unit.taskKind === "pastpaper" || task.reviewOffsetDays) {
-      task.shortTitle = task.shortTitle || (task.reviewOffsetDays ? task.reviewOffsetDays + "日後の確認" : taskShortTitle(task));
+      task.shortTitle = task.shortTitle || (task.reviewOffsetDays ? task.reviewOffsetDays + "日後の確認" : "「" + topic + "」の確認");
     } else if (future) {
       task.shortTitle = ["「" + topic + "」の準備","「" + topic + "」を実際に試す","「" + topic + "」の次の作業を決める"][index];
     } else {
