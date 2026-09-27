@@ -277,7 +277,7 @@
 <script>
 const { useState, useEffect, createElement: h } = React;
 
-const APP_VERSION = "v2.3.3-compact-planning-preview";
+const APP_VERSION = "v2.3.4-reset-manual-times-preview";
 
 const C = {
   music: "#7C3AED", musicBg: "#FAF5FF", musicBorder: "#C4B5FD", musicText: "#5B21B6",
@@ -2260,17 +2260,34 @@ function App() {
     catch (e) {}
     return next;
   });
-  const [taskEstimateOverrides, setTaskEstimateOverrides] = useState(() => {
+  // v2.3.4: これまで本人が設定した時間を全件いったん解除。
+  // 手動設定があった作業だけ初期目安を5分（仮）にする。
+  // 他の作業の元々の仮見積もりと、実際に計った履歴は消さない。
+  const [resetToFiveTaskIds] = useState(() => {
     try {
-      const prior = JSON.parse(localStorage.getItem("riff_task_estimate_overrides_v1") || "{}");
-      // FB: Amber i2の手動1分は解除して、指定された初期目安5分へ戻す。他の設定は維持。
-      if (Object.prototype.hasOwnProperty.call(prior, "mus-1-1")) {
-        delete prior["mus-1-1"];
-        localStorage.setItem("riff_task_estimate_overrides_v1", JSON.stringify(prior));
+      const key = "riff_manual_time_reset_v234_done";
+      const existing = JSON.parse(localStorage.getItem("riff_task_initial_five_v1") || "[]");
+      if (localStorage.getItem(key) === "1") {
+        return Object.fromEntries((Array.isArray(existing) ? existing : [])
+          .map(id => [id, true]));
       }
-      return prior;
+      const prior = JSON.parse(localStorage.getItem("riff_task_estimate_overrides_v1") || "{}");
+      const saved = Array.isArray(existing) ? existing : [];
+      const previouslySet = prior && typeof prior === "object" && !Array.isArray(prior)
+        ? Object.keys(prior).filter(id => Number(prior[id]) > 0) : [];
+      const ids = Array.from(new Set([...saved, ...previouslySet]));
+      localStorage.setItem("riff_task_initial_five_v1", JSON.stringify(ids));
+      localStorage.setItem("riff_task_estimate_overrides_v1", "{}");
+      localStorage.setItem(key, "1");
+      return Object.fromEntries(ids.map(id => [id, true]));
     } catch (e) { return {}; }
   });
+  const [taskEstimateOverrides, setTaskEstimateOverrides] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_task_estimate_overrides_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const initialTaskMinutes = task =>
+    resetToFiveTaskIds[task.id] ? 5 : taskMinutes(task);
   const setTaskEstimateOverride = (id, value) => setTaskEstimateOverrides(prev => {
     const next = { ...prev };
     if (value === "" || value == null) delete next[id];
@@ -2348,7 +2365,7 @@ function App() {
   };
   const effectiveTaskMinutes = task =>
     Number(taskEstimateOverrides[task.id]) > 0 ? Number(taskEstimateOverrides[task.id]) :
-    (getMeasuredMinutes(task) || taskMinutes(task));
+    (getMeasuredMinutes(task) || initialTaskMinutes(task));
   const effectiveStepMinutes = step =>
     (step.subtasks || []).reduce((sum, task) => sum + effectiveTaskMinutes(task), 0);
   const stepTimeLabel = step => "合計目安" + formatTaskMinutes(effectiveStepMinutes(step)) +
@@ -2357,7 +2374,7 @@ function App() {
   const taskEstimateLabel = task => Number(taskEstimateOverrides[task.id]) > 0
     ? "本人設定" + formatTaskMinutes(effectiveTaskMinutes(task))
     : (getMeasuredMinutes(task) == null
-      ? "目安" + formatTaskMinutes(taskMinutes(task)) + "（仮）"
+      ? "目安" + formatTaskMinutes(initialTaskMinutes(task)) + "（仮）"
       : "実際に計った目安" + formatTaskMinutes(getMeasuredMinutes(task)) + "（3回以上）");
   const renderTaskMeasurement = task => {
     const opened = !!openTaskMeasurements[task.id];
@@ -2393,7 +2410,7 @@ function App() {
           fontWeight: 800 } },
           "この作業に何分かかったか記録して、次の予定の目安に使おう。"),
         h('div', { style: { color: C.muted } },
-          "最初の目安 " + formatTaskMinutes(taskMinutes(task)) +
+          "最初の目安 " + formatTaskMinutes(initialTaskMinutes(task)) +
           "｜計った時間からの目安 "  + (getMeasuredMinutes(task) == null ?
             "3回の記録後（現在" + records.length + "回）" :
             formatTaskMinutes(getMeasuredMinutes(task)) + "（中央値）")),
