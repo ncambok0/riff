@@ -2169,13 +2169,25 @@ function App() {
     catch (e) { return {}; }
   });
   const [taskSessionDrafts, setTaskSessionDrafts] = useState({});
+  const [taskEstimateOverrides, setTaskEstimateOverrides] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_task_estimate_overrides_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const setTaskEstimateOverride = (id, value) => setTaskEstimateOverrides(prev => {
+    const next = { ...prev };
+    if (value === "" || value == null) delete next[id];
+    else next[id] = Math.min(1440, Math.max(1, Number(value) || 1));
+    try { localStorage.setItem("riff_task_estimate_overrides_v1", JSON.stringify(next)); }
+    catch (e) {}
+    return next;
+  });
   const [openTaskMeasurements, setOpenTaskMeasurements] = useState({});
   const setTaskSessionDraft = (id, field, value) => {
     setTaskSessionDrafts(prev => ({ ...prev,
       [id]: { ...(prev[id] || {}), [field]: value } }));
   };
   const startTaskTimer = id => {
-    if (activeTaskTimers[id]) return;
+    if (activeTaskTimers[id] || Object.keys(activeTaskTimers).length > 0) return;
     setActiveTaskTimers(prev => {
       const next = { ...prev, [id]: Date.now() };
       try { localStorage.setItem("riff_active_timers_v1", JSON.stringify(next)); } catch (e) {}
@@ -2188,6 +2200,11 @@ function App() {
     const draft = taskSessionDrafts[id] || {};
     const seconds = Math.round((Date.now() - started) / 1000);
     if (seconds <= 0) return;
+    if (seconds > 14400) {
+      setTaskSessionDraft(id, "error",
+        "計測時間が4時間を超えています。記録の正確性を確認し、誤って継続した場合は「計測を破棄」してください。");
+      return;
+    }
     const attempted = draft.attempted === "" || draft.attempted == null
       ? null : Number(draft.attempted);
     const correct = draft.correct === "" || draft.correct == null
@@ -2214,6 +2231,13 @@ function App() {
       return next;
     });
   };
+  const discardTaskTimer = id => setActiveTaskTimers(prev => {
+    const next = { ...prev };
+    delete next[id];
+    try { localStorage.setItem("riff_active_timers_v1", JSON.stringify(next)); }
+    catch (e) {}
+    return next;
+  });
   const getMeasuredMinutes = task => {
     const records = (taskSessions[task.id] || [])
       .filter(record => Number(record.seconds) > 0);
@@ -2224,10 +2248,14 @@ function App() {
       (durations[mid - 1] + durations[mid]) / 2;
     return Math.max(1, Math.ceil(median));
   };
-  const effectiveTaskMinutes = task => getMeasuredMinutes(task) || taskMinutes(task);
-  const taskEstimateLabel = task => getMeasuredMinutes(task) == null
-    ? "目安" + formatTaskMinutes(taskMinutes(task)) + "（仮）"
-    : "実測補正" + formatTaskMinutes(getMeasuredMinutes(task)) + "（中央値）";
+  const effectiveTaskMinutes = task =>
+    Number(taskEstimateOverrides[task.id]) > 0 ? Number(taskEstimateOverrides[task.id]) :
+    (getMeasuredMinutes(task) || taskMinutes(task));
+  const taskEstimateLabel = task => Number(taskEstimateOverrides[task.id]) > 0
+    ? "本人設定" + formatTaskMinutes(effectiveTaskMinutes(task))
+    : (getMeasuredMinutes(task) == null
+      ? "目安" + formatTaskMinutes(taskMinutes(task)) + "（仮）"
+      : "実測補正" + formatTaskMinutes(getMeasuredMinutes(task)) + "（中央値）");
   const renderTaskMeasurement = task => {
     const opened = !!openTaskMeasurements[task.id];
     const records = taskSessions[task.id] || [];
@@ -2261,14 +2289,27 @@ function App() {
             formatTaskMinutes(getMeasuredMinutes(task)) + "（中央値）")),
         h('div', { style: { display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" } },
           h('button', { type: "button", className: "btn-action",
-            disabled: running, style: { color: "#FFFFFF", background: C.code },
+            disabled: running || Object.keys(activeTaskTimers).length > 0,
+            style: { color: "#FFFFFF", background: C.code },
             onClick: () => startTaskTimer(task.id) }, "▶ 計測開始"),
           h('button', { type: "button", className: "btn-action",
             disabled: !running, style: { color: "#FFFFFF", background: C.study },
             onClick: () => finishTaskTimer(task.id) }, "■ 終了して記録"),
+          running && h('button', { type: "button", className: "btn-action",
+            style: { color: "#991B1B", background: "#FEE2E2" },
+            onClick: () => discardTaskTimer(task.id) }, "計測を破棄"),
           h('span', { style: { fontWeight: 900 } },
             running ? "計測中 " + Math.floor(elapsed / 60) + "分" +
               (elapsed % 60) + "秒" : "未計測")
+        ),
+        h('label', null, "今後の所要時間を本人が調整（分）",
+          h('input', { type: "number", min: 1, max: 1440,
+            className: "time-input-inline", style: { marginLeft: "7px", width: "85px" },
+            value: taskEstimateOverrides[task.id] || "",
+            placeholder: "自動",
+            onChange: e => setTaskEstimateOverride(task.id, e.target.value) }),
+          h('span', { style: { color: C.muted, marginLeft: "6px" } },
+            "空欄なら初期値／3回以上の実測を使用。分割した作業の残り時間は本人が設定。")
         ),
         h('label', null, "体感難易度（本人の感覚）",
           h('select', { className: "time-input-inline", value: draft.difficulty || "",
