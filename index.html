@@ -2113,6 +2113,8 @@ const createEmptyFeedbackForm = () => ({
 
 function App() {
   const [tab, setTab] = useState("today");
+  const [openHelpMenu, setOpenHelpMenu] = useState(false);
+  const [helpPage, setHelpPage] = useState(null); // "intro" or "manual"
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -3469,7 +3471,70 @@ function App() {
 
   };
 
+  const helpSection = (heading, summary, details) =>
+    h('details', { className: "riff-help-section" },
+      h('summary', null, heading),
+      h('div', null,
+        h('p', null, summary),
+        details && h('p', { style: { color: "#475569" } }, details)
+      )
+    );
+
   return h('div', { style: { minHeight: "100dvh", background: C.bg, color: C.text } },
+    helpPage && h('div', { className: "riff-help-backdrop",
+      role: "presentation",
+      onClick: () => setHelpPage(null) },
+      h('div', { className: "riff-help-dialog", role: "dialog",
+        "aria-modal": true, "aria-label": helpPage === "intro" ? "はじめに" : "ユーザーマニュアル",
+        onClick: e => e.stopPropagation() },
+        h('div', { style: { display: "flex", justifyContent: "space-between",
+          alignItems: "center", gap: "12px", borderBottom: "1px solid #CBD5E1",
+          paddingBottom: "10px" } },
+          h('h2', { style: { fontSize: "20px", fontWeight: 900 } },
+            helpPage === "intro" ? "👋 RIFF はじめに" : "📖 RIFFの使いかた"),
+          h('button', { type: "button", className: "btn-action",
+            style: { color: "#FFFFFF", background: "#334155" },
+            onClick: () => setHelpPage(null) }, "閉じる ✕")
+        ),
+        helpPage === "intro" ? h(React.Fragment, null,
+          h('p', null, "RIFFは、真くんの「やりたい！」を少しずつ形にするためのアプリです。"),
+          h('p', null, "勉強・ギター・音楽づくり・プログラミングを、一つの予定表で見られます。全部を一日にやる必要はありません。"),
+          helpSection("🎯 何のためのアプリ？",
+            "高校受験に向けて学びながら、ギターとMountain of Soundの制作も続けるためです。",
+            "予定どおり進まない日があっても大丈夫。残り時間を見て、次に何をするか選べます。"),
+          helpSection("🧩 3つの大切な言葉",
+            "「ステージ」は大きな目標。「ステップ」はその中のまとまり。「やること」は今日チェックできる小さな作業です。",
+            "音楽・開発・学習のどのタブでも同じ意味で使います。"),
+          helpSection("⏱ 「目安」と「実測」の違い",
+            "目安は、始める前に考えた時間。実測は、自分で計って記録した時間です。",
+            "同じ作業を3回計測すると、真ん中の時間を次の予定づくりに使います。今日の予定は勝手には入れ替わりません。"),
+          h('p', { style: { fontWeight: 800, color: "#1D4ED8" } },
+            "合言葉は「すべての学びは作品につながる」。")
+        ) : h(React.Fragment, null,
+          h('p', null, "使いたいところだけ開いて読んでね。最初は「今日」だけでもOKです。"),
+          helpSection("① 今日：今やることを見よう",
+            "時間割の予定名を押すと、その時間にやることが下に開きます。終わったら□にチェック！",
+            "やることの名前を押すと、音楽・開発・学習のくわしい場所に移動します。"),
+          helpSection("② 音楽・開発・学習：くわしく見よう",
+            "色のついた「ステージ」を押すと、中のステップを開いたり閉じたりできます。",
+            "ステップの名前を押すと、やることが見えます。各やることの「実測・難易度」で時間を計ったり、使った教材を記録したりできます。"),
+          helpSection("③ 時間を計る・次の目安を変える",
+            "やることの「実測・難易度」→「計測開始」→終わったら「終了して記録」。使った時間が残ります。",
+            "同じやることを3回計ると、次の予定づくりに反映します。今日の予定を変えたいときは「未完了から再割当」を押します。自分で「今後の所要時間」を入力することもできます。"),
+          helpSection("④ 予定が多すぎるとき",
+            "学習タブで、目標までに必要な時間と、使えそうな時間を比べられます。",
+            "「計画に残す」「必要性を見直す」「今回は延期」から選べます。どれを学ぶかは、真くんや家族が決めます。"),
+          helpSection("⑤ ほかのタブは何をするの？",
+            "計画＝長い予定。月別＝月ごとの予定。ステージ＝大きな目標。他＝休けいなど。時間割＝一日の予定のひな型。進路＝学校の候補。感想＝使ってみた意見。",
+            "「感想」は、送る前に内容と送り先を確認してね。"),
+          helpSection("⑥ タグ・ボタン・リンクの見分け方",
+            "丸い色のタグは名前や分類を表します。四角いボタンは押して操作できます。「↗」と下線があるものは別の場所へ移動します。",
+            "「▲／▼」があるタイトルは、その下に説明ややることが開きます。"),
+          h('p', { style: { color: "#64748B" } },
+            "このRIFFは作成中の暫定版です。うまく動かないところは「感想」タブから教えてね。")
+        )
+      )
+    ),
     h('div', { className: 'fixed-header' },
       h('div', { style: { maxWidth: 880, margin: "0 auto", padding: "10px 14px 4px" } },
         h('div', {
@@ -3510,13 +3575,24 @@ function App() {
               }
             }, "真のクリエイターロードマップ 2026～2031")
           ),
-          h('div', {
-            style: {
-              fontSize: "11.8px",
-              fontWeight: 700,
-              color: "#D1D1D6"
-            }
-          }, formattedDateStr)
+          h('div', { style: { display: "flex", alignItems: "center", gap: "8px",
+            position: "relative" } },
+            h('span', { style: { fontSize: "13px", fontWeight: 700,
+              color: "#E5E5EA" } }, formattedDateStr),
+            h('button', { type: "button", className: "riff-help-gear",
+              "aria-label": "RIFFの説明と使いかた", "aria-haspopup": "menu",
+              "aria-expanded": openHelpMenu,
+              onClick: () => setOpenHelpMenu(prev => !prev) }, "⚙"),
+            openHelpMenu && h('div', { className: "riff-help-menu", role: "menu",
+              "aria-label": "RIFFヘルプ" },
+              h('button', { type: "button", role: "menuitem",
+                onClick: () => { setHelpPage("intro"); setOpenHelpMenu(false); } },
+                "👋 はじめに"),
+              h('button', { type: "button", role: "menuitem",
+                onClick: () => { setHelpPage("manual"); setOpenHelpMenu(false); } },
+                "📖 使いかた（ユーザーマニュアル）")
+            )
+          )
         ),
         h('div', { className: 'nav-tabs-container' },
           [
