@@ -157,6 +157,7 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   }
 
+  .riff-selectable-heading { user-select: text !important; -webkit-user-select: text !important; }
   .dark-card-banner {
     background: linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%);
     color: #FFFFFF;
@@ -2479,7 +2480,7 @@ function App() {
     : (getMeasuredMinutes(task) == null
       ? "目安" + formatTaskMinutes(initialTaskMinutes(task)) + "（仮）"
       : "実際に計った目安" + formatTaskMinutes(getMeasuredMinutes(task)) + "（3回以上）");
-  const renderTaskMeasurement = task => {
+  const renderTaskMeasurement = (task, part = "both") => {
     const opened = !!openTaskMeasurements[task.id];
     const records = taskSessions[task.id] || [];
     const draft = taskSessionDrafts[task.id] || {};
@@ -2495,7 +2496,7 @@ function App() {
     const elapsed = running ?
       Math.max(0, Math.floor((currentTime.getTime() - activeTaskTimers[task.id]) / 1000)) : 0;
     return h(React.Fragment, null,
-      h('button', { type: "button", className: "btn-action",
+      part !== "panel" && h('button', { type: "button", className: "btn-action",
         "aria-expanded": opened,
         title: "時間を計ると、次の予定に必要な時間を考えやすくなります。",
         style: { color: C.studyText, background: "#EFF6FF",
@@ -2504,7 +2505,7 @@ function App() {
           ({ ...prev, [task.id]: !prev[task.id] })) },
         "⏱ 作業時間を記録" + (records.length ? " " + records.length + "回" : "") +
         (opened ? " ▲" : " ▼")),
-      opened && h('div', { style: { flex: "1 1 100%", order: 101, width: "100%",
+      part !== "button" && opened && h('div', { style: { flex: "1 1 100%", width: "100%",
         marginTop: "6px", padding: "9px", borderRadius: "7px",
         background: "#FFFFFF", border: "1px solid " + C.border, color: C.text,
         display: "flex", flexDirection: "column", gap: "7px" } },
@@ -3549,8 +3550,7 @@ function App() {
                 title: taskTextbookPages[task.id] || task.textbookPages ||
                   "このやることの教科書ページは未確認です。" },
                 "📖 " + (taskTextbookPages[task.id] || task.textbookPages || "ページ未確認")),
-              taskExplanation(task, u.textbookRef),
-              renderTaskMeasurement(task)
+              renderTaskActions(task, u.textbookRef)
               )
             )),
             h('div', { style: { marginTop: "5px", fontSize: "11px", color: C.muted } },
@@ -3586,7 +3586,7 @@ function App() {
         h('span', { style: { flexShrink: 0, fontSize: "12px",
           color: dark ? "#A7F3D0" : C.codeText, fontWeight: 800 } },
           taskEstimateLabel(task)),
-        taskExplanation(task)
+        renderTaskActions(task, "", false)
       )
     ))
   );
@@ -3708,8 +3708,7 @@ function App() {
                         prev === item.id + ":" + task.id ? null : item.id + ":" + task.id);
                     }, style: { fontSize: "10px", background: C.studyBg, color: C.studyText } },
                     "変更"),
-                  taskExplanation(task),
-                  renderTaskMeasurement(task)
+                  renderTaskActions(task)
                 ))
               );
             }),
@@ -3736,7 +3735,7 @@ function App() {
                   TASK_CATALOG[category].filter(option => option.stepId ===
                     (manualStepByTask[item.id + ":" + task.id] || task.stepId)).map(option =>
                     h('option', { key: option.id, value: option.id, disabled: !!checkedItems[option.id] },
-                      taskShortTitle(option.text) + "｜" + formatTaskMinutes(effectiveTaskMinutes(option)))) )
+                      taskShortTitle(option) + "｜" + formatTaskMinutes(effectiveTaskMinutes(option)))) )
               )),
             assignmentWarning && h('div', { style: { color: "#B91C1C", fontSize: "12px" } },
               assignmentWarning),
@@ -3760,19 +3759,19 @@ function App() {
 
   // ボタンはその場所に固定し、開いた説明だけを次の行に置く。
   // details要素自身の幅を切り替えると操作ボタンがジャンプするため使わない。
-  const taskExplanation = (task, studyReference = "") => {
+  const taskExplanation = (task, studyReference = "", part = "both") => {
     const hasReference = !!studyReference;
     if (String(task.text || "").trim() === taskShortTitle(task) && !hasReference) return null;
     const opened = !!openTaskDescriptions[task.id];
     return h(React.Fragment, null,
-      h('button', { type: "button", className: "btn-action",
+      part !== "panel" && h('button', { type: "button", className: "btn-action",
         "aria-expanded": opened,
         style: { flex: "0 0 auto", fontSize: "12px", padding: "5px 9px",
           background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" },
         onClick: () => setOpenTaskDescriptions(prev =>
           ({ ...prev, [task.id]: !prev[task.id] })) },
         "説明 " + (opened ? "▲" : "▼")),
-      opened && h('div', { style: { flex: "1 1 100%", order: 100,
+      part !== "button" && opened && h('div', { style: { flex: "1 1 100%",
         minWidth: 0, width: "100%", padding: "9px 11px", borderRadius: "6px",
         background: "#F8FAFC", borderLeft: "3px solid #64748B",
         color: "#1E293B", fontSize: "15px", lineHeight: 1.7 } },
@@ -3796,6 +3795,19 @@ function App() {
       )
     );
   };
+
+  // コントロールの行と展開内容の行を分離。説明・記録を開いてもボタンの座標を維持する。
+  const renderTaskActions = (task, studyReference = "", withMeasurement = true) =>
+    h(React.Fragment, null,
+      h('div', { className: "riff-task-toolbar",
+        style: { flex: "1 1 100%", width: "100%", minWidth: 0,
+          display: "flex", alignItems: "center", flexWrap: "wrap", gap: "7px" } },
+        taskExplanation(task, studyReference, "button"),
+        withMeasurement && renderTaskMeasurement(task, "button")),
+      !!openTaskDescriptions[task.id] && taskExplanation(task, studyReference, "panel"),
+      withMeasurement && !!openTaskMeasurements[task.id] &&
+        renderTaskMeasurement(task, "panel")
+    );
 
   const helpSection = (heading, summary, details) =>
     h('details', { className: "riff-help-section" },
@@ -4757,8 +4769,7 @@ function App() {
                   style: { color: "#065F46", background: "#ECFDF5",
                     fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
                   taskEstimateLabel(st)),
-                taskExplanation(st),
-                renderTaskMeasurement(st)
+                renderTaskActions(st)
               ))
             )
           ));
@@ -4858,8 +4869,7 @@ function App() {
                   style: { color: "#065F46", background: "#ECFDF5",
                     fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
                   taskEstimateLabel(st)),
-                taskExplanation(st),
-                renderTaskMeasurement(st)
+                renderTaskActions(st)
               ))
             )
           ));
@@ -4907,13 +4917,14 @@ function App() {
           )
         ),
 
-        /* 進捗は科目一覧より下に。 */
+        /* 進捗は学習タブの上部、目標・時間カードと同じ場所に置く。 */
         h('div', { className: 'dark-card-banner', style: { order: 1 } },
           h('div', { style: { display: "flex", alignItems: "center",
             justifyContent: "space-between", gap: "8px", minHeight: "42px",
             marginBottom: openStudyProgress ? "8px" : 0 } },
-            h('span', { style: { fontSize: "15px", fontWeight: 900,
-              userSelect: "text", WebkitUserSelect: "text", color: "#FFFFFF" } },
+            h('span', { className: "riff-selectable-heading", style: { fontSize: "15px", fontWeight: 900,
+              display: "inline-block", userSelect: "text", WebkitUserSelect: "text",
+              WebkitTouchCallout: "default", cursor: "text", color: "#FFFFFF" } },
               "📚 学習タブの進み具合"),
             h('button', { type: "button", className: "btn-action",
               "aria-label": "学習タブの進み具合を" + (openStudyProgress ? "閉じる" : "開く"),
