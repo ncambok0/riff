@@ -3236,6 +3236,10 @@ function App() {
     setTodayReplanPreview(null);
   };
   // 計測と目安の更新は今日の割当を変更しない。本人が押したときだけ変更案を生成。
+  const dailyReplanSignature = () => JSON.stringify(
+    todaySched.items.map(item => [item.id, item.t,
+      (todaySlots[item.id] || []).map(id => [id, !!checkedItems[id],
+        effectiveTaskMinutes(resolveTodayTask(id) || {})])])); 
   const previewTodayReplan = () => {
     setAssignmentWarning("");
     const now = currentTime.getHours() * 60 + currentTime.getMinutes();
@@ -3289,7 +3293,9 @@ function App() {
       JSON.stringify(todaySlots[item.id] || []) !== JSON.stringify(proposal[item.id]));
     setTodayReplanPreview({ slots: proposal, deferred, moved, fixedOverflow,
       changed, fingerprint: dailyTemplateFingerprint, planKey: dailyPlanKey,
-      originalSlots: JSON.stringify(todaySlots), createdAt: Date.now() });
+      originalSlots: JSON.stringify(todaySlots),
+      originalSignature: dailyReplanSignature(),
+      futureSlotIds: future.map(item => item.id), createdAt: Date.now() });
     setTodayReplanNotice(changed ?
       "変更案を作りました。内容を確認してから反映してください。" :
       "今の割り当てから変更する必要はありません。");
@@ -3304,7 +3310,12 @@ function App() {
         JSON.stringify(preview.slots[item.id] || []));
     if (preview.planKey !== dailyPlanKey ||
         preview.fingerprint !== dailyTemplateFingerprint ||
-        JSON.stringify(todaySlots) !== preview.originalSlots || movedSlotStarted) {
+        JSON.stringify(todaySlots) !== preview.originalSlots ||
+        dailyReplanSignature() !== preview.originalSignature ||
+        preview.futureSlotIds.some(id => {
+          const item = todaySched.items.find(slot => slot.id === id);
+          return !item || scheduleStartMinute(item) <= now;
+        }) || movedSlotStarted) {
       setTodayReplanPreview(null);
       setTodayReplanNotice("予定や時刻が変わりました。もう一度、変更案を確認してください。");
       return;
@@ -4330,20 +4341,26 @@ function App() {
           h('p', null, "使いたいところだけ開いて読んでね。最初は「今日」だけでもOKです。"),
           helpSection("① 今日：今やることを見よう",
             "時間割の予定名を押すと、その時間にやることが下に開きます。終わったら□にチェック！",
-            "やることの名前を押すと、音楽・開発・学習のくわしい場所に移動します。"),
+            "やること名を押すと説明が開きます。目安時間の右の時計から作業時間を記録できます。ステップ見出しの「やることの入れ替え」は、別ジャンルの作業も選べます。"),
           helpSection("② 音楽・開発・学習：くわしく見よう",
             "色のついた「ステージ」を押すと、中のステップを開いたり閉じたりできます。",
             "ステップの名前を押すと、やることが見えます。やること名を押すと説明が開き、目安時間の右にある時計から作業時間を記録できます。"),
-          helpSection("③ 時間を計る・次の目安を変える",
-            "やることの時計アイコン→「時間をはかる」→終わったら「止めて記録」。使った時間が残ります。",
-            "同じやることを3回計ると、新しい予定を作るときの時間が変わります。今日の予定はそのまま。変えたいときは「残りの予定を組み直す」を押してね。1回目から自分で目安を変えることもできます。"),
-          helpSection("④ 予定が多すぎるとき",
+          helpSection("③ 実測しても今日の予定は勝手に変わらない",
+            "時計アイコンで「時間をはかる」→「止めて記録」。実際に使った時間を保存します。3回以上計ると中央値を次の目安に使います。",
+            "大切：計測や目安時間の変更だけでは今日の作業・時間割を自動変更しません。時間が足りない可能性を表示し、本人が「今日の残りを再調整」を押したときにだけ変更案を作ります。案を見て「この内容で変更」を押した場合だけ反映します。"), 
+          helpSection("④ 今日の残りを再調整する",
+            "今から先の未完了・未固定の作業だけを、空いている同ジャンルの時間枠に入れ直す案を作ります。",
+            "完了済み・開始済みの時間枠・本人が入れ替えた作業や今日だけの作業は保護します。入らない作業は今日の予定から外す候補として表示し、長期計画は消しません。内容を確認し、反映するかキャンセルするか本人が決めます。"), 
+          helpSection("⑤ 入れ替えと今日だけ追加の違い",
+            "「やることの入れ替え」は今の作業を外し、音楽・開発・学習から選んだ別の作業に替えます。一覧にない作業への入れ替えもできます。",
+            "「＋今日だけ追加」は元の作業を残し、別の作業を増やします。名前と目安時間を指定し、時間枠に収まる場合だけ追加します。以前の自由入力は消さずにメモとして残し、必要なら作業に変換できます。"),
+          helpSection("⑥ 予定が多すぎるとき",
             "学習タブで、目標までに必要な時間と、使えそうな時間を比べられます。",
             "「計画に残す」「必要か考える」「あとでやる」から選べます。どれを学ぶかは、真くんや家族が決めます。"),
-          helpSection("⑤ ほかのタブは何をするの？",
+          helpSection("⑦ ほかのタブは何をするの？",
             "計画＝長い予定。月別＝月ごとの予定。ステージ＝大きな目標。他＝休けいなど。時間割＝一日の予定のひな型。進路＝学校の候補。感想＝使ってみた意見。",
             "「感想」は、送る前に内容と送り先を確認してね。"),
-          helpSection("⑥ タグ・ボタン・リンクの見分け方",
+          helpSection("⑧ タグ・ボタン・リンクの見分け方",
             "丸い色のタグは名前や分類を表します。四角いボタンは押して操作できます。「↗」と下線があるものは別の場所へ移動します。",
             "「▲／▼」があるタイトルは、その下に説明ややることが開きます。"),
           h('p', { style: { color: "#64748B" } },
@@ -4478,6 +4495,11 @@ function App() {
                 openTodaySched ? "▲" : "▼")
             ),
             h('div', { style: { display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" } },
+              !isEditingSchedule && h('button', { type: "button",
+                className: "btn-action", onClick: previewTodayReplan,
+                style: { background: "#EFF6FF", color: C.studyText,
+                  border: "1px solid #BFDBFE", fontSize: "12px",
+                  padding: "7px 10px" } }, "今日の残りを再調整"),
               !isEditingSchedule
                 ? h('button', {
                     className: "btn-action",
@@ -4499,6 +4521,62 @@ function App() {
             )
           ),
           openTodaySched && h('div', { style: { padding: "0 14px 14px" } },
+            h('p', { style: { fontSize: "12px", color: C.sub,
+              margin: "3px 0 10px", lineHeight: 1.6 } },
+              "⏱ 作業時間を記録しても今日の予定は変わりません。変更する場合は「今日の残りを再調整」で案を確認してください。"),
+            todayReplanNotice && h('div', { role: "status", style: {
+              background: "#EFF6FF", color: C.studyText,
+              border: "1px solid #BFDBFE", borderRadius: "7px",
+              padding: "9px", fontSize: "13px", marginBottom: "9px" } },
+              todayReplanNotice),
+            todayReplanPreview && h('div', { className: "riff-replan-preview",
+              style: { border: "2px solid #60A5FA", background: "#FFFFFF",
+                borderRadius: "10px", padding: "12px", marginBottom: "12px" } },
+              h('h3', { style: { fontSize: "15px", fontWeight: 900,
+                margin: "0 0 8px" } }, "今日の残りの変更案"),
+              h('p', { style: { fontSize: "12px", color: C.sub,
+                lineHeight: 1.6, margin: "0 0 8px" } },
+                "過去・進行中の時間枠、完了した作業、本人が入れ替えた作業、今日だけの作業は保護します。時間割の開始・終了時刻は動かしません。"),
+              todayReplanPreview.moved.map((move,index) => {
+                const task = resolveTodayTask(move.id);
+                const fromSlot = todaySched.items.find(item => item.id === move.from);
+                const toSlot = todaySched.items.find(item => item.id === move.to);
+                return h('div', { key: "move-" + index,
+                  style: { fontSize: "13px", margin: "6px 0",
+                    padding: "7px", background: "#EFF6FF", borderRadius: "5px" } },
+                  "移動：" + (task ? taskShortTitle(task) : move.id) +
+                  "｜" + (fromSlot?.t || "") + " → " + (toSlot?.t || ""));
+              }),
+              todayReplanPreview.deferred.map((row,index) =>
+                h('div', { key: "defer-" + index,
+                  style: { fontSize: "13px", margin: "6px 0",
+                    padding: "7px", background: "#FFFBEB",
+                    borderRadius: "5px" } },
+                  "今日から外す候補：" +
+                  (resolveTodayTask(row.id) ?
+                    taskShortTitle(resolveTodayTask(row.id)) : row.id) +
+                  "（長期計画には残ります。別日への自動登録はしません）")),
+              todayReplanPreview.fixedOverflow.map((warning,index) =>
+                h('div', { key: "fixed-over-" + index,
+                  style: { fontSize: "12px", color: "#B91C1C",
+                    padding: "5px 0" } }, "固定済みの超過：" + warning)),
+              !todayReplanPreview.moved.length &&
+              !todayReplanPreview.deferred.length &&
+              !todayReplanPreview.fixedOverflow.length &&
+                h('p', { style: { fontSize: "13px", color: C.sub } },
+                  "作業の移動や除外はありません。割り当ての順序変更のみ、または変更不要です。"),
+              h('div', { style: { display: "flex", gap: "8px",
+                flexWrap: "wrap", marginTop: "10px" } },
+                h('button', { type: "button", className: "btn-action",
+                  disabled: !todayReplanPreview.changed,
+                  style: { background: C.study, color: "#FFFFFF" },
+                  onClick: confirmTodayReplan }, "この内容で変更"),
+                h('button', { type: "button", className: "btn-action",
+                  style: { background: "#F2F2F7", color: C.text },
+                  onClick: () => { setTodayReplanPreview(null);
+                    setTodayReplanNotice("変更案を取り消しました。元の予定はそのままです。"); } },
+                  "キャンセル"))
+            ),
             h('div', { style: { display: "flex", flexDirection: "column", gap: "6px" } },
               todaySched.items.map((item, idx) => {
                 const isChecked = !!checkedItems[scheduleCheckKey(item.id)];
