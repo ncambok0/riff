@@ -326,6 +326,40 @@
       padding: 10px 8px !important; }
   }
 
+
+  /* タスクの説明はタイトルで開き、計測は目安時間右の時計で開く。 */
+  .riff-task-title-toggle { background: transparent; border: 0; color: inherit;
+    font: inherit; font-weight: 650; line-height: 1.55; text-align: left; padding: 3px 0;
+    cursor: pointer; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
+  .riff-task-title-toggle:focus-visible, .riff-step-jump:focus-visible,
+  .riff-clock-button:focus-visible { outline: 3px solid #60A5FA; outline-offset: 2px; }
+  .riff-task-title-toggle > .riff-title-arrow { font-size: 12px; opacity: .75;
+    margin-left: 6px; white-space: nowrap; }
+  .riff-task-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    min-width: 0; max-width: 100%; }
+  .riff-clock-button { width: 42px; height: 42px; flex: 0 0 42px; padding: 0;
+    border: 1px solid #93C5FD; border-radius: 10px; background: #EFF6FF;
+    color: #1D4ED8; font-size: 23px; line-height: 1; display: inline-flex;
+    align-items: center; justify-content: center; cursor: pointer; }
+  .riff-clock-button[aria-expanded="true"] { background: #DBEAFE;
+    border-color: #2563EB; }
+  .riff-step-jump { display: inline-flex; align-items: center; border-radius: 999px;
+    padding: 4px 9px; font-size: 13px; font-weight: 800; border: 1px solid rgba(255,255,255,.35);
+    color: #FFFFFF; white-space: nowrap; cursor: pointer; }
+  .riff-genre-stage-card { font-size: 15px !important; line-height: 1.5 !important;
+    font-weight: 800; }
+  .riff-genre-stage-card > span { font-size: 15px !important; }
+  .riff-mini-step { display: block !important; width: 100%; min-width: 0;
+    margin-bottom: 10px !important; padding: 9px !important;
+    border-radius: 9px; border: 1px solid rgba(100,116,139,.25); }
+  .riff-mini-step > div { min-width: 0; max-width: 100%; }
+  @media (max-width: 760px) {
+    .riff-task-row > .riff-task-title-toggle { grid-column: 2; min-width: 0; width: 100%; }
+    .riff-task-row > .riff-task-meta { grid-column: 2; justify-content: flex-start; }
+    .riff-task-row > .riff-task-panel { grid-column: 1 / -1; }
+    .riff-mini-step .riff-task-row > .riff-task-title-toggle { grid-column: 2; }
+  }
+
 </style>
 </head>
 <body>
@@ -2629,16 +2663,14 @@ function App() {
     const elapsed = running ?
       Math.max(0, Math.floor((currentTime.getTime() - activeTaskTimers[task.id]) / 1000)) : 0;
     return h(React.Fragment, null,
-      part !== "panel" && h('button', { type: "button", className: "btn-action",
+      part !== "panel" && h('button', { type: "button", className: "riff-clock-button",
         "aria-expanded": opened,
+        "aria-label": "作業時間を記録（" + taskShortTitle(task) + "）",
         title: "時間を計ると、次の予定に必要な時間を考えやすくなります。",
-        style: { color: C.studyText, background: "#EFF6FF",
-          border: "1px solid #BFDBFE", fontSize: "12px", padding: "5px 8px" },
+        style: {},
         onClick: () => setOpenTaskMeasurements(prev =>
           ({ ...prev, [task.id]: !prev[task.id] })) },
-        h("span", { className: "riff-wide-label" }, "⏱ 作業時間を記録"),
-        h("span", { className: "riff-mobile-label" }, "⏱ 記録"),
-        (records.length ? " " + records.length + "回" : "") + (opened ? " ▲" : " ▼")),
+        "⏱"),
       part !== "button" && opened && h('div', { className: "riff-task-panel", style: { flex: "1 1 100%", width: "100%",
         marginTop: "6px", padding: "9px", borderRadius: "7px",
         background: "#FFFFFF", border: "1px solid " + C.border, color: C.text,
@@ -3893,57 +3925,72 @@ function App() {
 
   };
 
-  // ボタンはその場所に固定し、開いた説明だけを次の行に置く。
-  // details要素自身の幅を切り替えると操作ボタンがジャンプするため使わない。
-  const taskExplanation = (task, studyReference = "", part = "both") => {
+  const toggleTaskExplanation = id => setOpenTaskDescriptions(prev =>
+    ({ ...prev, [id]: !prev[id] }));
+  const renderTaskTitle = (task, style = {}) =>
+    h('button', { type: "button", className: "riff-task-title-toggle",
+      title: task.text, "aria-expanded": !!openTaskDescriptions[task.id],
+      "aria-label": taskShortTitle(task) + "の説明を" +
+        (openTaskDescriptions[task.id] ? "閉じる" : "開く"),
+      onClick: () => toggleTaskExplanation(task.id),
+      style: { flex: "1 1 170px", minWidth: 0, ...style } },
+      taskShortTitle(task),
+      h('span', { className: "riff-title-arrow", "aria-hidden": true },
+        openTaskDescriptions[task.id] ? "▲" : "▼"));
+  const taskExplanation = (task, studyReference = "") => {
+    if (!openTaskDescriptions[task.id]) return null;
     const hasReference = !!studyReference;
-    if (String(task.text || "").trim() === taskShortTitle(task) && !hasReference) return null;
-    const opened = !!openTaskDescriptions[task.id];
-    return h(React.Fragment, null,
-      part !== "panel" && h('button', { type: "button", className: "btn-action",
-        "aria-expanded": opened,
-        style: { flex: "0 0 auto", fontSize: "12px", padding: "5px 9px",
-          background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" },
-        onClick: () => setOpenTaskDescriptions(prev =>
-          ({ ...prev, [task.id]: !prev[task.id] })) },
-        "説明 " + (opened ? "▲" : "▼")),
-      part !== "button" && opened && h('div', { className: "riff-task-panel", style: { flex: "1 1 100%",
-        minWidth: 0, width: "100%", padding: "9px 11px", borderRadius: "6px",
+    return h('div', { className: "riff-task-panel",
+      style: { flex: "1 1 100%", minWidth: 0, width: "100%",
+        padding: "10px 12px", borderRadius: "7px",
         background: "#F8FAFC", borderLeft: "3px solid #64748B",
-        color: "#1E293B", fontSize: "15px", lineHeight: 1.7 } },
-        h('div', null, task.text),
-        hasReference && h('div', { style: { marginTop: "8px", fontSize: "13px",
-          display: "flex", flexDirection: "column", gap: "6px" } },
-          h('div', null, (taskTextbookPages[task.id] || task.textbookPages)
-            ? "📖 このやることのページ：" +
-                (taskTextbookPages[task.id] || task.textbookPages)
-            : "📖 このやることのページ：未確認（単元全体の参考：" + studyReference + "）"),
-          h('label', { style: { display: "flex", flexWrap: "wrap",
-            gap: "6px", alignItems: "center" } }, "確認できたページを記録",
-            h('input', { type: "text", className: "time-input-inline",
-              value: taskTextbookPages[task.id] || "",
-              "aria-label": taskShortTitle(task) + "の教科書ページ",
-              placeholder: "例：p.14〜16（教材の版も確認）",
-              style: { flex: "1 1 190px", padding: "6px" },
-              onChange: e => updateTaskTextbookPage(task.id, e.target.value) })),
-          h('div', { style: { fontSize: "12px", color: "#64748B" } },
-            "ページは自動で調べていません。教材の版と実物を確認して入力してね。"))
-      )
+        color: "#1E293B", fontSize: "14px", lineHeight: 1.7 } },
+      h('div', null, task.text),
+      hasReference && h('div', { style: { marginTop: "8px", fontSize: "13px",
+        display: "flex", flexDirection: "column", gap: "6px" } },
+        h('div', null, (taskTextbookPages[task.id] || task.textbookPages)
+          ? "📖 このやることのページ：" +
+              (taskTextbookPages[task.id] || task.textbookPages)
+          : "📖 このやることのページ：未確認（単元全体の参考：" + studyReference + "）"),
+        h('label', { style: { display: "flex", flexWrap: "wrap",
+          gap: "6px", alignItems: "center" } }, "確認できたページを記録",
+          h('input', { type: "text", className: "time-input-inline",
+            value: taskTextbookPages[task.id] || "",
+            "aria-label": taskShortTitle(task) + "の教科書ページ",
+            placeholder: "例：p.14〜16（教材の版も確認）",
+            style: { flex: "1 1 190px", minWidth: 0, maxWidth: "100%", padding: "6px" },
+            onChange: e => updateTaskTextbookPage(task.id, e.target.value) })),
+        h('div', { style: { fontSize: "12px", color: "#64748B" } },
+          "ページは自動で調べていません。教材の版と実物を確認して入力してね。"))
     );
   };
-
-  // コントロールの行と展開内容の行を分離。説明・記録を開いてもボタンの座標を維持する。
-  const renderTaskActions = (task, studyReference = "", withMeasurement = true) =>
+  // 目安時間と時計は一つの操作エリア。説明・計測パネルはその下に表示。
+  const renderTaskTimeMeta = task =>
+    h('div', { className: "riff-task-meta",
+      style: { flex: "0 1 auto", alignSelf: "flex-start" } },
+      h('span', { className: "badge-tag", style: { color: "#065F46",
+        background: "#ECFDF5", fontWeight: 800, whiteSpace: "normal" } },
+        taskEstimateLabel(task)),
+      renderTaskMeasurement(task, "button"));
+  const renderTaskActions = (task, studyReference = "", withMeasurement = true,
+      showClockHere = false) =>
     h(React.Fragment, null,
-      h('div', { className: "riff-task-toolbar",
-        style: { flex: "1 1 100%", width: "100%", minWidth: 0,
-          display: "flex", alignItems: "center", flexWrap: "wrap", gap: "7px" } },
-        taskExplanation(task, studyReference, "button"),
-        withMeasurement && renderTaskMeasurement(task, "button")),
-      !!openTaskDescriptions[task.id] && taskExplanation(task, studyReference, "panel"),
+      showClockHere && withMeasurement && h('div', { className: "riff-task-toolbar",
+        style: { flex: "1 1 100%", width: "100%", minWidth: 0 } },
+        renderTaskMeasurement(task, "button")),
+      taskExplanation(task, studyReference),
       withMeasurement && !!openTaskMeasurements[task.id] &&
         renderTaskMeasurement(task, "panel")
     );
+  const renderStepJumpBadge = (step, targetTab, color) =>
+    h('button', { type: "button", className: "riff-step-jump",
+      title: "ステップ" + step.stepNum + "を" +
+        (targetTab === "python" ? "開発" : targetTab === "music" ? "音楽" : "学習") +
+        "タブで開く",
+      "aria-label": "ステップ" + step.stepNum + "の詳細へ移動",
+      style: { background: color },
+      onClick: e => { e.stopPropagation(); jumpToTask(targetTab, step.id); } },
+      "ステップ" + step.stepNum + " ↗");
 
   const helpSection = (heading, summary, details) =>
     h('details', { className: "riff-help-section" },
