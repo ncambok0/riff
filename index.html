@@ -3668,18 +3668,23 @@ function App() {
           h('div', { style: { fontSize: "11px", color: C.studyText,
             fontWeight: 800, marginBottom: "4px" } },
             "やること完了 " + completedTasks + "/" + u.subtasks.length),
-          h('div', {
-            onClick: () => toggleTaskDetail(u.id),
-            style: {
-              fontSize: "14px",
-              fontWeight: 800,
-              color: isChecked ? C.muted : C.text,
-              textDecoration: isChecked ? "line-through" : "none",
-              cursor: "pointer",
-              lineHeight: 1.4,
-              padding: "2px 0"
-            }
-          }, u.item),
+          h('div', { style: { display: "flex", alignItems: "flex-start",
+            justifyContent: "space-between", flexWrap: "wrap", gap: "8px",
+            marginBottom: "5px" } },
+            h('button', { type: "button", onClick: () => toggleTaskDetail(u.id),
+              "aria-expanded": isExpanded,
+              style: { background: "transparent", border: "none", textAlign: "left",
+                flex: "1 1 210px", minWidth: 0, fontSize: "14px", fontWeight: 800,
+                color: isChecked ? C.muted : C.text,
+                cursor: "pointer", lineHeight: 1.5, padding: "2px 0" } },
+              u.item, isExpanded ? " ▲" : " ▼"),
+            h('details', { className: "riff-task-detail",
+              style: { flex: "0 0 auto", marginLeft: "auto", maxWidth: "100%" } },
+              h('summary', { style: { fontSize: "12px", fontWeight: 800,
+                padding: "6px 9px" } }, "学習メモ ▼"),
+              h('div', { style: { fontSize: "13px", maxWidth: "420px",
+                padding: "8px 10px", lineHeight: 1.6 } }, u.memo))
+          ),
           isExpanded && h('div', {
             style: {
               marginTop: "6px",
@@ -3690,9 +3695,6 @@ function App() {
               lineHeight: 1.45
             }
           },
-            h('details', { className: "riff-task-detail" },
-              h('summary', null, "このステップの学習メモ ▼"),
-              h('div', null, u.memo)),
             h('div', { style: { color: C.studyText, fontWeight: 900, margin: "6px 0" } },
               "📚 やること（" + stepTimeLabel(u) + "）"),
             u.subtasks.map(task => h(React.Fragment, { key: task.id }, h('div', {
@@ -4654,25 +4656,27 @@ function App() {
                     ),
                     openMonthSubGroups[`${moKey}_study`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
                       moStudyUnits.map(u => {
-                        const subObj = studySubjectsData.find(s => s.units.some(x => x.id === u.id)) || {};
-                        const stageObj = stageInfo[u.stage] || { label: `ステージ${stageNum}` };
-                        return h('div', { key: u.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", alignItems: "center", justifyContent: "space-between" } },
-                          h('div', { style: { display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" } },
-                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.study, fontWeight: 600 } }, `ステップ${u.stepNum}`),
-                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: "#475569", fontWeight: 600 } }, u.grade),
-                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: u.rank === "S" ? "#DC2626" : C.study, fontWeight: 600 } }, `${u.rank}ランク`),
-                            h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: subObj.color || C.study, fontWeight: 600 } }, subObj.name || "教科"),
-                            h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, u.item),
-                             renderMiniTaskChecklist(u, isCur)
-                          ),
-                          h('button', {
-                            className: "btn-action",
-                            onClick: () => jumpToTask("study", u.id),
-                            style: { color: "#FFFFFF", background: C.study, padding: "2px 7px", fontSize: "11px", fontWeight: 600, letterSpacing: "0.03em" }
-                          }, "学習タブでステップを見る ↗")
+                        const subObj = studySubjectsData.find(subject =>
+                          subject.units.some(x => x.id === u.id)) || {};
+                        return h('div', { key: u.id, className: "riff-mini-step",
+                          style: { fontSize: "14px", marginBottom: "8px",
+                            background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                          h('div', { style: { display: "flex", gap: "6px", flexWrap: "wrap",
+                            alignItems: "center", marginBottom: "5px" } },
+                            renderStepJumpBadge(u, "study", C.study),
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF",
+                              background: "#475569" } }, u.grade),
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF",
+                              background: u.rank === "S" ? "#DC2626" : C.study } },
+                              u.rank + "ランク"),
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF",
+                              background: subObj.color || C.study } }, subObj.name || "教科")),
+                          h('div', { style: { color: isCur ? "#E5E5EA" : C.text,
+                            fontWeight: 700, lineHeight: 1.5, marginBottom: "6px",
+                            overflowWrap: "anywhere" } }, u.item),
+                          renderMiniTaskChecklist(u, isCur)
                         );
-                      })
-                    )
+                      })                    )
                   )
                 )
               )
