@@ -3953,7 +3953,7 @@ function App() {
         openTaskDescriptions[task.id] ? "▲" : "▼"));
   const taskExplanation = (task, studyReference = "") => {
     if (!openTaskDescriptions[task.id]) return null;
-    const hasReference = !!studyReference;
+    const hasReference = !!studyReference || ALL_TASKS_BY_ID[task.id]?.genre === "study";
     return h('div', { className: "riff-task-panel",
       style: { flex: "1 1 100%", minWidth: 0, width: "100%",
         padding: "10px 12px", borderRadius: "7px",
@@ -3965,7 +3965,8 @@ function App() {
         h('div', null, (taskTextbookPages[task.id] || task.textbookPages)
           ? "📖 このやることのページ：" +
               (taskTextbookPages[task.id] || task.textbookPages)
-          : "📖 このやることのページ：未確認（単元全体の参考：" + studyReference + "）"),
+          : "📖 このやることのページ：未確認" +
+              (studyReference ? "（単元全体の参考：" + studyReference + "）" : "")),
         h('label', { style: { display: "flex", flexWrap: "wrap",
           gap: "6px", alignItems: "center" } }, "確認できたページを記録",
           h('input', { type: "text", className: "time-input-inline",
