@@ -2398,8 +2398,8 @@ function App() {
 
   const addScheduleItem = (type) => {
     const list = [...schedules[type].items];
-    const newItem = { id: `sch-custom-${Date.now()}`, t: "17:00〜17:30", a: "新規やること", category: "other", hi: false };
-    saveSchedules({ ...schedules, [type]: { ...schedules[type], items: [...list, newItem] } });
+    const newItem = { id: `sch-custom-${Date.now()}`, t: "00:00〜00:00", a: "新規やること", category: "other", hi: false };
+    saveSchedules({ ...schedules, [type]: { ...schedules[type], items: [newItem, ...list] } });
   };
 
   const duplicateScheduleTemplate = (type) => {
@@ -3185,6 +3185,7 @@ function App() {
   });
   const [confirmPrivateRepo, setConfirmPrivateRepo] = useState(false);
   const [feedbackSavedMessage, setFeedbackSavedMessage] = useState("");
+  const [feedbackManualCopy, setFeedbackManualCopy] = useState("");
 
   const handleSaveFeedback = () => {
     const now = new Date();
@@ -3338,19 +3339,20 @@ function App() {
       if (idx < targets.length - 1) text += "\n";
     });
 
-    navigator.clipboard.writeText(text).then(() => {
-      setFeedbackSavedMessage("📋 クリップボードに回答をコピーしました！");
-      setTimeout(() => setFeedbackSavedMessage(""), 3000);
-    }).catch(() => {
-      const textarea = document.createElement("textarea");
-      textarea.value = text;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-      setFeedbackSavedMessage("📋 クリップボードに回答をコピーしました！");
-      setTimeout(() => setFeedbackSavedMessage(""), 3000);
-    });
+    // iPhoneのhttp://LAN接続ではClipboard APIが使えない場合がある。
+    // 成功を確認できないときは、選択・手動コピーできる本文を表示する。
+    const fallback = () => {
+      setFeedbackManualCopy(text);
+      setFeedbackSavedMessage("自動コピーを確認できませんでした。下の本文を長押ししてコピーしてください。");
+    };
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      navigator.clipboard.writeText(text).then(() => {
+        setFeedbackManualCopy("");
+        setFeedbackSavedMessage("📋 コピーしました。貼り付け先で確認してください。");
+      }).catch(fallback);
+    } else {
+      fallback();
+    }
   };
 
   const exportFeedbackJSON = () => {
@@ -4295,11 +4297,11 @@ function App() {
               fontSize: "14px", fontWeight: 700 } }, item.t + "｜" + item.a),
             isEditingSchedule && h('button', { type: "button", className: "btn-action",
               style: { background: "#EFF6FF", color: C.studyText },
-              disabled: index === 0, onClick: () => moveScheduleItem(schedType, index, -1) }, "▲ 上へ"),
+              disabled: index === 0, onClick: () => moveScheduleItem(schedType, index, -1) }, "▲"),
             isEditingSchedule && h('button', { type: "button", className: "btn-action",
               style: { background: "#EFF6FF", color: C.studyText },
               disabled: index === todaySched.items.length - 1,
-              onClick: () => moveScheduleItem(schedType, index, 1) }, "▼ 下へ"),
+              onClick: () => moveScheduleItem(schedType, index, 1) }, "▼"),
             isEditingSchedule && h('button', { type: "button", className: "btn-action",
               style: { background: "#FEF2F2", color: "#991B1B" },
               onClick: () => {
@@ -5870,6 +5872,22 @@ function App() {
               h('span', { style: { fontSize: "13px", fontWeight: 900, whiteSpace: "nowrap", color: "#FFFFFF" } }, ".jsonで書き出し"),
               h('span', { style: { fontSize: "11.5px", fontWeight: 700, whiteSpace: "nowrap", color: "#FFFFFF", letterSpacing: "0.01em" } }, "(他のソフトに渡すとき用)")
             )
+          ),
+          feedbackManualCopy && h('div', { style: { marginTop: "12px", padding: "10px",
+            background: "#EFF6FF", border: "1px solid #93C5FD", borderRadius: "8px" } },
+            h('label', { htmlFor: "riff-feedback-manual-copy",
+              style: { display: "block", fontSize: "13px", fontWeight: 800,
+                color: "#1D4ED8", marginBottom: "7px" } },
+              "コピー用の本文（長押し・すべて選択・コピー）"),
+            h('textarea', { id: "riff-feedback-manual-copy", readOnly: true,
+              value: feedbackManualCopy, onFocus: e => e.currentTarget.select(),
+              style: { width: "100%", minHeight: "180px", fontSize: "14px",
+                padding: "10px", border: "1px solid #CBD5E1",
+                borderRadius: "7px", color: "#1E293B", background: "#FFFFFF" } }),
+            h('button', { type: "button", className: "btn-action",
+              style: { marginTop: "8px", color: "#1D4ED8", background: "#FFFFFF",
+                border: "1px solid #BFDBFE" },
+              onClick: () => setFeedbackManualCopy("") }, "本文を閉じる")
           )
         ),
 
