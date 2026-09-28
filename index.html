@@ -3992,118 +3992,231 @@ function App() {
     python: { title: "💻 今日の開発", open: openTodayCode,
       toggle: () => setOpenTodayCode(!openTodayCode), color: C.codeText }
   };
-  // 各時間割行の直下でタスクを開く。重複ジャンルカードは使わない。
+  // 今日の枠はPCではステップ見出し＋作業行の2行。追加・入れ替えフォームは必要なときだけ開く。
+  const renderTodayCustomEditor = (slot, replacementId = null) =>
+    h('div', { className: "riff-today-form",
+      style: { padding: "10px", border: "1px solid #BFDBFE",
+        borderRadius: "8px", marginTop: "8px", background: "#EFF6FF",
+        display: "flex", flexDirection: "column", gap: "8px" } },
+      h('div', { style: { fontSize: "13px", fontWeight: 900, color: C.studyText } },
+        replacementId ? "自由入力で入れ替える" : "今日だけのやることを追加"),
+      h('input', { type: "text", className: "time-input-inline",
+        "aria-label": "今日だけのやることの名前", placeholder: "例：学校の数学ワークを終わらせる",
+        value: todayNewTaskDraft.text, style: { width: "100%", padding: "9px", minWidth: 0 },
+        onChange: e => setTodayDraftField("text", e.target.value) }),
+      h('div', { style: { display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" } },
+        h('label', { style: { display: "flex", gap: "5px", alignItems: "center" } }, "ジャンル",
+          h('select', { className: "time-input-inline", value: todayNewTaskDraft.genre,
+            onChange: e => setTodayDraftField("genre", e.target.value) },
+            Object.entries(RIFF_GENRES).map(([genre, info]) =>
+              h('option', { key: genre, value: genre }, info.icon + info.label)))),
+        h('label', { style: { display: "flex", gap: "5px", alignItems: "center" } }, "目安",
+          h('input', { type: "number", className: "time-input-inline", min: 1, max: 1440,
+            value: todayNewTaskDraft.minutes, style: { width: "64px", padding: "7px" },
+            onChange: e => setTodayDraftField("minutes", e.target.value) }), "分"),
+        h('button', { type: "button", className: "btn-action",
+          style: { background: C.study, color: "#FFFFFF" },
+          onClick: () => addTodayCustomTask(slot.id, replacementId) },
+          replacementId ? "この内容に入れ替え" : "今日だけ追加")),
+      h('div', { style: { fontSize: "12px", color: C.sub } },
+        replacementId ? "元の作業を外して、入力した作業に置き換えます。" :
+          "元の作業を残して追加します。時間枠に収まらない場合は追加しません。")
+    );
+  const renderTodayReplacement = (slot, oldTask) => {
+    const stages = Object.keys(stageInfo).filter(key =>
+      scheduleStepChoices[todayReplaceGenre]?.some(step => step.stage === key));
+    const steps = (scheduleStepChoices[todayReplaceGenre] || []).filter(step =>
+      !todayReplaceStage || step.stage === todayReplaceStage);
+    const query = todayReplaceQuery.trim().toLocaleLowerCase();
+    const choices = (TASK_CATALOG[todayReplaceGenre] || []).filter(task =>
+      (!todayReplaceStage || task.stageKey === todayReplaceStage) &&
+      (!todayReplaceStep || task.stepId === todayReplaceStep) &&
+      (!query || [task.text, taskShortTitle(task), task.stepTitle,
+        task.subject || ""].join(" ").toLocaleLowerCase().includes(query)));
+    const available = choices.filter(task =>
+      !checkedItems[task.id] && task.id !== oldTask.id &&
+      !Object.values(todaySlots).some(ids => ids.includes(task.id)));
+    return h('div', { key: "replacement-" + oldTask.id,
+      className: "riff-today-form", style: { background: "#F8FAFC",
+        border: "1px solid #BFDBFE", borderRadius: "8px",
+        padding: "10px", margin: "8px 0", minWidth: 0 } },
+      h('div', { style: { display: "flex", alignItems: "center",
+        justifyContent: "space-between", gap: "8px" } },
+        h('strong', { style: { fontSize: "14px" } }, "やることの入れ替え"),
+        h('button', { type: "button", className: "btn-action",
+          onClick: () => setOpenTodayLinkFor(null) }, "閉じる")),
+      h('div', { style: { fontSize: "12px", color: C.sub, margin: "5px 0 10px" } },
+        "現在：" + taskShortTitle(oldTask) +
+        "。他のジャンルからも選べます。入れ替え後は再調整から保護します。"),
+      h('div', { style: { display: "flex", flexWrap: "wrap", gap: "7px" } },
+        h('label', { style: { display: "flex", flexDirection: "column",
+          gap: "3px", flex: "1 1 110px", fontSize: "12px" } }, "ジャンル",
+          h('select', { className: "time-input-inline", value: todayReplaceGenre,
+            style: { minWidth: 0, maxWidth: "100%", padding: "8px" },
+            onChange: e => { setTodayReplaceGenre(e.target.value);
+              setTodayReplaceStage(""); setTodayReplaceStep(""); } },
+            Object.entries(RIFF_GENRES).map(([genre, info]) =>
+              h('option', { key: genre, value: genre }, info.icon + " " + info.label)))),
+        h('label', { style: { display: "flex", flexDirection: "column",
+          gap: "3px", flex: "1 1 125px", fontSize: "12px" } }, "ステージ",
+          h('select', { className: "time-input-inline", value: todayReplaceStage,
+            style: { minWidth: 0, maxWidth: "100%", padding: "8px" },
+            onChange: e => { setTodayReplaceStage(e.target.value); setTodayReplaceStep(""); } },
+            h('option', { value: "" }, "すべて"),
+            stages.map(key => h('option', { key, value: key }, stageInfo[key].label)))),
+        h('label', { style: { display: "flex", flexDirection: "column",
+          gap: "3px", flex: "2 1 210px", fontSize: "12px" } }, "ステップ",
+          h('select', { className: "time-input-inline", value: todayReplaceStep,
+            style: { minWidth: 0, maxWidth: "100%", padding: "8px" },
+            onChange: e => setTodayReplaceStep(e.target.value) },
+            h('option', { value: "" }, "すべてのステップ"),
+            steps.map(step => h('option', { key: step.id, value: step.id },
+              "ステップ" + step.stepNum + "｜" + step.taskTitle))))),
+      h('input', { type: "search", className: "time-input-inline",
+        "aria-label": "やることを検索",
+        placeholder: "やることを検索（例：Amber、方程式）",
+        style: { width: "100%", padding: "9px", margin: "9px 0" },
+        value: todayReplaceQuery, onChange: e => setTodayReplaceQuery(e.target.value) }),
+      h('div', { style: { display: "flex", flexDirection: "column",
+        gap: "6px", maxHeight: "300px", overflowY: "auto" } },
+        available.slice(0, 8).map(task => h('button', { type: "button",
+          key: task.id, className: "riff-today-choice",
+          style: { textAlign: "left", padding: "9px 10px", background: "#FFFFFF",
+            border: "1px solid #CBD5E1", borderRadius: "7px",
+            fontSize: "13px", lineHeight: 1.5, overflowWrap: "anywhere" },
+          onClick: () => updateDailyTask(slot.id, oldTask.id, task.id) },
+          h('span', { style: { fontWeight: 900, display: "block",
+            color: RIFF_GENRES[task.genre].color } },
+            RIFF_GENRES[task.genre].label + "｜ステップ" + task.stepNum),
+          taskShortTitle(task) + "｜" + formatTaskMinutes(effectiveTaskMinutes(task)))),
+        !available.length && h('p', { style: { fontSize: "12px",
+          color: C.muted, margin: "3px" } }, "該当する未完了の作業がありません。"),
+        available.length > 8 && h('p', { style: { fontSize: "12px",
+          color: C.muted, margin: "3px" } },
+          "ほかに" + (available.length - 8) +
+          "件あります。ステージ・ステップ・検索で絞り込んでください。")),
+      h('details', { style: { marginTop: "10px" } },
+        h('summary', { style: { fontWeight: 800, fontSize: "13px",
+          cursor: "pointer" } }, "一覧にない作業を入力して入れ替える"),
+        renderTodayCustomEditor(slot, oldTask.id))
+    );
+  };
   const renderTodayScheduleDetail = item => {
     const category = getScheduleCategory(item);
     if (!TASK_CATALOG[category]) return null;
     const catInfo = scheduleCategoryInfo[category];
-
-          const tasks = (todaySlots[item.id] || []).map(id => ALL_TASKS_BY_ID[id]).filter(Boolean);
-          const budget = parseScheduleDuration(item.t);
-          const used = tasks.reduce((total, task) => total + effectiveTaskMinutes(task), 0);
-          const complete = tasks.filter(task => checkedItems[task.id]).length;
-          const custom = todayCustomTasks[scheduleCheckKey(item.id)] || "";
-          const stepIds = [...new Set(tasks.map(task => task.stepId))];
-          return h('div', { style: { background: "#FFFFFF",
-            border: "1px solid " + C.border, borderLeft: "4px solid " + catInfo.color,
-            borderRadius: "8px", padding: "10px", margin: "0 0 8px 33px" } },
-            h('div', { style: { fontSize: "11px", fontWeight: 800, color: catInfo.color,
-              marginBottom: "8px" } }, "自動割当" + formatTaskMinutes(used) +
-              " / " + formatTaskMinutes(budget) + "（残り" +
-              formatTaskMinutes(Math.max(0, budget - used)) + "）"),
-            used > budget && h('div', { style: { fontSize: "12px", fontWeight: 900,
-              marginBottom: "8px", color: "#B91C1C", padding: "7px",
-              background: "#FEF2F2", borderRadius: "5px" } },
-              "計った時間をもとにすると、" + formatTaskMinutes(used - budget) +
-              "長くなります。今日の予定はそのままです。必要なら「残りの予定を組み直す」で変えられます。"),
-            stepIds.map(stepId => {
-              const stepTasks = tasks.filter(task => task.stepId === stepId);
-              const first = stepTasks[0], stage = stageInfo[first.stageKey] || {};
-              const studyStage = STUDY_STAGE_BY_UNIT_ID[stepId];
-              return h('div', { key: stepId, style: { background: "#F8FAFC",
-                border: "1px solid " + C.border, borderRadius: "7px",
-                padding: "8px", marginBottom: "8px" } },
-                h('div', { style: { display: "flex", gap: "6px", alignItems: "center",
-                  flexWrap: "wrap", marginBottom: "5px" } },
-                  h('span', { className: "badge-tag", style: {
-                    background: stage.color || C.study, color: "#FFFFFF" } },
-                    "ステージ" + (studyStage ? studyStage.number : first.stageKey.slice(1))),
-                  studyStage && h('span', { style: { fontSize: "11px", color: C.muted } },
-                    studyStage.title),
-                  h('span', { className: "badge-tag", style: {
-                    background: catInfo.color, color: "#FFFFFF" } },
-                    "ステップ" + first.stepNum),
-                  h('span', { style: { fontWeight: 800, fontSize: "12px" } }, first.stepTitle)
-                ),
-                stepTasks.map(task => h('div', { key: task.id, style: { display: "flex",
-                  alignItems: "flex-start", gap: "7px", padding: "5px 0",
-                  flexWrap: "wrap", borderTop: "1px dashed " + C.border } },
-                  h('input', { type: "checkbox", className: "custom-checkbox-interactive",
-                    checked: !!checkedItems[task.id], onChange: () => toggleCheck(task.id),
-                    "aria-label": task.text + "の完了" }),
-                  h('button', { type: "button", className: "riff-task-title",
-                    title: task.text + "（タップするとくわしいページへ）",
-                    onClick: () => jumpToTask(task.tab, task.id),
-                    style: { color: checkedItems[task.id] ? C.muted : "#1D4ED8",
-                      textDecoration: "underline", textUnderlineOffset: "3px" } },
-                    taskShortTitle(task) + " ↗"),
-                  h('span', { style: { whiteSpace: "nowrap", fontSize: "11px",
-                    color: catInfo.color, fontWeight: 800 } },
-                    taskEstimateLabel(task)),
-                  h('button', { type: "button", className: "btn-action",
-                    onClick: () => {
-                      setManualStepByTask(prev => ({ ...prev, [item.id + ":" + task.id]: task.stepId }));
-                      setOpenTodayLinkFor(prev =>
-                        prev === item.id + ":" + task.id ? null : item.id + ":" + task.id);
-                    }, style: { fontSize: "10px", background: C.studyBg, color: C.studyText } },
-                    "変更"),
-                  renderTaskActions(task, "", true, true)
-                ))
-              );
-            }),
-            tasks.length === 0 && h('div', { style: { fontSize: "12px", color: C.muted } },
-              "この枠に入る未完了タスクがありません。"),
-            tasks.map(task => openTodayLinkFor === item.id + ":" + task.id &&
-              h('div', { key: "edit-" + task.id, style: { background: C.studyBg,
-                borderRadius: "7px", padding: "8px", marginBottom: "8px" } },
-                h('div', { style: { fontWeight: 800, fontSize: "12px" } },
-                  "やること変更（" + task.text + "）"),
-                h('select', { className: "time-input-inline",
-                  style: { width: "100%", marginTop: "5px" },
-                  value: manualStepByTask[item.id + ":" + task.id] || task.stepId,
-                  onChange: e => setManualStepByTask(prev =>
-                    ({ ...prev, [item.id + ":" + task.id]: e.target.value })) },
-                  (scheduleStepChoices[category] || []).map(step =>
-                    h('option', { key: step.id, value: step.id },
-                      "ステップ" + step.stepNum + "｜" + step.taskTitle))),
-                h('select', { className: "time-input-inline",
-                  style: { width: "100%", marginTop: "5px" }, value: "",
-                  "aria-label": "代わりのやることを選択",
-                  onChange: e => { if (e.target.value) updateDailyTask(item.id, task.id, e.target.value); } },
-                  h('option', { value: "" }, "やることを選択"),
-                  TASK_CATALOG[category].filter(option => option.stepId ===
-                    (manualStepByTask[item.id + ":" + task.id] || task.stepId)).map(option =>
-                    h('option', { key: option.id, value: option.id, disabled: !!checkedItems[option.id] },
-                      taskShortTitle(option) + "｜" + formatTaskMinutes(effectiveTaskMinutes(option)))) )
-              )),
-            assignmentWarning && h('div', { style: { color: "#B91C1C", fontSize: "12px" } },
-              assignmentWarning),
-            h('div', { style: { display: "flex", justifyContent: "space-between",
-              alignItems: "center", fontSize: "11px", color: C.muted } },
-              "完了 " + complete + "/" + tasks.length,
-              h('button', { type: "button", className: "btn-action",
-                style: { background: catInfo.color, color: "#FFFFFF" },
-                onClick: rebuildDailySlots }, "残りの予定を組み直す")
-            ),
-            h('label', { style: { display: "block", fontSize: "11px",
-              marginTop: "8px", fontWeight: 800 } },
-              "一覧にない場合は、今日だけのやることを自由入力"),
-            h('input', { type: "text", className: "time-input-inline",
-              value: custom, style: { width: "100%", padding: "7px" },
-              placeholder: "今日だけのやること",
-              onChange: e => setTodayCustomTask(item.id, e.target.value) })
-          );
-
+    const tasks = (todaySlots[item.id] || []).map(resolveTodayTask).filter(Boolean);
+    const budget = parseScheduleDuration(item.t);
+    const used = tasks.reduce((total, task) => total + effectiveTaskMinutes(task), 0);
+    const complete = tasks.filter(task => checkedItems[task.id]).length;
+    const legacyCustom = todayCustomTasks[scheduleCheckKey(item.id)] || "";
+    const stepIds = [...new Set(tasks.map(task => task.stepId))];
+    const addOpen = openTodayAddFor === item.id;
+    return h('div', { style: { background: "#FFFFFF", minWidth: 0,
+      border: "1px solid " + C.border, borderLeft: "4px solid " + catInfo.color,
+      borderRadius: "8px", padding: "10px", margin: "0 0 8px 0" } },
+      h('div', { style: { fontSize: "12px", fontWeight: 800, color: catInfo.color,
+        marginBottom: "8px", display: "flex", flexWrap: "wrap", gap: "5px" } },
+        "予定の目安 " + formatTaskMinutes(used) + " / " + formatTaskMinutes(budget) +
+        "（残り" + formatTaskMinutes(Math.max(0, budget - used)) + "）"),
+      used > budget && h('div', { style: { fontSize: "12px", fontWeight: 800,
+        marginBottom: "8px", color: "#B91C1C", padding: "8px",
+        background: "#FEF2F2", borderRadius: "5px" } },
+        "現在の目安では" + formatTaskMinutes(used - budget) +
+        "超過します。計測だけで今日の予定は変わりません。必要なら見出しの「今日の残りを再調整」から変更案を確認してください。"),
+      stepIds.map(stepId => {
+        const stepTasks = tasks.filter(task => task.stepId === stepId);
+        const first = stepTasks[0];
+        const stage = stageInfo[first.stageKey] || {};
+        const studyStage = STUDY_STAGE_BY_UNIT_ID[stepId];
+        const firstEditable = stepTasks.find(task => !checkedItems[task.id]);
+        const editKey = item.id + ":" + stepId;
+        const isCustom = !!first.custom;
+        return h('div', { key: stepId, style: { background: "#F8FAFC",
+          border: "1px solid " + C.border, borderRadius: "7px",
+          padding: "8px", marginBottom: "8px", minWidth: 0 } },
+          h('div', { className: "riff-today-step-head",
+            style: { display: "flex", gap: "6px", alignItems: "center",
+              flexWrap: "wrap", marginBottom: "5px" } },
+            h('span', { className: "badge-tag", style: {
+              background: stage.color || C.study, color: "#FFFFFF" } },
+              isCustom ? "今日だけ" :
+                "ステージ" + (studyStage ? studyStage.number : first.stageKey.slice(1))),
+            h('span', { className: "badge-tag", style: {
+              background: RIFF_GENRES[first.genre]?.color || C.study,
+              color: "#FFFFFF" } },
+              isCustom ? RIFF_GENRES[first.genre]?.label || "追加" :
+                "ステップ" + first.stepNum),
+            h('span', { className: "riff-today-step-title",
+              style: { flex: "1 1 150px", minWidth: 0,
+                fontWeight: 800, fontSize: "14px", overflowWrap: "anywhere" } },
+              isCustom ? "今日だけのやること" : first.stepTitle),
+            firstEditable && h('button', { type: "button", className: "btn-action",
+              "aria-expanded": openTodayLinkFor === editKey,
+              style: { background: "#EFF6FF", color: C.studyText,
+                padding: "6px 9px", fontSize: "12px" },
+              onClick: () => openTodayReplacement(item.id, stepId, firstEditable) },
+              "やることの入れ替え")),
+          stepTasks.map((task, index) => h(React.Fragment, { key: task.id },
+            h('div', { className: "riff-today-task-line",
+              style: { display: "flex", gap: "7px", alignItems: "center",
+                padding: "5px 0", minWidth: 0, flexWrap: "wrap",
+                borderTop: "1px dashed " + C.border } },
+              h('input', { type: "checkbox", className: "custom-checkbox-interactive",
+                checked: !!checkedItems[task.id], onChange: () => toggleCheck(task.id),
+                "aria-label": task.text + "の完了" }),
+              renderTaskTitle(task, { color: checkedItems[task.id] ? C.muted : C.text,
+                textDecoration: checkedItems[task.id] ? "line-through" : "none" }),
+              renderTaskTimeMeta(task),
+              index === stepTasks.length - 1 && h('button', {
+                type: "button", className: "btn-action",
+                "aria-expanded": addOpen,
+                style: { background: "#FFFFFF", color: C.studyText,
+                  border: "1px solid #BFDBFE", fontSize: "12px", padding: "7px 9px" },
+                onClick: () => {
+                  setOpenTodayLinkFor(null);
+                  setOpenTodayAddFor(prev => prev === item.id ? null : item.id);
+                  setTodayNewTaskDraft({ text: "", minutes: "5",
+                    genre: task.genre || category });
+                  setAssignmentWarning("");
+                } }, "＋今日だけ追加"),
+              stepTasks.length > 1 && index > 0 && !checkedItems[task.id] &&
+                h('button', { type: "button", className: "btn-action",
+                  style: { fontSize: "11px", padding: "5px 7px" },
+                  onClick: () => openTodayReplacement(item.id, stepId, task) },
+                  "入れ替え")),
+            renderTaskActions(task, "", true)
+          )),
+          openTodayLinkFor === editKey && firstEditable &&
+            renderTodayReplacement(item, resolveTodayTask(todayReplaceTarget) || firstEditable)
+        );
+      }),
+      tasks.length === 0 && h('div', { style: { fontSize: "12px", color: C.muted } },
+        "この枠に割り当てられた作業はありません。",
+        h('button', { type: "button", className: "btn-action",
+          style: { marginLeft: "8px", background: C.studyBg, color: C.studyText },
+          onClick: () => setOpenTodayAddFor(item.id) }, "＋今日だけ追加")),
+      openTodayAddFor === item.id && renderTodayCustomEditor(item),
+      legacyCustom && h('div', { style: { border: "1px solid #FCD34D",
+        background: "#FFFBEB", borderRadius: "7px",
+        padding: "9px", marginTop: "8px", fontSize: "12px" } },
+        h('strong', null, "以前の自由入力メモ："), legacyCustom,
+        h('div', { style: { marginTop: "6px", display: "flex",
+          gap: "7px", flexWrap: "wrap" } },
+          h('button', { type: "button", className: "btn-action",
+            onClick: () => {
+              setTodayNewTaskDraft({ text: legacyCustom, minutes: "5",
+                genre: category });
+              setOpenTodayAddFor(item.id);
+            } }, "今日だけの作業として追加"),
+          h('button', { type: "button", className: "btn-action",
+            onClick: () => setTodayCustomTask(item.id, "") },
+            "メモを消す"))),
+      assignmentWarning && h('div', { role: "alert", style: { color: "#B91C1C",
+        fontSize: "12px", fontWeight: 800, marginTop: "8px" } }, assignmentWarning),
+      h('div', { style: { fontSize: "12px", color: C.muted,
+        marginTop: "6px" } }, "完了 " + complete + "/" + tasks.length)
+    );
   };
 
   const toggleTaskExplanation = id => setOpenTaskDescriptions(prev =>
