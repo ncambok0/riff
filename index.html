@@ -2928,6 +2928,7 @@ function App() {
   };
 
   const [openSchoolCards, setOpenSchoolCards] = useState({});
+  const [openSchoolAddCard, setOpenSchoolAddCard] = useState(false);
   const [customSchools, setCustomSchools] = useState(() => {
     try { return JSON.parse(localStorage.getItem("riff_custom_schools_v1") || "[]"); }
     catch (e) { return []; }
@@ -2978,7 +2979,7 @@ function App() {
   const [openStudyVisionCard, setOpenStudyVisionCard] = useState(false);
   const [openStudyCapacity, setOpenStudyCapacity] = useState(false);
   const [openStudySubjects, setOpenStudySubjects] = useState({
-    math: true, eng: true, sci: true, soc: true, jpn: true
+    math: false, eng: false, sci: false, soc: false, jpn: false
   });
   const toggleStudySubject = (subKey) => {
     setOpenStudySubjects(prev => ({ ...prev, [subKey]: !prev[subKey] }));
@@ -5269,7 +5270,7 @@ function App() {
           if (studyFilterWeak) uList = uList.filter(u => u.level.includes("苦手"));
           if (uList.length === 0) return null;
 
-          const isSubOpen = openStudySubjects[subject.id] !== false;
+          const isSubOpen = !!openStudySubjects[subject.id];
           const groupedStudyStages = [];
           uList.forEach(u => {
             const meta = STUDY_STAGE_BY_UNIT_ID[u.id];
@@ -5433,8 +5434,15 @@ function App() {
         ),
         h('div', { style: { background: "#FFFFFF", borderRadius: "10px",
           border: "1px solid " + C.border, padding: "12px 14px" } },
-          h('div', { style: { fontWeight: 900, fontSize: "14px", marginBottom: "7px" } },
-            "＋ 教育機関を追加"),
+          h('button', { type: "button", className: "riff-fold",
+            "aria-expanded": openSchoolAddCard,
+            onClick: () => setOpenSchoolAddCard(prev => !prev),
+            style: { color: C.text, background: "#FFFFFF", display: "flex",
+              alignItems: "center", justifyContent: "space-between",
+              width: "100%", padding: "8px 2px", fontSize: "15px", fontWeight: 900 } },
+            h('span', null, "＋ 教育機関を追加"),
+            h('span', { "aria-hidden": true }, openSchoolAddCard ? "▲" : "▼")),
+          openSchoolAddCard && h(React.Fragment, null,
           h('div', { style: { fontSize: "11.5px", color: C.muted, marginBottom: "9px" } },
             "現在できること：学校名・所在地・公式URLを登録して、候補を追加・非表示にできます。学校の詳しい情報を公式サイトから自動で集める機能は、まだ作成中です。追加した学校は「調査待ち」と表示され、未確認の情報は勝手に書き込みません。"),
           h('div', { style: { display: "flex", flexWrap: "wrap", gap: "7px" } },
@@ -5463,6 +5471,7 @@ function App() {
               showArchivedSchools ? "削除済みを隠す" : "削除済みも表示"),
             schoolEditorMessage && h('span', { style: { fontSize: "12px", color: C.sub } },
               schoolEditorMessage)
+          )
           )
         ),
         schoolCardsData.map(sec => {
