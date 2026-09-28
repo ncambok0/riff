@@ -2396,6 +2396,54 @@ function App() {
     updateScheduleItemField(type, index, "t", newRange);
   };
 
+
+  // 時刻の区切り記号は入力させない。編集するのは数字（時・分）のみ。
+  const renderTimeRangeEditor = (range, onChange, label = "時間帯") => {
+    const [from = "00:00", to = "00:00"] = String(range || "").split("〜");
+    const parts = [from, to].map(value => {
+      const [hh = "00", mm = "00"] = String(value).split(":");
+      return [hh, mm];
+    });
+    const updatePart = (which, part, raw) => {
+      const digits = String(raw).replace(/\D/g, "").slice(-2);
+      const max = part === 0 ? 24 : 59;
+      const value = String(Math.min(max, Number(digits || 0))).padStart(2, "0");
+      const next = parts.map(row => [...row]);
+      next[which][part] = value;
+      if (next[which][0] === "24") next[which][1] = "00";
+      onChange(next.map(row => row.join(":")).join("〜"));
+    };
+    return h('div', { className: "riff-time-range",
+      style: { display: "flex", alignItems: "center", gap: "5px",
+        flexWrap: "wrap", minWidth: 0, maxWidth: "100%" } },
+      parts.map((time, which) => h(React.Fragment, { key: which },
+        which === 1 && h('span', { style: { fontWeight: 800, color: C.muted } }, "〜"),
+        h('div', { style: { display: "inline-flex", gap: "2px", alignItems: "center" } },
+          [0,1].map(part => h(React.Fragment, { key: part },
+            part === 1 && h('span', { style: { fontWeight: 800 } }, ":"),
+            h('input', { type: "text", inputMode: "numeric", pattern: "[0-9]*",
+              maxLength: 2, className: "time-input-inline",
+              "aria-label": label + (which ? "終了" : "開始") + (part ? "分" : "時"),
+              value: time[part], onFocus: e => e.currentTarget.select(),
+              onChange: e => updatePart(which, part, e.target.value),
+              style: { width: "36px", minWidth: 0, textAlign: "center",
+                fontSize: "16px", padding: "6px 2px" } })
+          ))
+        ),
+        h('select', { className: "time-input-inline", value: "",
+          "aria-label": label + (which ? "終了" : "開始") + "時刻を選択",
+          onChange: e => { if (e.target.value) {
+            const next = parts.map(row => row.join(":"));
+            next[which] = e.target.value;
+            onChange(next.join("〜"));
+          }},
+          style: { width: "32px", minWidth: 0, padding: "5px 0",
+            fontSize: "13px", textAlign: "center" } },
+          h('option', { value: "" }, "▼"),
+          TIME_OPTIONS.map(option => h('option', { key: option, value: option }, option)))
+      )));
+  };
+
   const addScheduleItem = (type) => {
     const list = [...schedules[type].items];
     const newItem = { id: `sch-custom-${Date.now()}`, t: "00:00〜00:00", a: "新規やること", category: "other", hi: false };
@@ -4118,7 +4166,7 @@ function App() {
                 return h(React.Fragment, { key: item.id }, h('div', {
                   id: "today-schedule-" + item.id,
                   style: {
-                    display: "flex", gap: "9px", alignItems: "center", padding: "8px 10px",
+                    display: "flex", gap: "9px", alignItems: "center", flexWrap: "wrap", padding: "8px 10px",
                     background: isCurrent ? "#FEF08A" : (item.hi ? todaySched.bg : "#F8FAFC"),
                     border: `1px solid ${isCurrent ? "#EAB308" : (item.hi ? todaySched.border : C.border)}`,
                     borderRadius: "8px"
@@ -4132,41 +4180,8 @@ function App() {
                   }),
                   !isEditingSchedule
                     ? h('div', { style: { fontSize: "12.5px", fontWeight: 800, color: isCurrent ? "#854D0E" : C.muted, minWidth: "90px" } }, item.t)
-                    : h('div', { style: { display: "flex", gap: "4px", alignItems: "center", flexWrap: "nowrap" } },
-                        h('input', {
-                          type: "text",
-                          className: "time-input-inline",
-                          style: { width: "54px", padding: "2px 4px" },
-                          value: startPart,
-                          onChange: (e) => updateScheduleItemTimeRange(schedType, idx, true, e.target.value)
-                        }),
-                        h('select', {
-                          className: "time-input-inline",
-                          style: { width: "24px", padding: "2px 0", textAlign: "center" },
-                          value: "",
-                          onChange: (e) => { if(e.target.value) updateScheduleItemTimeRange(schedType, idx, true, e.target.value); }
-                        },
-                          h('option', { value: "" }, "▼"),
-                          TIME_OPTIONS.map(opt => h('option', { key: opt, value: opt }, opt))
-                        ),
-                        h('span', { style: { fontSize: "12px", color: C.muted } }, "〜"),
-                        h('input', {
-                          type: "text",
-                          className: "time-input-inline",
-                          style: { width: "54px", padding: "2px 4px" },
-                          value: endPart,
-                          onChange: (e) => updateScheduleItemTimeRange(schedType, idx, false, e.target.value)
-                        }),
-                        h('select', {
-                          className: "time-input-inline",
-                          style: { width: "24px", padding: "2px 0", textAlign: "center" },
-                          value: "",
-                          onChange: (e) => { if(e.target.value) updateScheduleItemTimeRange(schedType, idx, false, e.target.value); }
-                        },
-                          h('option', { value: "" }, "▼"),
-                          TIME_OPTIONS.map(opt => h('option', { key: opt, value: opt }, opt))
-                        )
-                      ),
+                    : renderTimeRangeEditor(item.t, next =>
+                      updateScheduleItemField(schedType, idx, "t", next), "今日の予定"),
                   !isEditingSchedule
                     ? h('button', { type: "button",
                         disabled: !TASK_CATALOG[getScheduleCategory(item)],
@@ -4186,7 +4201,7 @@ function App() {
                         type: "text",
                         value: item.a,
                         onChange: (e) => updateScheduleItemField(schedType, idx, "a", e.target.value),
-                        style: { flex: 1, padding: "4px 8px", fontSize: "13px", border: "1px solid #CCC", borderRadius: "5px" }
+                        style: { flex: "1 1 210px", minWidth: 0, padding: "6px 8px", fontSize: "14px", border: "1px solid #CCC", borderRadius: "5px" }
                       }),
                   isEditingSchedule && h('div', { style: { display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 } },
                     renderScheduleCategorySelect(item, idx)
@@ -4240,10 +4255,7 @@ function App() {
             placeholder: "例：着替え・水分補給", "aria-label": "新しい他の予定",
             value: newOtherTitle, style: { flex: "1 1 180px", padding: "8px" },
             onChange: e => setNewOtherTitle(e.target.value) }),
-          h('input', { type: "text", className: "time-input-inline",
-            value: newOtherTime, "aria-label": "他の予定の時間帯",
-            style: { flex: "0 1 145px", padding: "8px" },
-            onChange: e => setNewOtherTime(e.target.value) }),
+          renderTimeRangeEditor(newOtherTime, setNewOtherTime, "新しい他の予定"),
           h('button', { type: "button", className: "btn-action",
             style: { background: C.study, color: "#FFFFFF" },
             onClick: () => {
@@ -4274,20 +4286,8 @@ function App() {
               onChange: () => toggleCheck(scheduleCheckKey(item.id)),
               "aria-label": item.a + "の完了" }),
             isEditingSchedule ? h(React.Fragment, null,
-              h('input', { type: "text", className: "time-input-inline",
-                value: item.t, "aria-label": "時間帯",
-                style: { flex: "0 1 145px", padding: "7px" },
-                onChange: e => updateScheduleItemField(schedType, index, "t", e.target.value) }),
-              h('select', { className:"time-input-inline", "aria-label":"開始時刻を選択",
-                style:{ width:"84px", padding:"7px" }, value:"",
-                onChange:e=>{if(e.target.value)updateScheduleItemTimeRange(schedType,index,true,e.target.value);} },
-                h('option',{value:""},"開始 ▼"),
-                TIME_OPTIONS.map(option=>h('option',{key:option,value:option},option))),
-              h('select', { className:"time-input-inline", "aria-label":"終了時刻を選択",
-                style:{ width:"84px", padding:"7px" }, value:"",
-                onChange:e=>{if(e.target.value)updateScheduleItemTimeRange(schedType,index,false,e.target.value);} },
-                h('option',{value:""},"終了 ▼"),
-                TIME_OPTIONS.map(option=>h('option',{key:option,value:option},option))),
+              renderTimeRangeEditor(item.t, next =>
+                updateScheduleItemField(schedType, index, "t", next), "他の予定"),
               h('input', { type: "text", className: "time-input-inline",
                 value: item.a, "aria-label": "予定名",
                 style: { flex: "1 1 160px", padding: "7px" },
@@ -5354,7 +5354,7 @@ function App() {
               return h('div', {
                 key: item.id,
                 style: {
-                  display: "flex", gap: "10px", alignItems: "center", padding: "8px 10px",
+                  display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", padding: "8px 10px",
                   background: "#F8FAFC", border: `1px solid ${C.border}`, borderRadius: "8px"
                 }
               },
@@ -5364,47 +5364,14 @@ function App() {
                 }),
                 !isEditingSchedule
                   ? h('div', { style: { minWidth: "90px", fontSize: "12.5px", fontWeight: 800, color: C.muted } }, item.t)
-                  : h('div', { style: { display: "flex", gap: "4px", alignItems: "center", flexWrap: "nowrap" } },
-                      h('input', {
-                        type: "text",
-                        className: "time-input-inline",
-                        style: { width: "54px", padding: "2px 4px" },
-                        value: startPart,
-                        onChange: (e) => updateScheduleItemTimeRange(schedType, idx, true, e.target.value)
-                      }),
-                      h('select', {
-                        className: "time-input-inline",
-                        style: { width: "24px", padding: "2px 0", textAlign: "center" },
-                        value: "",
-                        onChange: (e) => { if(e.target.value) updateScheduleItemTimeRange(schedType, idx, true, e.target.value); }
-                      },
-                        h('option', { value: "" }, "▼"),
-                        TIME_OPTIONS.map(opt => h('option', { key: opt, value: opt }, opt))
-                      ),
-                      h('span', { style: { fontSize: "12px", color: C.muted } }, "〜"),
-                      h('input', {
-                        type: "text",
-                        className: "time-input-inline",
-                        style: { width: "54px", padding: "2px 4px" },
-                        value: endPart,
-                        onChange: (e) => updateScheduleItemTimeRange(schedType, idx, false, e.target.value)
-                      }),
-                      h('select', {
-                        className: "time-input-inline",
-                        style: { width: "24px", padding: "2px 0", textAlign: "center" },
-                        value: "",
-                        onChange: (e) => { if(e.target.value) updateScheduleItemTimeRange(schedType, idx, false, e.target.value); }
-                      },
-                        h('option', { value: "" }, "▼"),
-                        TIME_OPTIONS.map(opt => h('option', { key: opt, value: opt }, opt))
-                      )
-                    ),
+                  : renderTimeRangeEditor(item.t, next =>
+                      updateScheduleItemField(schedType, idx, "t", next), "時間割"),
                 !isEditingSchedule
                   ? h('div', { style: { flex: 1, fontSize: "13.5px", fontWeight: item.hi ? 800 : 500 } }, item.a)
                   : h('input', {
                       type: "text", value: item.a,
                       onChange: (e) => updateScheduleItemField(schedType, idx, "a", e.target.value),
-                      style: { flex: 1, padding: "4px 8px", fontSize: "13px", border: "1px solid #CCC", borderRadius: "5px" }
+                      style: { flex: "1 1 210px", minWidth: 0, padding: "6px 8px", fontSize: "14px", border: "1px solid #CCC", borderRadius: "5px" }
                     }),
                 isEditingSchedule && h('div', { style: { display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 } },
                     renderScheduleCategorySelect(item, idx)
