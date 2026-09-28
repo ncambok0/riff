@@ -1206,6 +1206,12 @@ const parseScheduleDuration = text => {
   const start = toMinutes(from), end = toMinutes(to);
   return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : 0;
 };
+// 再調整で「過去／現在の時間枠」を動かさないため、開始時刻を分に変換する。
+const scheduleStartMinute = item => {
+  const from = String(item?.t || "").split("〜")[0];
+  const match = from.match(/^(\d{1,2}):(\d{2})$/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : -1;
+};
 const schedulePreferredSubject = item => {
   const label = String(item.a || "");
   if (/英語|英会話|英単語|リスニング|英作文|🇬🇧/.test(label)) return "eng";
@@ -2871,6 +2877,17 @@ function App() {
   const [examPopupAnchor, setExamPopupAnchor] = useState(null);
   const [examPopupTop, setExamPopupTop] = useState(null);
   const [openTodayLinkFor, setOpenTodayLinkFor] = useState(null);
+  const [todayReplaceTarget, setTodayReplaceTarget] = useState("");
+  const [todayReplaceGenre, setTodayReplaceGenre] = useState("study");
+  const [todayReplaceStage, setTodayReplaceStage] = useState("");
+  const [todayReplaceStep, setTodayReplaceStep] = useState("");
+  const [todayReplaceQuery, setTodayReplaceQuery] = useState("");
+  const [openTodayAddFor, setOpenTodayAddFor] = useState(null);
+  const [todayNewTaskDraft, setTodayNewTaskDraft] = useState({
+    text: "", minutes: "5", genre: "study"
+  });
+  const [todayReplanPreview, setTodayReplanPreview] = useState(null);
+  const [todayReplanNotice, setTodayReplanNotice] = useState("");
   const [newOtherTitle, setNewOtherTitle] = useState("");
   const [newOtherTime, setNewOtherTime] = useState("17:00〜17:15");
   const [editingOtherId, setEditingOtherId] = useState(null);
@@ -3102,14 +3119,23 @@ function App() {
     try { return JSON.parse(localStorage.getItem("riff_daily_plans_v1") || "{}"); }
     catch (e) { return {}; }
   });
+  // 旧自由入力は消さずに保持。ここから先の「今日だけ追加」は独立したタスクIDで保存する。
+  const [todayCustomCatalog, setTodayCustomCatalog] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_daily_custom_catalog_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const todayCustomEntries = todayCustomCatalog[dailyPlanKey] || {};
+  const resolveTodayTask = id => ALL_TASKS_BY_ID[id] || todayCustomEntries[id] || null;
   const priorDailyPlan = dailyPlans[dailyPlanKey];
+  const todayPinned = priorDailyPlan?.fingerprint === dailyTemplateFingerprint
+    ? (priorDailyPlan.pinned || {}) : {};
   const todaySlots = priorDailyPlan && priorDailyPlan.fingerprint === dailyTemplateFingerprint
     ? priorDailyPlan.slots : proposeDailySlots(todaySched.items, checkedItems, effectiveTaskMinutes,
       studyTaskIsPlanned);
-  const persistDailySlots = slots => {
+  const persistDailySlots = (slots, pinned = todayPinned) => {
     setDailyPlans(prev => {
       const next = { ...prev, [dailyPlanKey]: {
-        fingerprint: dailyTemplateFingerprint, slots } };
+        fingerprint: dailyTemplateFingerprint, slots, pinned } };
       try { localStorage.setItem("riff_daily_plans_v1", JSON.stringify(next)); }
       catch (e) {}
       return next;
@@ -3120,15 +3146,29 @@ function App() {
       persistDailySlots(todaySlots);
     }
   }, [dailyPlanKey, dailyTemplateFingerprint]);
-  const rebuildDailySlots = () => {
-    persistDailySlots(proposeDailySlots(todaySched.items, checkedItems, effectiveTaskMinutes,
-      studyTaskIsPlanned));
+  const setTodayDraftField = (field, value) => setTodayNewTaskDraft(prev =>
+    ({ ...prev, [field]: value }));
+  const openTodayReplacement = (slotId, stepId, task) => {
+    const key = slotId + ":" + stepId;
+    setOpenTodayAddFor(null);
+    if (openTodayLinkFor === key) { setOpenTodayLinkFor(null); return; }
+    setTodayReplaceTarget(task.id);
+    setTodayReplaceGenre(task.genre || "study");
+    setTodayReplaceStage(task.stageKey || "");
+    setTodayReplaceStep(task.stepId || "");
+    setTodayReplaceQuery("");
+    setTodayNewTaskDraft({ text: "", minutes: "5", genre: task.genre || "study" });
     setAssignmentWarning("");
+    setOpenTodayLinkFor(key);
   };
   const updateDailyTask = (slotId, oldId, replacementId) => {
     const slot = todaySched.items.find(item => item.id === slotId);
     const replacement = ALL_TASKS_BY_ID[replacementId];
-    if (!slot || !replacement || replacement.genre !== getScheduleCategory(slot)) return;
+    const original = resolveTodayTask(oldId);
+    if (!slot || !replacement || !original || checkedItems[oldId]) {
+      setAssignmentWarning("完了した作業は入れ替えできません。");
+      return;
+    }
     const occupied = Object.entries(todaySlots).some(([id, ids]) =>
       ids.includes(replacementId) && !(id === slotId && replacementId === oldId));
     if (occupied) {
@@ -3136,15 +3176,142 @@ function App() {
       return;
     }
     const withoutOld = (todaySlots[slotId] || []).filter(id => id !== oldId);
-    const used = withoutOld.reduce((total, id) => total +
-      effectiveTaskMinutes(ALL_TASKS_BY_ID[id] || {}), 0);
-    if (used + effectiveTaskMinutes(replacement) > parseScheduleDuration(slot.t)) {
-      setAssignmentWarning("時間枠を超えるため変更できません。短い作業を選んでください。");
+    const used = withoutOld.reduce((total, id) =>
+      total + effectiveTaskMinutes(resolveTodayTask(id) || {}), 0);
+    const budget = parseScheduleDuration(slot.t);
+    if (used + effectiveTaskMinutes(replacement) > budget) {
+      setAssignmentWarning("時間枠を超えるため入れ替えできません。短い作業を選んでください。");
       return;
     }
-    persistDailySlots({ ...todaySlots, [slotId]: [...withoutOld, replacementId] });
+    const nextPinned = { ...todayPinned, [slotId]: [
+      ...(todayPinned[slotId] || []).filter(id => id !== oldId),
+      replacementId
+    ] };
+    persistDailySlots({ ...todaySlots, [slotId]: [...withoutOld, replacementId] }, nextPinned);
     setAssignmentWarning("");
     setOpenTodayLinkFor(null);
+    setTodayReplanPreview(null);
+  };
+  const addTodayCustomTask = (slotId, replaceId = null, textOverride = null) => {
+    const slot = todaySched.items.find(item => item.id === slotId);
+    const text = String(textOverride == null ? todayNewTaskDraft.text : textOverride).trim();
+    const minutes = Number(todayNewTaskDraft.minutes);
+    if (!slot || !text || !Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+      setAssignmentWarning("やることの名前と目安時間（1〜1440分）を確認してください。");
+      return;
+    }
+    if (replaceId && checkedItems[replaceId]) {
+      setAssignmentWarning("完了した作業は入れ替えできません。");
+      return;
+    }
+    const withoutOld = (todaySlots[slotId] || []).filter(id => id !== replaceId);
+    const used = withoutOld.reduce((total, id) =>
+      total + effectiveTaskMinutes(resolveTodayTask(id) || {}), 0);
+    if (used + minutes > parseScheduleDuration(slot.t)) {
+      setAssignmentWarning("時間枠を超えます。目安時間を短くするか、別の枠を選んでください。");
+      return;
+    }
+    let id = "riff-today-" + todayDateKey + "-" + Date.now();
+    while (todayCustomEntries[id]) id += "-1";
+    const genre = RIFF_GENRES[todayNewTaskDraft.genre] ?
+      todayNewTaskDraft.genre : getScheduleCategory(slot);
+    const customTask = { id, text, shortTitle: text, estimateMinutes: minutes,
+      genre, tab: "today", custom: true, slotId, stepId: "custom:" + id,
+      stepNum: "追加", stepTitle: "今日だけのやること", stageKey: null };
+    setTodayCustomCatalog(prev => {
+      const next = { ...prev, [dailyPlanKey]: {
+        ...(prev[dailyPlanKey] || {}), [id]: customTask } };
+      try { localStorage.setItem("riff_daily_custom_catalog_v1", JSON.stringify(next)); }
+      catch (e) {}
+      return next;
+    });
+    const nextPinned = { ...todayPinned, [slotId]: [
+      ...(todayPinned[slotId] || []).filter(old => old !== replaceId), id] };
+    persistDailySlots({ ...todaySlots, [slotId]: [...withoutOld, id] }, nextPinned);
+    if (textOverride != null) setTodayCustomTask(slotId, "");
+    setTodayNewTaskDraft({ text: "", minutes: "5", genre });
+    setOpenTodayAddFor(null);
+    setOpenTodayLinkFor(null);
+    setAssignmentWarning("");
+    setTodayReplanPreview(null);
+  };
+  // 計測と目安の更新は今日の割当を変更しない。本人が押したときだけ変更案を生成。
+  const previewTodayReplan = () => {
+    setAssignmentWarning("");
+    const now = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const future = todaySched.items.slice().sort((a,b) =>
+      scheduleStartMinute(a) - scheduleStartMinute(b))
+      .filter(item => scheduleStartMinute(item) > now);
+    const proposal = Object.fromEntries(todaySched.items.map(item =>
+      [item.id, [...(todaySlots[item.id] || [])]]));
+    const reserved = new Set();
+    const queue = [];
+    const fixedOverflow = [];
+    future.forEach(item => {
+      const pinned = todayPinned[item.id] || [];
+      const ids = todaySlots[item.id] || [];
+      const fixed = ids.filter(id => checkedItems[id] ||
+        pinned.includes(id) || resolveTodayTask(id)?.custom);
+      proposal[item.id] = fixed.slice();
+      fixed.forEach(id => reserved.add(id));
+      const fixedMinutes = fixed.reduce((total,id) =>
+        total + effectiveTaskMinutes(resolveTodayTask(id) || {}), 0);
+      if (fixedMinutes > parseScheduleDuration(item.t)) {
+        fixedOverflow.push(item.a + "（固定した作業が" +
+          formatTaskMinutes(fixedMinutes - parseScheduleDuration(item.t)) + "超過）");
+      }
+    });
+    // 過去／現在の枠のタスクは、候補にも入れずそのまま維持。
+    todaySched.items.filter(item => scheduleStartMinute(item) <= now)
+      .forEach(item => (todaySlots[item.id] || []).forEach(id => reserved.add(id)));
+    future.forEach(item => (todaySlots[item.id] || []).forEach(id => {
+      if (!reserved.has(id)) {
+        queue.push({ id, from: item.id, fromStart: scheduleStartMinute(item) });
+        reserved.add(id);
+      }
+    }));
+    const deferred = [], moved = [];
+    queue.forEach(row => {
+      const task = resolveTodayTask(row.id);
+      if (!task) return;
+      const target = future.find(item => {
+        if (scheduleStartMinute(item) < row.fromStart) return false;
+        if (getScheduleCategory(item) !== task.genre) return false;
+        const used = proposal[item.id].reduce((total,id) =>
+          total + effectiveTaskMinutes(resolveTodayTask(id) || {}), 0);
+        return used + effectiveTaskMinutes(task) <= parseScheduleDuration(item.t);
+      });
+      if (!target) { deferred.push(row); return; }
+      proposal[target.id].push(row.id);
+      if (target.id !== row.from) moved.push({ ...row, to: target.id });
+    });
+    const changed = future.some(item =>
+      JSON.stringify(todaySlots[item.id] || []) !== JSON.stringify(proposal[item.id]));
+    setTodayReplanPreview({ slots: proposal, deferred, moved, fixedOverflow,
+      changed, fingerprint: dailyTemplateFingerprint, planKey: dailyPlanKey,
+      originalSlots: JSON.stringify(todaySlots), createdAt: Date.now() });
+    setTodayReplanNotice(changed ?
+      "変更案を作りました。内容を確認してから反映してください。" :
+      "今の割り当てから変更する必要はありません。");
+  };
+  const confirmTodayReplan = () => {
+    const preview = todayReplanPreview;
+    if (!preview || !preview.changed) return;
+    const now = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const movedSlotStarted = todaySched.items.some(item =>
+      scheduleStartMinute(item) <= now &&
+      JSON.stringify(todaySlots[item.id] || []) !==
+        JSON.stringify(preview.slots[item.id] || []));
+    if (preview.planKey !== dailyPlanKey ||
+        preview.fingerprint !== dailyTemplateFingerprint ||
+        JSON.stringify(todaySlots) !== preview.originalSlots || movedSlotStarted) {
+      setTodayReplanPreview(null);
+      setTodayReplanNotice("予定や時刻が変わりました。もう一度、変更案を確認してください。");
+      return;
+    }
+    persistDailySlots(preview.slots, todayPinned);
+    setTodayReplanPreview(null);
+    setTodayReplanNotice("確認した変更案を反映しました。");
   };
   const completedSchedCount = todaySched.items.filter(it => checkedItems[scheduleCheckKey(it.id)]).length;
 
