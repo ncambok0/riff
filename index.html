@@ -3705,13 +3705,10 @@ function App() {
                 checked: !!checkedItems[task.id],
                 onChange: () => toggleCheck(task.id),
                 "aria-label": task.text + "の完了" }),
-              h('span', { style: { flex: 1, fontSize: "15px", lineHeight: 1.6,
-                color: highlightedTaskId === task.id ? "#713F12" :
+              renderTaskTitle(task, { color: highlightedTaskId === task.id ? "#713F12" :
                   checkedItems[task.id] ? C.muted : C.text,
-                textDecoration: checkedItems[task.id] ? "line-through" : "none" } },
-                taskShortTitle(task)),
-              h('span', { style: { flexShrink: 0, color: "#047857", fontWeight: 800,
-                fontSize: "12px" } }, taskEstimateLabel(task)),
+                textDecoration: checkedItems[task.id] ? "line-through" : "none" }),
+              renderTaskTimeMeta(task),
               h('span', { className: "badge-tag", style: { color: "#1D4ED8",
                 background: "#EFF6FF", maxWidth: "150px", overflow: "hidden",
                 textOverflow: "ellipsis", whiteSpace: "nowrap" },
@@ -3747,10 +3744,10 @@ function App() {
         h('input', { type: "checkbox", className: "custom-checkbox-interactive",
           checked: !!checkedItems[task.id], onChange: () => toggleCheck(task.id),
           "aria-label": task.text + "の完了" }),
-        h('span', { title: task.text, style: { flex: 1, lineHeight: 1.6,
-          fontSize: "14px",
-          textDecoration: checkedItems[task.id] ? "line-through" : "none" } },
-          taskShortTitle(task)),
+        renderTaskTitle(task, { fontSize: "14px",
+          color: checkedItems[task.id] ? (dark ? "#CBD5E1" : C.muted) :
+            (dark ? "#FFFFFF" : C.text),
+          textDecoration: checkedItems[task.id] ? "line-through" : "none" }),
         h('span', { style: { flexShrink: 0, fontSize: "12px",
           color: dark ? "#A7F3D0" : C.codeText, fontWeight: 800 } },
           taskEstimateLabel(task)),
@@ -4940,17 +4937,10 @@ function App() {
                   type: "checkbox", className: "custom-checkbox-interactive",
                   checked: !!checkedItems[st.id], onChange: () => toggleCheck(st.id)
                 }),
-                h('span', { style: { fontSize: "15px", lineHeight: 1.65,
-                  flex: 1, minWidth: "160px",
-                  color: highlightedTaskId === st.id ? "#713F12" :
+                renderTaskTitle(st, { color: highlightedTaskId === st.id ? "#713F12" :
                     checkedItems[st.id] ? C.muted : C.text,
-                  textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
-                  taskShortTitle(st)
-                ),
-                h('span', { className: "badge-tag",
-                  style: { color: "#065F46", background: "#ECFDF5",
-                    fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
-                  taskEstimateLabel(st)),
+                  textDecoration: checkedItems[st.id] ? "line-through" : "none" }),
+                renderTaskTimeMeta(st),
                 renderTaskActions(st)
               ))
             )
@@ -5040,17 +5030,10 @@ function App() {
                   type: "checkbox", className: "custom-checkbox-interactive",
                   checked: !!checkedItems[st.id], onChange: () => toggleCheck(st.id)
                 }),
-                h('span', { style: { fontSize: "15px", lineHeight: 1.65,
-                  flex: 1, minWidth: "160px",
-                  color: highlightedTaskId === st.id ? "#713F12" :
+                renderTaskTitle(st, { color: highlightedTaskId === st.id ? "#713F12" :
                     checkedItems[st.id] ? C.muted : C.text,
-                  textDecoration: checkedItems[st.id] ? "line-through" : "none" } },
-                  taskShortTitle(st)
-                ),
-                h('span', { className: "badge-tag",
-                  style: { color: "#065F46", background: "#ECFDF5",
-                    fontWeight: 800, whiteSpace: "nowrap", alignSelf: "flex-start" } },
-                  taskEstimateLabel(st)),
+                  textDecoration: checkedItems[st.id] ? "line-through" : "none" }),
+                renderTaskTimeMeta(st),
                 renderTaskActions(st)
               ))
             )
