@@ -4588,7 +4588,7 @@ function App() {
                 h('div', { style: { display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px" } },
                   moMusSteps.length > 0 && h('div', { style: { borderRadius: "6px", overflow: "hidden", border: isCur ? "1px solid rgba(255,255,255,0.15)" : "1px solid #E5E7EB" } },
                     h('button', {
-                      className: "accordion-trigger",
+                      className: "accordion-trigger riff-genre-stage-card",
                       onClick: () => toggleMonthSubGroup(`${moKey}_mus`),
                       style: {
                         padding: "6px 10px", background: isCur ? "rgba(124, 58, 237, 0.2)" : C.musicBg,
@@ -4599,24 +4599,23 @@ function App() {
                       h('span', null, openMonthSubGroups[`${moKey}_mus`] ? "▲" : "▼")
                     ),
                     openMonthSubGroups[`${moKey}_mus`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
-                      moMusSteps.map(s => h('div', { key: s.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
-                        h('div', null,
-                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music, fontWeight: 600, marginRight: "6px" } }, `ステップ${s.stepNum}`),
-                          h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title),
-                        renderMiniTaskChecklist(s, isCur)
-                        ),
-                        h('button', {
-                          className: "btn-action",
-                          onClick: () => jumpToTask("music", s.id),
-                          style: { color: "#FFFFFF", background: C.music, padding: "2px 7px", fontSize: "11px", fontWeight: 600, letterSpacing: "0.03em" }
-                        }, "音楽タブでステップを見る ↗")
-                      ))
+                      moMusSteps.map(s => h('div', { key: s.id,
+                      className: "riff-mini-step",
+                      style: { fontSize: "14px", marginBottom: "8px", minWidth: 0,
+                        background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      h('div', { style: { display: "flex", alignItems: "center",
+                        flexWrap: "wrap", gap: "7px", marginBottom: "5px" } },
+                        renderStepJumpBadge(s, "music", C.music),
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text,
+                          fontWeight: 700, minWidth: 0, overflowWrap: "anywhere" } }, s.title)),
+                      renderMiniTaskChecklist(s, isCur)
+                    ))
                     )
                   ),
 
                   moPySteps.length > 0 && h('div', { style: { borderRadius: "6px", overflow: "hidden", border: isCur ? "1px solid rgba(255,255,255,0.15)" : "1px solid #E5E7EB" } },
                     h('button', {
-                      className: "accordion-trigger",
+                      className: "accordion-trigger riff-genre-stage-card",
                       onClick: () => toggleMonthSubGroup(`${moKey}_py`),
                       style: {
                         padding: "6px 10px", background: isCur ? "rgba(5, 150, 105, 0.2)" : C.codeBg,
@@ -4627,24 +4626,23 @@ function App() {
                       h('span', null, openMonthSubGroups[`${moKey}_py`] ? "▲" : "▼")
                     ),
                     openMonthSubGroups[`${moKey}_py`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
-                      moPySteps.map(s => h('div', { key: s.id, style: { fontSize: "12px", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
-                        h('div', null,
-                          h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code, fontWeight: 600, marginRight: "6px" } }, `ステップ${s.stepNum}`),
-                          h('span', { style: { color: isCur ? "#E5E5EA" : C.text } }, s.title),
-                        renderMiniTaskChecklist(s, isCur)
-                        ),
-                        h('button', {
-                          className: "btn-action",
-                          onClick: () => jumpToTask("python", s.id),
-                          style: { color: "#FFFFFF", background: C.code, padding: "2px 7px", fontSize: "11px", fontWeight: 600, letterSpacing: "0.03em" }
-                        }, "開発タブでステップを見る ↗")
-                      ))
+                      moPySteps.map(s => h('div', { key: s.id,
+                      className: "riff-mini-step",
+                      style: { fontSize: "14px", marginBottom: "8px", minWidth: 0,
+                        background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      h('div', { style: { display: "flex", alignItems: "center",
+                        flexWrap: "wrap", gap: "7px", marginBottom: "5px" } },
+                        renderStepJumpBadge(s, "python", C.code),
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text,
+                          fontWeight: 700, minWidth: 0, overflowWrap: "anywhere" } }, s.title)),
+                      renderMiniTaskChecklist(s, isCur)
+                    ))
                     )
                   ),
 
                   moStudyUnits.length > 0 && h('div', { style: { borderRadius: "6px", overflow: "hidden", border: isCur ? "1px solid rgba(255,255,255,0.15)" : "1px solid #E5E7EB" } },
                     h('button', {
-                      className: "accordion-trigger",
+                      className: "accordion-trigger riff-genre-stage-card",
                       onClick: () => toggleMonthSubGroup(`${moKey}_study`),
                       style: {
                         padding: "6px 10px", background: isCur ? "rgba(0, 122, 255, 0.2)" : C.studyBg,
@@ -4754,7 +4752,7 @@ function App() {
               h('div', { style: { display: "flex", flexDirection: "column", gap: "8px" } },
                 sMusSteps.length > 0 && h('div', { style: { borderRadius: "8px", border: isCur ? "1px solid rgba(196,181,253,0.3)" : `1px solid ${C.musicBorder}`, overflow: "hidden" } },
                   h('button', {
-                    className: "accordion-trigger",
+                    className: "accordion-trigger riff-genre-stage-card",
                     onClick: () => toggleStageCategory(`${sKey}_mus`),
                     style: { padding: "8px 10px", background: isCur ? "rgba(124,58,237,0.25)" : C.musicBg, display: "flex", justifyContent: "space-between", alignItems: "center" }
                   },
@@ -4762,24 +4760,23 @@ function App() {
                     h('span', { style: { fontSize: "11px", color: isCur ? "#C4B5FD" : C.musicText } }, openStageCategory[`${sKey}_mus`] ? "▲" : "▼")
                   ),
                   openStageCategory[`${sKey}_mus`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
-                    sMusSteps.map(st => h('div', { key: st.id, style: { fontSize: "12.5px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
-                      h('div', null,
-                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music, fontWeight: 600, marginRight: "6px" } }, `ステップ${st.stepNum}`),
-                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title),
+                    sMusSteps.map(st => h('div', { key: st.id,
+                      className: "riff-mini-step",
+                      style: { fontSize: "14px", marginBottom: "8px", minWidth: 0,
+                        background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      h('div', { style: { display: "flex", alignItems: "center",
+                        flexWrap: "wrap", gap: "7px", marginBottom: "5px" } },
+                        renderStepJumpBadge(st, "music", C.music),
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text,
+                          fontWeight: 700, minWidth: 0, overflowWrap: "anywhere" } }, st.title)),
                       renderMiniTaskChecklist(st, isCur)
-                      ),
-                      h('button', {
-                        className: "btn-action",
-                        onClick: () => jumpToTask("music", st.id),
-                        style: { color: "#FFFFFF", background: C.music, padding: "2px 7px", fontSize: "11px", fontWeight: 600, letterSpacing: "0.03em" }
-                      }, "音楽タブでステップを見る ↗")
                     ))
                   )
                 ),
 
                 sPySteps.length > 0 && h('div', { style: { borderRadius: "8px", border: isCur ? "1px solid rgba(110,231,183,0.3)" : `1px solid ${C.codeBorder}`, overflow: "hidden" } },
                   h('button', {
-                    className: "accordion-trigger",
+                    className: "accordion-trigger riff-genre-stage-card",
                     onClick: () => toggleStageCategory(`${sKey}_py`),
                     style: { padding: "8px 10px", background: isCur ? "rgba(5,150,105,0.25)" : C.codeBg, display: "flex", justifyContent: "space-between", alignItems: "center" }
                   },
@@ -4787,24 +4784,23 @@ function App() {
                     h('span', { style: { fontSize: "11px", color: isCur ? "#6EE7B7" : C.codeText } }, openStageCategory[`${sKey}_py`] ? "▲" : "▼")
                   ),
                   openStageCategory[`${sKey}_py`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
-                    sPySteps.map(st => h('div', { key: st.id, style: { fontSize: "12.5px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" } },
-                      h('div', null,
-                        h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code, fontWeight: 600, marginRight: "6px" } }, `ステップ${st.stepNum}`),
-                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text, fontWeight: 700 } }, st.title),
+                    sPySteps.map(st => h('div', { key: st.id,
+                      className: "riff-mini-step",
+                      style: { fontSize: "14px", marginBottom: "8px", minWidth: 0,
+                        background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      h('div', { style: { display: "flex", alignItems: "center",
+                        flexWrap: "wrap", gap: "7px", marginBottom: "5px" } },
+                        renderStepJumpBadge(st, "python", C.code),
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text,
+                          fontWeight: 700, minWidth: 0, overflowWrap: "anywhere" } }, st.title)),
                       renderMiniTaskChecklist(st, isCur)
-                      ),
-                      h('button', {
-                        className: "btn-action",
-                        onClick: () => jumpToTask("python", st.id),
-                        style: { color: "#FFFFFF", background: C.code, padding: "2px 7px", fontSize: "11px", fontWeight: 600, letterSpacing: "0.03em" }
-                      }, "開発タブでステップを見る ↗")
                     ))
                   )
                 ),
 
                 sStudyUnits.length > 0 && h('div', { style: { borderRadius: "8px", border: isCur ? "1px solid rgba(147,197,253,0.3)" : `1px solid ${C.studyBorder}`, overflow: "hidden" } },
                   h('button', {
-                    className: "accordion-trigger",
+                    className: "accordion-trigger riff-genre-stage-card",
                     onClick: () => toggleStageCategory(`${sKey}_study`),
                     style: { padding: "8px 10px", background: isCur ? "rgba(0,122,255,0.25)" : C.studyBg, display: "flex", justifyContent: "space-between", alignItems: "center" }
                   },
@@ -4900,7 +4896,7 @@ function App() {
                 style: { width: "100%", textAlign: "left",
                   background: stageInfo[s.stage].color, color: "#FFFFFF",
                   border: "none", cursor: "pointer", borderRadius: "8px",
-                  padding: "9px 12px", fontWeight: 900, marginTop: "6px" } },
+                  padding: "9px 12px", fontSize: "15px", fontWeight: 900, marginTop: "6px" } },
                 stageInfo[s.stage].label + "｜音楽｜" + stageInfo[s.stage].title +
                 (openGenreStages["music:" + s.stage] === false ? " ▼" : " ▲")),
             openGenreStages["music:" + s.stage] !== false && h('div', {
@@ -4993,7 +4989,7 @@ function App() {
                 style: { width: "100%", textAlign: "left",
                   background: stageInfo[s.stage].color, color: "#FFFFFF",
                   border: "none", cursor: "pointer", borderRadius: "8px",
-                  padding: "9px 12px", fontWeight: 900, marginTop: "6px" } },
+                  padding: "9px 12px", fontSize: "15px", fontWeight: 900, marginTop: "6px" } },
                 stageInfo[s.stage].label + "｜開発｜" + stageInfo[s.stage].title +
                 (openGenreStages["python:" + s.stage] === false ? " ▼" : " ▲")),
             openGenreStages["python:" + s.stage] !== false && h('div', {
