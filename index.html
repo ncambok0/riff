@@ -2978,6 +2978,7 @@ function App() {
 
   const [openStudyVisionCard, setOpenStudyVisionCard] = useState(false);
   const [openStudyCapacity, setOpenStudyCapacity] = useState(false);
+  const [openStudyMemos, setOpenStudyMemos] = useState({});
   const [openStudySubjects, setOpenStudySubjects] = useState({
     math: false, eng: false, sci: false, soc: false, jpn: false
   });
@@ -3518,8 +3519,12 @@ function App() {
     }
     setTab(targetTab);
     setExpandedDetailTasks({ [stepId]: true });
-    if (task && task.stageKey && (targetTab === "music" || targetTab === "python")) {
-      setOpenGenreStages(prev => ({ ...prev, [targetTab + ":" + task.stageKey]: true }));
+    if (targetTab === "music" || targetTab === "python") {
+      const targetStep = task ? null :
+        (targetTab === "music" ? musicSteps : pythonSteps).find(step => step.id === stepId);
+      const stageKey = task?.stageKey || targetStep?.stage;
+      if (stageKey) setOpenGenreStages(prev => ({
+        ...prev, [targetTab + ":" + stageKey]: true }));
     }
     setHighlightedTaskId(taskId);
     setTimeout(() => {
@@ -3669,22 +3674,31 @@ function App() {
             fontWeight: 800, marginBottom: "4px" } },
             "やること完了 " + completedTasks + "/" + u.subtasks.length),
           h('div', { style: { display: "flex", alignItems: "flex-start",
-            justifyContent: "space-between", flexWrap: "wrap", gap: "8px",
-            marginBottom: "5px" } },
+            justifyContent: "space-between", gap: "8px", marginBottom: "5px",
+            minWidth: 0, width: "100%" } },
             h('button', { type: "button", onClick: () => toggleTaskDetail(u.id),
               "aria-expanded": isExpanded,
               style: { background: "transparent", border: "none", textAlign: "left",
-                flex: "1 1 210px", minWidth: 0, fontSize: "14px", fontWeight: 800,
+                flex: "1 1 0", minWidth: 0, fontSize: "14px", fontWeight: 800,
                 color: isChecked ? C.muted : C.text,
-                cursor: "pointer", lineHeight: 1.5, padding: "2px 0" } },
+                cursor: "pointer", lineHeight: 1.5, padding: "2px 0",
+                overflowWrap: "anywhere" } },
               u.item, isExpanded ? " ▲" : " ▼"),
-            h('details', { className: "riff-task-detail",
-              style: { flex: "0 0 auto", marginLeft: "auto", maxWidth: "100%" } },
-              h('summary', { style: { fontSize: "12px", fontWeight: 800,
-                padding: "6px 9px" } }, "学習メモ ▼"),
-              h('div', { style: { fontSize: "13px", maxWidth: "420px",
-                padding: "8px 10px", lineHeight: 1.6 } }, u.memo))
+            h('button', { type: "button", className: "btn-action",
+              "aria-expanded": !!openStudyMemos[u.id],
+              onClick: () => setOpenStudyMemos(prev =>
+                ({ ...prev, [u.id]: !prev[u.id] })),
+              style: { flex: "0 0 auto", marginLeft: "auto",
+                padding: "5px 7px", background: "#FFFFFF",
+                border: "1px solid #BFDBFE", color: C.studyText,
+                fontSize: "12px" } },
+              "学習メモ " + (openStudyMemos[u.id] ? "▲" : "▼"))
           ),
+          !!openStudyMemos[u.id] && h('div', { style: {
+            margin: "6px 0 10px", borderLeft: "3px solid #64748B",
+            background: "#FFFFFF", padding: "10px 12px",
+            borderRadius: "5px", fontSize: "13px", lineHeight: 1.65,
+            overflowWrap: "anywhere" } }, u.memo),
           isExpanded && h('div', {
             style: {
               marginTop: "6px",
@@ -3876,7 +3890,7 @@ function App() {
                         prev === item.id + ":" + task.id ? null : item.id + ":" + task.id);
                     }, style: { fontSize: "10px", background: C.studyBg, color: C.studyText } },
                     "変更"),
-                  renderTaskActions(task)
+                  renderTaskActions(task, "", true, true)
                 ))
               );
             }),
