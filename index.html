@@ -265,11 +265,67 @@
   .riff-help-section summary { cursor: pointer; padding: 13px;
     font-size: 16px; font-weight: 900; background: #F8FAFC; }
   .riff-help-section > div { padding: 10px 13px 14px; }
-  /* 全年月を表示するため、小画面だけガントを横スクロール可能にする。 */
+  /* PCでは月別ガント、スマホでは予定別の読みやすいカードを表示する。 */
   @media (max-width: 760px) {
     .riff-gantt-band { overflow-x: auto; }
     .riff-gantt-band > div { min-width: 760px; }
   }
+
+  /* PC表示とスマホ表示は同じHTML・同じデータ。画面幅に合わせて配置だけ変更。 */
+  html, body, #root { max-width: 100%; overflow-x: clip; }
+  .riff-gantt-mobile { display: none; }
+  .riff-gantt-mobile-item { width: 100%; text-align: left; padding: 12px;
+    border: 1px solid #CBD5E1; border-radius: 9px; background: #F8FAFC;
+    display: flex; flex-direction: column; gap: 4px; color: #1E293B; }
+  .riff-gantt-mobile-item strong { font-size: 14px; overflow-wrap: anywhere; }
+  .riff-gantt-milestone { border: 1px solid #BFDBFE; border-radius: 9px;
+    background: #EFF6FF; padding: 10px 12px; }
+  .riff-gantt-milestone summary { cursor: pointer; font-size: 14px; font-weight: 800;
+    color: #1D4ED8; white-space: normal; }
+  .riff-gantt-milestone p { margin-top: 8px; font-size: 13px; line-height: 1.6; }
+  .riff-task-toolbar { position: relative; }
+  .riff-task-panel { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  .riff-mobile-label { display: none; }
+  .riff-record-extra > summary { font-size: 13px; line-height: 1.5; font-weight: 700;
+    padding: 10px !important; overflow-wrap: anywhere; }
+  .riff-record-extra > label, .riff-record-extra > input, .riff-record-extra > div {
+    display: block; margin: 8px 10px; max-width: calc(100% - 20px); }
+  .riff-feedback-export-actions { flex-wrap: wrap; }
+  .riff-feedback-export-actions > button { min-width: 130px !important; flex: 1 1 150px !important;
+    white-space: normal; overflow-wrap: anywhere; }
+  .riff-feedback-export-actions > button span { white-space: normal !important;
+    overflow-wrap: anywhere; text-align: center; }
+  @media (max-width: 760px) {
+    .fixed-header { max-width: 100vw; }
+    .riff-header-inner { padding: 6px 10px 2px !important; }
+    .riff-header-card { align-items: center !important; padding: 8px 10px !important;
+      gap: 4px !important; }
+    .riff-header-subtitle { display: none !important; }
+    .riff-header-date { font-size: 12px !important; }
+    .nav-tab-btn { font-size: 13px; min-width: 58px; padding: 7px 8px; }
+    .riff-gantt-band { display: none !important; }
+    .riff-gantt-mobile { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+    .riff-task-row { display: grid !important;
+      grid-template-columns: 24px minmax(0,1fr); align-items: start !important;
+      gap: 7px 10px !important; min-width: 0; width: 100%;
+      padding: 10px 8px !important; margin-bottom: 8px;
+      border: 1px solid rgba(100,116,139,.22) !important; border-radius: 9px !important; }
+    .riff-task-row > input[type="checkbox"] { grid-column: 1; align-self: start; margin-top: 5px; }
+    .riff-task-row > span { grid-column: 2; min-width: 0 !important; overflow-wrap: anywhere;
+      line-height: 1.5 !important; }
+    .riff-task-row > .badge-tag { width: fit-content; max-width: 100% !important;
+      white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+    .riff-task-row > .riff-task-toolbar, .riff-task-row > .riff-task-panel {
+      grid-column: 1 / -1; min-width: 0; max-width: 100%; width: 100%; }
+    .riff-task-toolbar { gap: 6px !important; }
+    .riff-task-toolbar > button { min-height: 38px; }
+    .riff-wide-label { display: none; }
+    .riff-mobile-label { display: inline; }
+    .riff-record-extra > summary { font-size: 13px !important; }
+    .riff-feedback-export-actions > button { flex: 1 1 100% !important; min-width: 0 !important;
+      padding: 10px 8px !important; }
+  }
+
 </style>
 </head>
 <body>
@@ -2532,9 +2588,10 @@ function App() {
           border: "1px solid #BFDBFE", fontSize: "12px", padding: "5px 8px" },
         onClick: () => setOpenTaskMeasurements(prev =>
           ({ ...prev, [task.id]: !prev[task.id] })) },
-        "⏱ 作業時間を記録" + (records.length ? " " + records.length + "回" : "") +
-        (opened ? " ▲" : " ▼")),
-      part !== "button" && opened && h('div', { style: { flex: "1 1 100%", width: "100%",
+        h("span", { className: "riff-wide-label" }, "⏱ 作業時間を記録"),
+        h("span", { className: "riff-mobile-label" }, "⏱ 記録"),
+        (records.length ? " " + records.length + "回" : "") + (opened ? " ▲" : " ▼")),
+      part !== "button" && opened && h('div', { className: "riff-task-panel", style: { flex: "1 1 100%", width: "100%",
         marginTop: "6px", padding: "9px", borderRadius: "7px",
         background: "#FFFFFF", border: "1px solid " + C.border, color: C.text,
         display: "flex", flexDirection: "column", gap: "7px" } },
@@ -2561,9 +2618,9 @@ function App() {
             running ? "計測中 " + Math.floor(elapsed / 60) + "分" +
               (elapsed % 60) + "秒" : "未計測")
         ),
-        h('details', { className: "riff-help-section",
+        h('details', { className: "riff-help-section riff-record-extra",
           style: { background: "#FFFFFF" } },
-          h('summary', null, "必要なら、難しさ・使った教材・次回の時間を記録する ▼"),
+          h('summary', null, "＋ 追加の記録（任意）"),
         h('label', null, "次にやるときの目安を変える（分）",
           h('input', { type: "number", min: 1, max: 1440,
             className: "time-input-inline", style: { marginLeft: "7px", width: "85px" },
@@ -3556,7 +3613,7 @@ function App() {
             h('div', { style: { color: C.studyText, fontWeight: 900, margin: "6px 0" } },
               "📚 やること（" + stepTimeLabel(u) + "）"),
             u.subtasks.map(task => h(React.Fragment, { key: task.id }, h('div', {
-              id: "riff-task-" + task.id,
+              id: "riff-task-" + task.id, className: "riff-task-row",
               style: { display: "flex", alignItems: "center", gap: "7px",
                 flexWrap: "wrap", padding: "5px 0", borderTop: "1px solid #E5E7EB",
                 background: highlightedTaskId === task.id ? "#FEF08A" : "transparent",
@@ -3600,7 +3657,7 @@ function App() {
       marginTop: "8px", width: "100%", fontSize: "14px" }
   },
     (step.subtasks || []).map(task => h(React.Fragment, { key: task.id },
-      h('div', {
+      h('div', { className: 'riff-task-row',
         style: { display: "flex", gap: "8px", alignItems: "center",
           flexWrap: "wrap", padding: "4px 0",
           color: checkedItems[task.id] ? (dark ? "#CBD5E1" : C.muted) :
@@ -3800,7 +3857,7 @@ function App() {
         onClick: () => setOpenTaskDescriptions(prev =>
           ({ ...prev, [task.id]: !prev[task.id] })) },
         "説明 " + (opened ? "▲" : "▼")),
-      part !== "button" && opened && h('div', { style: { flex: "1 1 100%",
+      part !== "button" && opened && h('div', { className: "riff-task-panel", style: { flex: "1 1 100%",
         minWidth: 0, width: "100%", padding: "9px 11px", borderRadius: "6px",
         background: "#F8FAFC", borderLeft: "3px solid #64748B",
         color: "#1E293B", fontSize: "15px", lineHeight: 1.7 } },
@@ -3903,8 +3960,8 @@ function App() {
       )
     ),
     h('div', { className: 'fixed-header' },
-      h('div', { style: { maxWidth: 880, margin: "0 auto", padding: "10px 14px 4px" } },
-        h('div', {
+      h('div', { className: 'riff-header-inner', style: { maxWidth: 880, margin: "0 auto", padding: "10px 14px 4px" } },
+        h('div', { className: 'riff-header-card',
           style: {
             background: "linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%)",
             borderRadius: "8px",
@@ -3933,7 +3990,7 @@ function App() {
                 textShadow: "0 2px 8px rgba(0,0,0,0.5)"
               }
             }, "RIFF"),
-            h('span', {
+            h('span', { className: 'riff-header-subtitle',
               style: {
                 fontSize: "14.5px",
                 fontWeight: 700,
@@ -3944,7 +4001,7 @@ function App() {
           ),
           h('div', { style: { display: "flex", alignItems: "center", gap: "8px",
             position: "relative" } },
-            h('span', { style: { fontSize: "13px", fontWeight: 700,
+            h('span', { className: 'riff-header-date', style: { fontSize: "13px", fontWeight: 700,
               color: "#E5E5EA" } }, formattedDateStr),
             h('button', { type: "button", className: "riff-help-gear",
               "aria-label": "RIFFの説明と使いかた", "aria-haspopup": "menu",
@@ -4403,7 +4460,25 @@ function App() {
                   )
                 )
               )
-            ))
+            )),
+            rowOpen && h('div', { className: "riff-gantt-mobile" },
+              h('div', { style: { fontWeight: 800, color: C.studyText,
+                fontSize: "12px" } }, "この期間の予定（タップでステージへ移動）"),
+              ganttTasks.filter(task => task.start <= row.end && task.end >= row.start).map(task => {
+                const info = stageInfo[task.stage] || {};
+                return h('button', { key: row.start + "-" + task.nameLines.join("/"),
+                  type: "button", className: "riff-gantt-mobile-item",
+                  onClick: () => jumpToStage(task.stage) },
+                  h('strong', null, task.nameLines.join("／") + " ↗"),
+                  h('span', { style: { fontSize: "12px", color: C.sub } },
+                    task.start + " ～ " + task.end + "｜" + (info.label || "ステージ")));
+              }),
+              EXAM_PLAN_MILESTONES.filter(mark => inRow(mark.date)).map(mark =>
+                h('details', { key: mark.date + mark.label,
+                  className: "riff-gantt-milestone" },
+                  h('summary', null, "◆ " + mark.date + "｜" + mark.label + "（説明を見る）"),
+                  h('p', null, mark.full)))
+            )
           );
         })
       ),
@@ -4805,7 +4880,7 @@ function App() {
             ),
             isExpanded && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: `1px dashed ${C.musicBorder}` } },
               s.subtasks.map(st => h('div', {
-                key: st.id, id: "riff-task-" + st.id,
+                key: st.id, id: "riff-task-" + st.id, className: "riff-task-row",
                 style: { display: "flex", gap: "8px", alignItems: "flex-start",
                   flexWrap: "wrap", marginBottom: "6px", padding: "3px",
                   background: highlightedTaskId === st.id ? "#FEF08A" : "transparent",
@@ -4905,7 +4980,7 @@ function App() {
             ),
             isExpanded && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: `1px dashed ${C.codeBorder}` } },
               s.subtasks.map(st => h('div', {
-                key: st.id, id: "riff-task-" + st.id,
+                key: st.id, id: "riff-task-" + st.id, className: "riff-task-row",
                 style: { display: "flex", gap: "8px", alignItems: "flex-start",
                   flexWrap: "wrap", marginBottom: "6px", padding: "3px",
                   background: highlightedTaskId === st.id ? "#FEF08A" : "transparent",
@@ -5731,7 +5806,7 @@ function App() {
               `過去すべての回答履歴（${feedbacks.length}件）`
             )
           ),
-          h('div', { style: { display: "flex", gap: "8px", width: "100%" } },
+          h('div', { className: "riff-feedback-export-actions", style: { display: "flex", gap: "8px", width: "100%" } },
             h('button', {
               type: "button",
               className: "btn-action",
