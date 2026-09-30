@@ -1,0 +1,5973 @@
+const { useState, useEffect, createElement: h } = React;
+
+const APP_VERSION = "v2.3.5-study-planning-preview";
+
+const C = {
+  music: "#7C3AED", musicBg: "#FAF5FF", musicBorder: "#C4B5FD", musicText: "#5B21B6",
+  code: "#059669", codeBg: "#ECFDF5", codeBorder: "#6EE7B7", codeText: "#065F46",
+  study: "#007AFF", studyBg: "#EFF6FF", studyBorder: "#BFDBFE", studyText: "#1D4ED8",
+  dark: {
+    bg: "#1C1C1E", card: "#2C2C2E", border: "rgba(255, 255, 255, 0.14)", text: "#FFFFFF", sub: "#E5E5EA", muted: "#98989D",
+    musicText: "#C4B5FD", musicBg: "rgba(124, 58, 237, 0.22)", musicBorder: "rgba(196, 181, 253, 0.35)",
+    codeText: "#6EE7B7", codeBg: "rgba(5, 150, 105, 0.22)", codeBorder: "rgba(110, 231, 183, 0.35)",
+    studyText: "#93C5FD", studyBg: "rgba(0, 122, 255, 0.22)", studyBorder: "rgba(147, 197, 253, 0.35)"
+  },
+  bg: "#F2F2F7", card: "#FFFFFF", cardAlt: "#F8FAFC",
+  border: "rgba(0, 0, 0, 0.08)", text: "#1C1C1E", muted: "#8E8E93", sub: "#48484A"
+};
+
+const TIME_OPTIONS = [];
+for (let h_idx = 6; h_idx <= 24; h_idx++) {
+  for (let m_idx = 0; m_idx < 60; m_idx += 10) {
+    const hh = String(h_idx % 24).padStart(2, '0');
+    const mm = String(m_idx).padStart(2, '0');
+    TIME_OPTIONS.push(`${hh}:${mm}`);
+  }
+}
+TIME_OPTIONS.push("24:00");
+
+const PLAN_START = "2026-10";
+const PLAN_END = "2031-04";
+// Two responsive gantt bands, each using a proportional month scale.
+
+// 2028年2月の高校入試は固定したまま、進学までの学年を正しくつなぐ。
+const stageInfo = {
+  p1: { label: "ステージ 1", shortLabel: "St1", title: "現在地の確認・ワンフェス発表・基礎の再編", period: "2026年10月", color: "#087F5B", bg: "#ECFDF5", border: "#6EE7B7", text: "#065F46" },
+  p2: { label: "ステージ 2", shortLabel: "St2", title: "音声・MIDIプロトタイプと中2の学び直し", period: "2026年11月〜2027年3月", color: "#B45309", bg: "#FFFBEB", border: "#FCD34D", text: "#92400E" },
+  p3: { label: "ステージ 3", shortLabel: "St3", title: "中3前半：作品開発・学校学習・受験基礎", period: "2027年4〜7月", color: "#1D4ED8", bg: "#EFF6FF", border: "#93C5FD", text: "#1E40AF" },
+  p4: { label: "ステージ 4", shortLabel: "St4", title: "高校受験準備と音楽・開発の継続", period: "2027年8月〜2028年2月", color: "#B91C1C", bg: "#FEF2F2", border: "#FCA5A5", text: "#7F1D1D" },
+  p5: { label: "ステージ 5", shortLabel: "St5", title: "高校進学・軽音と制作活動の本格化", period: "2028年3月〜2029年3月", color: "#6D28D9", bg: "#F5F3FF", border: "#C4B5FD", text: "#5B21B6" },
+  p6: { label: "ステージ 6", shortLabel: "St6", title: "高校2年：作品・基礎学力・進路条件の確認", period: "2029年4月〜2030年3月", color: "#0E7490", bg: "#ECFEFF", border: "#67E8F9", text: "#155E75" },
+  p7: { label: "ステージ 7", shortLabel: "St7", title: "高校3年：作品・出願・選抜方式別の準備", period: "2030年4月〜2031年3月", color: "#BE185D", bg: "#FDF2F8", border: "#F9A8D4", text: "#9D174D" },
+  p8: { label: "ステージ 8", shortLabel: "St8", title: "進学・次の制作環境へ（進学先は本人と相談）", period: "2031年4月", color: "#334155", bg: "#F1F5F9", border: "#94A3B8", text: "#1E293B" }
+};
+const stageDateRanges = {
+  p1: { start: "2026-10", end: "2026-10" },
+  p2: { start: "2026-11", end: "2027-03" },
+  p3: { start: "2027-04", end: "2027-07" },
+  p4: { start: "2027-08", end: "2028-02" },
+  p5: { start: "2028-03", end: "2029-03" },
+  p6: { start: "2029-04", end: "2030-03" },
+  p7: { start: "2030-04", end: "2031-03" },
+  p8: { start: "2031-04", end: "2031-04" }
+};
+const getMonthOffset = (dateStr, base = PLAN_START) => {
+  if (!dateStr) return 0;
+  const [year, month] = dateStr.split("-").map(Number);
+  const [baseYear, baseMonth] = base.split("-").map(Number);
+  return (year - baseYear) * 12 + month - baseMonth;
+};
+const makeMonthRange = (start, end) => {
+  const [startYear, startMonth] = start.split("-").map(Number);
+  const count = getMonthOffset(end, start) + 1;
+  return Array.from({ length: count }, (_, index) => {
+    const year = startYear + Math.floor((startMonth - 1 + index) / 12);
+    const month = (startMonth - 1 + index) % 12 + 1;
+    return { date: String(year) + "-" + String(month).padStart(2, "0"),
+      year, m: month, label: month === 1 ? String(year).slice(2) + "/1" : String(month) };
+  });
+};
+const GANTT_ROWS = [
+  { title: "2026年10月〜2028年12月", start: "2026-10", end: "2028-12", months: makeMonthRange("2026-10", "2028-12") },
+  { title: "2029年1月〜2031年4月", start: "2029-01", end: "2031-04", months: makeMonthRange("2029-01", "2031-04") }
+];
+const allGanttMonthLabels = makeMonthRange(PLAN_START, PLAN_END);
+const TOTAL_GANTT_MONTHS = allGanttMonthLabels.length;
+
+const checkIsCurrentStage = (sKey, targetDate = new Date()) => {
+  const range = stageDateRanges[sKey];
+  if (!range) return false;
+  const targetOffset = getMonthOffset(`${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`);
+  const startOff = getMonthOffset(range.start);
+  const endOff = getMonthOffset(range.end);
+  return targetOffset >= startOff && targetOffset <= endOff;
+};
+
+const checkIsCurrentTimeSlot = (timeRangeStr, targetDate = new Date()) => {
+  if (!timeRangeStr || !timeRangeStr.includes("〜")) return false;
+  const parts = timeRangeStr.split("〜");
+  const parseMin = (s) => {
+    const p = s.trim().split(":");
+    if (p.length < 2) return null;
+    return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+  };
+  const startMin = parseMin(parts[0]);
+  let endMin = parseMin(parts[1]);
+  if (startMin === null) return false;
+  const curMin = targetDate.getHours() * 60 + targetDate.getMinutes();
+  if (endMin === null) return Math.abs(curMin - startMin) < 15;
+  return curMin >= startMin && curMin < endMin;
+};
+
+const isCurrentMonth = (yrStr, mStr, targetDate = new Date()) => {
+  if (!yrStr || !mStr) return false;
+  const curY = `${targetDate.getFullYear()}年`;
+  const curM = `${targetDate.getMonth() + 1}月`;
+  return yrStr.includes(curY) && (mStr === curM || mStr.startsWith(curM));
+};
+
+const musicSteps = [
+  {
+    id: "mus-1", stage: "p1", stepNum: 1, rank: "S",
+    title: "ギター音出し・Amber i2 Hi-Z設定・RAT2ゲイン調整の確立",
+    subtasks: [
+      { id: "mus-1-1", text: "Amber i2前面のINPUT選択ボタンを順次押し、LCD画面でHI-Zモード表示を確認する（MIC→MIC+48V→LINE→HI-Z）" },
+      { id: "mus-1-2", text: "RAT2背面・側面の刻印を見て、ギター（IN）とAmber i2（OUT）のシールド接続位置を実機確認する" },
+      { id: "mus-1-3", text: "Amber i2のGAINノブを回しながら強くギターを弾き、LCDメーターが緑〜オレンジに収まる適正ゲインを記録（赤クリップ厳禁）" },
+      { id: "mus-1-4", text: "Mac本体スピーカーの遅延を避けるため、必ずAmber i2前面のヘッドホン端子へ直接ヘッドホンを接続してモニタリングする" },
+      { id: "mus-1-5", text: "GarageBandで新規トラック作成時、「I want to hear my instrument as I play and record（入力モニタリング）」をONにして音が出ることを確認" }
+    ]
+  },
+  {
+    id: "mus-2", stage: "p1", stepNum: 2, rank: "S",
+    title: "RAT2実機＋GarageBandアンプシミュレーターの二重歪み防止セッティング",
+    subtasks: [
+      { id: "mus-2-1", text: "GarageBandのAmp Designerでクリーン系モデル（Tweed CombosやBritish Stacksの低歪みモデル）を選択する" },
+      { id: "mus-2-2", text: "歪みは実機のRAT2で作り、GarageBand側アンプをクリーンに保つことで音痩せ・濁り（二重歪み）を徹底防止する" },
+      { id: "mus-2-3", text: "RAT2のFilterノブを時計回りに回すと高域がカットされ暗い音になる（一般的なトーンと逆特性）動作を耳で体感する" },
+      { id: "mus-2-4", text: "Pocket Ampを使ってリビングや部屋で毎日サッとギターを弾く10分基礎練習ルーティンを開始する" }
+    ]
+  },
+  {
+    id: "mus-3", stage: "p1", stepNum: 3, rank: "S",
+    title: "「音の道（Audio）」と「操作の道（MIDI）」の理解とMIDI信号の可視化",
+    subtasks: [
+      { id: "mus-3-1", text: "ノートに「音の道（Les Paul→RAT2→Amber i2→GarageBand）」と「操作の道（MiniLab 3/Chocolate→Mac）」の分離図を描く" },
+      { id: "mus-3-2", text: "「MIDIの中にギターの音は一切入っておらず、0〜127の操作数字に過ぎない」ことを理解する" },
+      { id: "mus-3-3", text: "Snoize MIDI Monitorを起動し、MiniLab 3の鍵盤（Note On/Off）とノブ/フェーダー（CC）の数字変化を確認する" },
+      { id: "mus-3-4", text: "GarageBandでギターオーディオを1トラック録音し、別トラックでMiniLab 3からピアノ音源を鳴らして両者の違いを体感する" }
+    ]
+  },
+  {
+    id: "mus-4", stage: "p1", stepNum: 4, rank: "A",
+    title: "Mountain of Soundゲーム用ギターパートの録音・ミックス（GarageBand）",
+    subtasks: [
+      { id: "mus-4-1", text: "ゲームの波形生成元となるギターリフ・バッキングパートをGarageBandで正確なテンポで録音する" },
+      { id: "mus-4-2", text: "MDR-CD900STヘッドホンで音量バランス・EQを整え、Python読み込み用の高音質WAV/AIFFファイルとして書き出す" },
+      { id: "mus-4-3", text: "GarageBandで思考負担を抑えたシンプルな第1号オリジナル曲のコード進行（3〜4コード）を構築する" }
+    ]
+  },
+  {
+    id: "mus-5", stage: "p2", stepNum: 5, rank: "S",
+    title: "MainStageの導入とM-VAVE Chocolate Plus足元コントロールサーフェス構築",
+    subtasks: [
+      { id: "mus-5-1", text: "GarageBandには外部MIDIでプラグインをON/OFFするMIDI Learn機能がないことを確認し、MainStage（約29.99ドル）をセットアップ" },
+      { id: "mus-5-2", text: "M-VAVE Chocolate PlusをUSB有線接続し、MIDI Monitorで4つのスイッチ（A/B/C/D）が送信するCC/PCメッセージを確認" },
+      { id: "mus-5-3", text: "MainStageのLayout/Edit画面にて、スイッチA/Bをディストーションやディレイのバイパス（ON/OFF）にアサイン（Assign & Map）する" },
+      { id: "mus-5-4", text: "Moog EP-3エクスプレッションペダル（1.18kg安定操作）を接続し、MainStageのワウまたはボリュームに連動させる" }
+    ]
+  },
+  {
+    id: "mus-6", stage: "p2", stepNum: 6, rank: "A",
+    title: "なみぴーさんとのコード進行理論分析 ＆ アコギ×エレキマルチトラック録音",
+    subtasks: [
+      { id: "mus-6-1", text: "LITALICO立川にて、なみぴーさんとダイアトニックコードと代理コードの響きの違いをGarageBand上で実験" },
+      { id: "mus-6-2", text: "Recording KingアコースティックギターとEpiphoneレスポールの音色を重ねたマルチトラックアンサンブルを制作" },
+      { id: "mus-6-3", text: "ライブ＆長時間セッション前の「11項目点検チェックリスト（電源・ゲイン・MIDI・レイテンシー）」を実機で実施" }
+    ]
+  },
+  {
+    id: "mus-7", stage: "p3", stepNum: 7, rank: "A",
+    title: "ゲーム用BGM・効果音制作 ＆ 自宅スタジオ音響最適化（BX5）",
+    subtasks: [
+      { id: "mus-7-1", text: "Mountain of Soundのゲームオーバー音・クリアファンファーレ・環境SEをシンセ音源で自作" },
+      { id: "mus-7-2", text: "M-AUDIO Studiophile BX5モニタースピーカーの設置角度と高さを調整し、正確な定位でミックスを確認" },
+      { id: "mus-7-3", text: "制作した楽曲をSoundCloudの非公開/限定公開プレイリストにアーカイブし進捗を可視化" }
+    ]
+  },
+  {
+    id: "mus-8", stage: "p4", stepNum: 8, rank: "S",
+    title: "高校受験期の種火維持：1日10分Pocket Ampギター演奏 ＆ 息抜き作曲",
+    subtasks: [
+      { id: "mus-8-1", text: "受験勉強の合間にPocket AmpでPCを起動せずサッとギターを持ち、指の運動能力（クロマチック・スケール）を維持" },
+      { id: "mus-8-2", text: "頭に浮かんだメロディやリフをGarageBandに10分以内でスケッチ録音し、創作意欲をキープ" }
+    ]
+  },
+  {
+    id: "mus-9", stage: "p5", stepNum: 9, rank: "S",
+    title: "高校合格祝い！Logic Pro導入・Line 6 HX Stomp XLプロ機材統合・JBG音楽院入学",
+    subtasks: [
+      { id: "mus-9-1", text: "高校合格と同時にLogic Proを導入し、中学生時代にGarageBandで作った全プロジェクトデータを100%完全引き継ぎ" },
+      { id: "mus-9-2", text: "Line 6 HX Stomp XLを導入し、中学生時代に買ったMoog EP-3をEXP端子に直挿し（オートエンゲージワウとして追加0円で100%流用）" },
+      { id: "mus-9-3", text: "Chocolate Plusを売却（約3,000円回収）またはLogic Pro専用フットスイッチとして再配置" },
+      { id: "mus-9-4", text: "JBG音楽院スタンダードコース（1年制）に入学し、バークリーメソッドによる本格的な作編曲理論を修得" }
+    ]
+  },
+  {
+    id: "mus-10", stage: "p6", stepNum: 10, rank: "S",
+    title: "総合型選抜出願ポートフォリオ用 代表曲ミックス・マスタリング完成",
+    subtasks: [
+      { id: "mus-10-1", text: "慶應SFC・洗足音大・明治FMSの出願に向け、これまで制作したオリジナル楽曲からベストテイクを選定" },
+      { id: "mus-10-2", text: "Logic Proのプロ用プラグインとHX Stomp XLのプロトーンを用いて商業基準の音圧・音質にマスタリング" }
+    ]
+  },
+  {
+    id: "mus-11", stage: "p6", stepNum: 11, rank: "A",
+    title: "高校2年：録音・作曲・演奏の成長を作品別に振り返る",
+    subtasks: [
+      { id: "mus-11-1", text: "過去の録音と新しい演奏を聴き比べ、次の作品で改善したい点を真自身が選ぶ" },
+      { id: "mus-11-2", text: "楽曲の制作意図・使用機材・改善履歴を記録し、公開可能なデモを整理する" }
+    ]
+  },
+  {
+    id: "mus-12", stage: "p6", stepNum: 12, rank: "A",
+    title: "ギター音色の比較録音と、作品に使える音色ライブラリの作成",
+    subtasks: [
+      { id: "mus-12-1", text: "同じフレーズをクリーン・歪み・空間系で録音し、音量をそろえて音色の違いを聴き比べる" },
+      { id: "mus-12-2", text: "実際に使用できる機材とDAWで設定を記録し、選んだ音色を作品の制作履歴へ関連付ける" }
+    ]
+  },
+  {
+    id: "mus-13", stage: "p6", stepNum: 13, rank: "A",
+    title: "自作曲を編曲し、ギターと打ち込みを組み合わせたデモを制作",
+    subtasks: [
+      { id: "mus-13-1", text: "自作曲のメロディー・コード・リズムの役割を整理し、ギターと打ち込みを使ったデモを一つ作る" },
+      { id: "mus-13-2", text: "曲の一部分を異なるアレンジで録音し、作品の意図に合う構成を聴いて選ぶ" }
+    ]
+  },
+  {
+    id: "mus-14", stage: "p6", stepNum: 14, rank: "A",
+    title: "ライブ演奏と録音作品の違いを検証して、表現を磨く",
+    subtasks: [
+      { id: "mus-14-1", text: "本人が利用を認められた演奏記録を振り返り、演奏と録音で伝わり方が違う箇所を見つける" },
+      { id: "mus-14-2", text: "演奏方法または録音アレンジを一箇所改善し、改善前後を比較できる形で残す" }
+    ]
+  },
+  {
+    id: "mus-15", stage: "p7", stepNum: 15, rank: "A",
+    title: "高校3年：志望コースに合わせた作品・演奏・説明資料を準備する",
+    subtasks: [
+      { id: "mus-15-1", text: "国内大学とGoldsmithsそれぞれの該当年度の要項を確認し、提出できる作品形式を整理する" },
+      { id: "mus-15-2", text: "候補作品を選び、音源・演奏動画・制作過程・本人による説明を整える" }
+    ]
+  },
+  {
+    id: "mus-16", stage: "p7", stepNum: 16, rank: "A",
+    title: "作品のプレゼンテーションと第三者レビューを通じた仕上げ",
+    subtasks: [
+      { id: "mus-16-1", text: "本人の言葉で作品のねらい、ギターと音響の工夫、改善の過程を説明する練習をする" },
+      { id: "mus-16-2", text: "指導講師などから得た意見と本人の判断を分けて記録し、必要な部分を作品へ反映する" }
+    ]
+  },
+  {
+    id: "mus-17", stage: "p8", stepNum: 17, rank: "A",
+    title: "2031年4月：新しい環境で続けたい音楽活動を選ぶ",
+    subtasks: [
+      { id: "mus-17-1", text: "実際の進学先・生活時間・使える機材を確認し、続けたい制作と演奏を本人が選ぶ" }
+    ]
+  }
+];
+
+const pythonSteps = [
+  {
+    id: "py-1", stage: "p1", stepNum: 1, rank: "S",
+    title: "sounddevice ＆ NumPyによるギター音声波形のリアルタイム取得",
+    subtasks: [
+      { id: "py-1-1", text: "Amber i2からのギター入力Audio信号をsounddeviceコールバックでバッファリングする" },
+      { id: "py-1-2", text: "NumPy配列を用いて振幅の二乗平均平方根（RMS）と基本周波数をリアルタイム計算する" }
+    ]
+  },
+  {
+    id: "py-2", stage: "p1", stepNum: 2, rank: "S",
+    title: "dequeリングバッファを用いた動的オーディオ波形のPygame描画",
+    subtasks: [
+      { id: "py-2-1", text: "仮のcos波形描画処理を削除し、最新2048サンプルの波形データを取り出すdequeキューを構築する" },
+      { id: "py-2-2", text: "波形振幅をPygameウィンドウのY座標へマッピングし、滑らかな連続折れ線を描画する" }
+    ]
+  },
+  {
+    id: "py-3", stage: "p1", stepNum: 3, rank: "S",
+    title: "音声再生スレッドと画面スクロール物理演算の非同期同期化",
+    subtasks: [
+      { id: "py-3-1", text: "threading.Lockを導入し、音声入力スレッドと描画メインループのデータ競合クラッシュを防止する" },
+      { id: "py-3-2", text: "フレームレート（60FPS）と波形スクロール速度（SCROLL_SPEED）の連動タイミングを固定する" }
+    ]
+  },
+  {
+    id: "py-4", stage: "p1", stepNum: 4, rank: "S",
+    title: "波の上を滑走するキャラクター(Man)の接地物理演算と当たり判定",
+    subtasks: [
+      { id: "py-4-1", text: "波形ポリライン上のX座標に対応するY座標を線形補間し、キャラクターの足元接地点を算出する" },
+      { id: "py-4-2", text: "重力加速度とジャンプ時の放物線物理ベクトル演算をPygameループへ組み込む" }
+    ]
+  },
+  {
+    id: "py-5", stage: "p1", stepNum: 5, rank: "S",
+    title: "周波数帯域に応じた障害物の動的生成とステージクリア・ゲームオーバー判定",
+    subtasks: [
+      { id: "py-5-1", text: "ギター演奏の音抜け（無音判定）または障害物接触時の即ゲームオーバーシーケンスを実装する" },
+      { id: "py-5-2", text: "楽曲終了までキャラクターが生存した際のリザルト画面とクリアファンファーレ演出を構築する" }
+    ]
+  },
+  {
+    id: "py-6", stage: "p1", stepNum: 6, rank: "S",
+    title: "ワンダーメイクフェス作品提出用パッケージング（8月末完走）",
+    subtasks: [
+      { id: "py-6-1", text: "きゃぷてんさんと最終デバッグを行い、展示PC上でクラッシュしないスタンドアロン版をビルドする" },
+      { id: "py-6-2", text: "ワンダーメイクフェス出展用の操作マニュアルとプレゼンテーションスライドを準備・提出する" }
+    ]
+  },
+  {
+    id: "py-7", stage: "p2", stepNum: 7, rank: "S",
+    title: "Midoライブラリ導入とMIDI機器ポート自動認識スクリプトの作成",
+    subtasks: [
+      { id: "py-7-1", text: "python3 -m pip install 'mido[ports-rtmidi]' を実行し正常にインポートできることを確認する" },
+      { id: "py-7-2", text: "mido.get_input_names() でMacに接続されたMiniLab 3やChocolate Plusの正確なポート名を出力・取得する" }
+    ]
+  },
+  {
+    id: "py-8", stage: "p2", stepNum: 8, rank: "S",
+    title: "値変換関数 map_midi(val, min, max) によるゲーム変数スケール変換",
+    subtasks: [
+      { id: "py-8-1", text: "def map_midi(value, out_min, out_max) 関数を定義し、MIDIの0〜127を浮動小数点比率で安全変換する" },
+      { id: "py-8-2", text: "MiniLab 3のノブを回して、SCROLL_SPEED（5〜40）や振幅倍率（100〜600）がリアルタイムに滑らかに変動することをテストする" }
+    ]
+  },
+  {
+    id: "py-9", stage: "p2", stepNum: 9, rank: "S",
+    title: "SimpleQueue ＆ callback によるPygame画面フリーズ防止非同期受信",
+    subtasks: [
+      { id: "py-9-1", text: "ブロッキング受信（for msg in port:）を禁止し、midi_callback内でSimpleQueue.put(msg)する非同期受信用スレッドを起動する" },
+      { id: "py-9-2", text: "Pygameのメインループ内で毎フレーム update_midi() を呼び出し、get_nowait()で画面停止なくMIDIを取り出す" }
+    ]
+  },
+  {
+    id: "py-10", stage: "p2", stepNum: 10, rank: "S",
+    title: "1画面から4画面（4分割Pygame Surface）への動的レンダリング切替",
+    subtasks: [
+      { id: "py-10-1", text: "メインウィンドウを4分割（左上・右上・左下・右下）のサブサーフェスとして定義する" },
+      { id: "py-10-2", text: "各サブサーフェスへ同一の音声波形アニメーションを並列レンダリングするマルチビューモードを実装する" }
+    ]
+  },
+  {
+    id: "py-11", stage: "p3", stepNum: 11, rank: "S",
+    title: "Chocolate Plus 4スイッチ連動 4方向キャラ移動 ＆ 巨大足型キック演出",
+    subtasks: [
+      { id: "py-11-1", text: "Chocolate PlusのスイッチA/B/C/Dが押下された瞬間、画面外から巨大な足型スプライトが勢いよくフレームインする" },
+      { id: "py-11-2", text: "足型がキャラクターをインパクトした瞬間に衝突ベクトルを与え、指定した隣の画面へ蹴り飛ばして着地させる" }
+    ]
+  },
+  {
+    id: "py-12", stage: "p3", stepNum: 12, rank: "S",
+    title: "キャラ移動先画面のフルスクリーン自動拡大レンダリングとトグル復帰",
+    subtasks: [
+      { id: "py-12-1", text: "キャラクターが蹴り飛ばされた移動先の画面を瞬時に全画面（フルウィンドウ）へとズームイン拡大描画する" },
+      { id: "py-12-2", text: "スイッチの再押下により再び4分割画面へシームレスに戻るUIステートマシンロジックを完成させる" }
+    ]
+  },
+  {
+    id: "py-13", stage: "p5", stepNum: 13, rank: "A",
+    title: "Mac内蔵 IAC Driver を用いた Python ➔ MainStage/Logic へのMIDI送信検証",
+    subtasks: [
+      { id: "py-13-1", text: "MacのAudio MIDI設定でIAC Driverバスを有効化し、Pythonからmido.open_output()で仮想MIDIポートを開く" },
+      { id: "py-13-2", text: "ゲーム内でキャラクターがピンチになると、IAC Driver経由でMainStageへCCを送信しギターエフェクトを自動ファズ化する" }
+    ]
+  },
+  {
+    id: "py-14", stage: "p5", stepNum: 14, rank: "S",
+    title: "Line 6 HX Stomp XL Command Center による統合MIDI制御プロトコル対応",
+    subtasks: [
+      { id: "py-14-1", text: "HX Stomp XLの8つの高精度フットスイッチからのCommand Center送信MIDIコマンドをPythonで直接受信する" },
+      { id: "py-14-2", text: "ギターのプロ音色切り替えとゲームのシーン遷移・視点切り替えを1台のフットコントローラーで完全統合する" }
+    ]
+  },
+  {
+    id: "py-15", stage: "p5", stepNum: 15, rank: "S",
+    title: "Mountain of Sound 完全版のGitHubリポジトリ完全公開",
+    subtasks: [
+      { id: "py-15-1", text: "Pythonコードのコメント整理・クラス構造のモジュール化・READMEとアーキテクチャ設計図を作成する" },
+      { id: "py-15-2", text: "実機デモ動画とGitHubリンクを整備し、大学総合型選抜（慶應SFC・明治FMS等）出願ポートフォリオの主力武器とする" }
+    ]
+  },
+  {
+    id: "py-16", stage: "p6", stepNum: 16, rank: "A",
+    title: "高校2年：作品の技術課題を整理し、音響解析と操作感を改善する",
+    subtasks: [
+      { id: "py-16-1", text: "Mountain of Soundの現行版で再現する不具合を記録し、改善の優先順位を選ぶ" },
+      { id: "py-16-2", text: "必要な数学・理科を学校の進度と別に学び、音とゲームの挙動を実験で確認する" }
+    ]
+  },
+  {
+    id: "py-17", stage: "p6", stepNum: 17, rank: "A",
+    title: "音声入力の遅延・フリーズを測定して、操作の安定性を改善する",
+    subtasks: [
+      { id: "py-17-1", text: "音声入力のバッファ長や更新間隔を記録し、ゲーム画面の反応と遅延を比べる" },
+      { id: "py-17-2", text: "実際に使える端末とオーディオ機材で再現テストを行い、フリーズや音切れの条件を整理する" }
+    ]
+  },
+  {
+    id: "py-18", stage: "p6", stepNum: 18, rank: "A",
+    title: "音の変化とゲームの動きを、数学・理科の実験として可視化する",
+    subtasks: [
+      { id: "py-18-1", text: "音量・周期・周波数など作品で実際に使う数値をグラフにし、キャラクターの挙動との関係を確かめる" },
+      { id: "py-18-2", text: "必要な数学・理科を先取りしても、実験・説明・実装を往復して理解できる形で記録する" }
+    ]
+  },
+  {
+    id: "py-19", stage: "p7", stepNum: 19, rank: "A",
+    title: "高校3年：公開版・ポートフォリオ用の動作と説明を整える",
+    subtasks: [
+      { id: "py-19-1", text: "README・実機デモ・ソースの公開範囲を確認し、本人が開発判断を説明できるようにする" },
+      { id: "py-19-2", text: "出願先の要項に応じてデモ動画や作品説明を準備し、受験形式と切り分けて管理する" }
+    ]
+  },
+  {
+    id: "py-20", stage: "p7", stepNum: 20, rank: "A",
+    title: "第三者が試せるテスト版を作り、操作説明と改善履歴を整える",
+    subtasks: [
+      { id: "py-20-1", text: "利用する音声・MIDI機器と起動手順を文書化し、機器がない場合のデモ方法も検討する" },
+      { id: "py-20-2", text: "本人の許可を得て試用してもらい、困った点を一つ以上改善して、変更前後を記録する" }
+    ]
+  },
+  {
+    id: "py-21", stage: "p7", stepNum: 21, rank: "A",
+    title: "公開と提出に必要なコード・素材・権利の点検",
+    subtasks: [
+      { id: "py-21-1", text: "音源・画像・外部ライブラリの利用条件、個人情報、公開範囲を確認する" },
+      { id: "py-21-2", text: "別の環境でも動かせるよう依存関係と実行手順を確認し、作品説明と一緒に保存する" }
+    ]
+  },
+  {
+    id: "py-22", stage: "p8", stepNum: 22, rank: "A",
+    title: "2031年4月：開発環境の移行と次の制作目標を整理する",
+    subtasks: [
+      { id: "py-22-1", text: "進学先の授業・端末環境を踏まえ、コードと制作記録のバックアップを確認する" }
+    ]
+  }
+];
+
+const studySubjectsData = [
+  {
+    id: "math", name: "数学", icon: "📐", publisher: "東京書籍『新しい数学 1〜3』",
+    color: "#0284C7", bg: "#F0F9FF", border: "#7DD3FC", text: "#0369A1",
+    units: [
+      { id: "m-1", stage: "p1", stepNum: 1, grade: "中1", unit: "数と計算", item: "正負の数（四則計算・累乗・かっこの処理）", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "東書『新しい数学1』第1章 p.14〜48", memo: "都立大問1[問1]。途中式を書き符号ミスをゼロに！毎日1問解いて満点を自動化。" },
+      { id: "m-2", stage: "p1", stepNum: 2, grade: "中1", unit: "数と計算", item: "文字と式（代入・式の計算・関係を表す式）", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "東書『新しい数学1』第2章 p.56〜88", memo: "都立大問1[問2]。分数を含む文字式の通分ミスを完全に防止。" },
+      { id: "m-3", stage: "p2", stepNum: 3, grade: "中1", unit: "方程式", item: "1次方程式の計算（小数・分数を含む方程式）", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『新しい数学1』第3章 p.94〜112", memo: "都立大問1[問3]。両辺を10倍・最小公倍数倍して整数にする移項の型を反復。" },
+      { id: "m-4", stage: "p2", stepNum: 4, grade: "中1", unit: "方程式の利用", item: "1次方程式の文章題（代金・過不足・速さ）", rank: "A", level: "少し苦手", targetPeriod: "2026-12", textbookRef: "東書『新しい数学1』第3章 p.113〜126", memo: "何をxとおくかを1行目に明記。「左辺＝右辺」の等量関係を表で整理。" },
+      { id: "m-5", stage: "p2", stepNum: 5, grade: "中1", unit: "関数", item: "比例・反比例（式の決定・変域・グラフの読解）", rank: "A", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『新しい数学1』第4章 p.130〜164", memo: "y=ax, y=a/x(xy=a一定)の基本特性。座標を代入してaを即求める。" },
+      { id: "m-6", stage: "p2", stepNum: 6, grade: "中1", unit: "平面図形", item: "基本作図（垂直二等分線・角の二等分線・垂線）", rank: "S", level: "普通", targetPeriod: "2026-12", textbookRef: "東書『新しい数学1』第5章 p.170〜192", memo: "都立大問1[問9]で毎年5点必出！3大作図のコンパス使いを身体で覚える。" },
+      { id: "m-7", stage: "p2", stepNum: 7, grade: "中1", unit: "図形の計量", item: "おうぎ形の弧の長さと面積・中心角の計算", rank: "A", level: "少し苦手", targetPeriod: "2026-12", textbookRef: "東書『新しい数学1』第5章 p.193〜204", memo: "中心角/360の比率処理。公式を呪文のように暗記し、πのつけ忘れ防止。" },
+      { id: "m-8", stage: "p2", stepNum: 8, grade: "中1", unit: "空間図形", item: "立体の見方・表面積と体積・展開図", rank: "A", level: "少し苦手", targetPeriod: "2027-01", textbookRef: "東書『新しい数学1』第6章 p.208〜236", memo: "角錐・円錐の体積(×1/3)と円錐側面積公式(母線×半径×π)を武器化。" },
+      { id: "m-9", stage: "p2", stepNum: 9, grade: "中1", unit: "データの活用", item: "度数分布表・ヒストグラム・代表値・相対度数", rank: "S", level: "得意", targetPeriod: "2026-11", textbookRef: "東書『新しい数学1』第7章 p.240〜262", memo: "都立大問1[問8]候補。平均値・中央値(メジアン)・最頻値(モード)の定義整理。" },
+      { id: "m-10", stage: "p2", stepNum: 10, grade: "中2", unit: "数と計算", item: "連立方程式の計算（加減法・代入法）", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『新しい数学2』第2章 p.34〜48", memo: "都立大問1[問4]。符号の引き算ミス防止のため、符号を変えて足す加減法を徹底。" },
+      { id: "m-11", stage: "p2", stepNum: 11, grade: "中2", unit: "方程式の利用", item: "連立方程式の文章題（速さ・割合・食塩水）", rank: "A", level: "苦手", targetPeriod: "2026-12", textbookRef: "東書『新しい数学2』第2章 p.49〜62", memo: "都立大問2の主役！表を作って数量関係を整理すれば式は自然に立つ。" },
+      { id: "m-12", stage: "p2", stepNum: 12, grade: "中2", unit: "1次関数", item: "1次関数の変化の割合・直線の式・交点の座標", rank: "S", level: "少し苦手", targetPeriod: "2027-01", textbookRef: "東書『新しい数学2』第3章 p.66〜88", memo: "都立大問3[問1]で配点5点！傾きaと切片bの求め方、連立での交点算出を定着。" },
+      { id: "m-13", stage: "p2", stepNum: 13, grade: "中2", unit: "1次関数の利用", item: "1次関数の利用（グラフと三角形の面積）", rank: "B", level: "苦手", targetPeriod: "2027-03", textbookRef: "東書『新しい数学2』第3章 p.89〜104", memo: "都立大問3[問2]。底辺×高さ÷2の座標計算。難解な動点(問3)は飛ばしてOK。" },
+      { id: "m-14", stage: "p2", stepNum: 14, grade: "中2", unit: "図形の性質", item: "平行線と角・多角形の内角と外角の和", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『新しい数学2』第4章 p.108〜122", memo: "外角の和＝360°の利用、対頂角・錯角・同位角を色ペンで囲む練習。" },
+      { id: "m-15", stage: "p2", stepNum: 15, grade: "中2", unit: "図形の合同", item: "三角形の合同条件と合同の証明記述", rank: "A", level: "苦手", targetPeriod: "2027-02", textbookRef: "東書『新しい数学2』第4章 p.123〜144", memo: "都立大問4[問1]記述7点！「△ABCと△DEFにおいて」から結論までの定型文を暗記。" },
+      { id: "m-16", stage: "p2", stepNum: 16, grade: "中2", unit: "特別な図形", item: "二等辺三角形・直角三角形・平行四辺形の性質", rank: "A", level: "少し苦手", targetPeriod: "2027-03", textbookRef: "東書『新しい数学2』第5章 p.148〜174", memo: "定義（言葉の意味）と定理（性質・条件）の区別。図に等しい辺・角を記入。" },
+      { id: "m-17", stage: "p2", stepNum: 17, grade: "中2", unit: "確率", item: "確率の求め方（さいころ・玉・樹形図と表）", rank: "S", level: "普通", targetPeriod: "2027-01", textbookRef: "東書『新しい数学2』第6章 p.178〜196", memo: "都立大問1[問7]で5点必出！さいころ2個は必ず「6×6のマス目表」を書いて数える。" },
+      { id: "m-18", stage: "p2", stepNum: 18, grade: "中2", unit: "データの比較", item: "四分位数と箱ひげ図の読解", rank: "S", level: "得意", targetPeriod: "2027-02", textbookRef: "東書『新しい数学2』第7章 p.200〜214", memo: "都立大問1新傾向。箱ひげ図の最大・最小・四分位範囲の読み取りはボーナス問題。" },
+      { id: "m-19", stage: "p3", stepNum: 19, grade: "中3", unit: "数と計算", item: "多項式の展開・因数分解の公式と計算", rank: "S", level: "少し苦手", targetPeriod: "2027-05", textbookRef: "東書『新しい数学3』第1章 p.14〜38", memo: "都立大問1[問2]。共通因数のくくり出し忘れに注意。大問1満点の必須条件。" },
+      { id: "m-20", stage: "p3", stepNum: 20, grade: "中3", unit: "平方根の計算・有理化・近似値", rank: "S", level: "普通", targetPeriod: "2027-06", textbookRef: "東書『新しい数学3』第2章 p.44〜68", memo: "都立大問1[問3]。√の中を小さくする素因数分解と分母の有理化の徹底。" },
+      { id: "m-21", stage: "p3", stepNum: 21, grade: "中3", unit: "2次方程式", item: "2次方程式の解き方（因数分解・解の公式）", rank: "S", level: "普通", targetPeriod: "2027-07", textbookRef: "東書『新しい数学3』第3章 p.74〜94", memo: "都立大問1[問4]。因数分解型を優先し、無理なら解の公式へ即座に切り替える。" },
+      { id: "m-22", stage: "p4", stepNum: 22, grade: "中3", unit: "2次関数", item: "2次関数 y=ax² のグラフ・変域・変化の割合", rank: "S", level: "少し苦手", targetPeriod: "2027-09", textbookRef: "東書『新しい数学3』第4章 p.98〜122", memo: "x変域が0を挟むときの最小値y=0注意。変化の割合の裏技公式 a(p+q) を修得。" },
+      { id: "m-23", stage: "p4", stepNum: 23, grade: "中3", unit: "関数の融合", item: "1次関数と2次関数の融合問題（交点と面積）", rank: "B", level: "苦手", targetPeriod: "2027-11", textbookRef: "東書『新しい数学3』第4章 p.123〜134", memo: "都立大問3の小問(1)の座標決定だけ確実に取る。難解な(2)(3)は捨てる勇気。" },
+      { id: "m-24", stage: "p4", stepNum: 24, grade: "中3", unit: "図形の相似", item: "相似条件・平行線と線分の比・相似の証明", rank: "A", level: "苦手", targetPeriod: "2027-10", textbookRef: "東書『新しい数学3』第5章 p.138〜168", memo: "都立大問4の相似証明。2組の角が等しいを見抜けば合同証明と同じ型で書ける。" },
+      { id: "m-25", stage: "p4", stepNum: 25, grade: "中3", unit: "相似の利用", item: "相似比と面積比・体積比の計量", rank: "B", level: "少し苦手", targetPeriod: "2027-11", textbookRef: "東書『新しい数学3』第5章 p.169〜182", memo: "相似比m:n → 面積比m²:n² の基本公式の利用。" },
+      { id: "m-26", stage: "p4", stepNum: 26, grade: "中3", unit: "円の性質", item: "円周角の定理とその逆・接線", rank: "S", level: "普通", targetPeriod: "2027-11", textbookRef: "東書『新しい数学3』第6章 p.186〜204", memo: "都立大問1[問5]候補。直径に対する円周角90°と中心角＝2×円周角。" },
+      { id: "m-27", stage: "p4", stepNum: 27, grade: "中3", unit: "三平方の定理", item: "三平方の定理の計算と直角三角形の抜き出し", rank: "A", level: "苦手", targetPeriod: "2027-12", textbookRef: "東書『新しい数学3』第7章 p.208〜230", memo: "都立大問5[問1]。1:1:√2, 1:2:√3の比。立体から直角三角形を平面的に抜き出す。" }
+    ]
+  },
+  {
+    id: "eng", name: "英語", icon: "🇬🇧", publisher: "東京書籍『NEW HORIZON 1〜3』",
+    color: "#7C3AED", bg: "#F5F3FF", border: "#C4B5FD", text: "#5B21B6",
+    units: [
+      { id: "e-1", stage: "p1", stepNum: 1, grade: "中1", unit: "文法基礎", item: "be動詞と一般動詞の区別・三人称単数現在形(-s)", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "東書『NEW HORIZON 1』Unit 1〜4 p.10〜46", memo: "英作文で減点されないための基本中の基本。主語がhe/she/単数なら動詞に-s。" },
+      { id: "e-2", stage: "p1", stepNum: 2, grade: "中1", unit: "時制", item: "過去形（不規則変化動詞の完全暗記）", rank: "S", level: "普通", targetPeriod: "2026-10", textbookRef: "東書『NEW HORIZON 1』Unit 7〜8 p.70〜90", memo: "went, saw, bought 等の不規則動詞スペルを即書けるようにする。" },
+      { id: "e-3", stage: "p1", stepNum: 3, grade: "中1", unit: "疑問詞", item: "疑問詞(who, what, when, where, why, how)", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "東書『NEW HORIZON 1』Unit 5〜6 p.50〜68", memo: "長文の設問文の先頭を見逃さない。Whyで聞かれたらBecause〜で答える。" },
+      { id: "e-4", stage: "p2", stepNum: 4, grade: "中1", unit: "助動詞", item: "助動詞(can, will, must, should, have to)", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『NEW HORIZON 1』Unit 9〜10 / 2 Unit 2", memo: "助動詞の後ろは動詞の原形！must＝have to, will＝be going toの書き換え。" },
+      { id: "e-5", stage: "p1", stepNum: 5, grade: "中1-2", unit: "進行形", item: "現在進行形・過去進行形(be動詞 + ~ing)", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "東書『NEW HORIZON 1』Unit 11 / 2 Unit 1", memo: "ingの付け方ミス（making, running）を防ぐ。" },
+      { id: "e-6", stage: "p2", stepNum: 6, grade: "中2", unit: "不定詞", item: "不定詞の3用法（名詞的・副詞的・形容詞的用法）", rank: "A", level: "苦手", targetPeriod: "2026-12", textbookRef: "東書『NEW HORIZON 2』Unit 4 p.44〜54", memo: "「〜すること」「〜するために」「〜するための」。文末からの修飾構造。" },
+      { id: "e-7", stage: "p2", stepNum: 7, grade: "中2", unit: "動名詞", item: "動名詞(~ing)と不定詞(to do)の使い分け", rank: "S", level: "少し苦手", targetPeriod: "2026-12", textbookRef: "東書『NEW HORIZON 2』Unit 5 p.56〜66", memo: "enjoy, finish, stop の後ろは動名詞！want, hope の後ろはto不定詞。" },
+      { id: "e-8", stage: "p2", stepNum: 8, grade: "中2", unit: "比較", item: "比較級・最上級・原級(as ... as / more / most)", rank: "A", level: "普通", targetPeriod: "2027-01", textbookRef: "東書『NEW HORIZON 2』Unit 6 p.68〜78", memo: "than の後ろ、in(場所・範囲)とof(同類・数字)の使い分け。" },
+      { id: "e-9", stage: "p2", stepNum: 9, grade: "中2", unit: "受動態", item: "受動態（be動詞 + 過去分詞）と能動態の書き換え", rank: "S", level: "少し苦手", targetPeriod: "2027-02", textbookRef: "東書『NEW HORIZON 2』Unit 7 p.80〜92", memo: "by 〜の省略、be surprised at などの熟語前置詞。" },
+      { id: "e-10", stage: "p2", stepNum: 10, grade: "中2", unit: "接続詞", item: "接続詞(that, when, if, because)と文の構成", rank: "S", level: "普通", targetPeriod: "2027-01", textbookRef: "東書『NEW HORIZON 2』Unit 3 p.32〜42", memo: "長文でカンマの位置を見て主節と従属節をスラッシュで区切る。" },
+      { id: "e-11", stage: "p3", stepNum: 11, grade: "中3", unit: "現在完了", item: "現在完了形（継続・経験・完了結果）", rank: "A", level: "苦手", targetPeriod: "2027-05", textbookRef: "東書『NEW HORIZON 3』Unit 1〜2 p.10〜30", memo: "have/has + 過去分詞。since, for, already, yet, have been to の判別。" },
+      { id: "e-12", stage: "p3", stepNum: 12, grade: "中3", unit: "語法構文", item: "want A to do / ask A to do / tell A to do", rank: "S", level: "少し苦手", targetPeriod: "2027-06", textbookRef: "東書『NEW HORIZON 3』Unit 3 p.32〜44", memo: "都立英作文で超使える構文！「人に〜してほしい/頼む/言う」。" },
+      { id: "e-13", stage: "p3", stepNum: 13, grade: "中3", unit: "語法構文", item: "It is ... (for A) to do / too ... to do", rank: "A", level: "普通", targetPeriod: "2027-06", textbookRef: "東書『NEW HORIZON 3』Unit 4 p.46〜56", memo: "仮主語構文。「〜することは大切だ」の英作文テンプレート。" },
+      { id: "e-14", stage: "p4", stepNum: 14, grade: "中3", unit: "修飾表現", item: "分詞の後置修飾（現在分詞・過去分詞）", rank: "A", level: "少し苦手", targetPeriod: "2027-09", textbookRef: "東書『NEW HORIZON 3』Unit 5 p.58〜68", memo: "名詞の後ろから説明をつける日本語と逆の語順感覚に慣れる。" },
+      { id: "e-15", stage: "p4", stepNum: 15, grade: "中3", unit: "関係代名詞", item: "関係代名詞（who, which, that / 目的格の省略）", rank: "A", level: "苦手", targetPeriod: "2027-10", textbookRef: "東書『NEW HORIZON 3』Unit 6 p.70〜84", memo: "都立長文の最重要骨格！修飾のカタマリ括弧で囲み、先行詞を見失わない。" },
+      { id: "e-16", stage: "p4", stepNum: 16, grade: "中3", unit: "間接疑問文", item: "間接疑問文（疑問詞 + 主語 + 動詞の平叙文語順）", rank: "A", level: "少し苦手", targetPeriod: "2027-11", textbookRef: "東書『NEW HORIZON 3』Unit 7 p.86〜96", memo: "I know where he lives. 疑問文語順（does he live）にしない。" },
+      { id: "e-17", stage: "p4", stepNum: 17, grade: "全般", unit: "英単語・熟語", item: "高校入試必須1800語の暗記と前置詞熟語", rank: "S", level: "普通", targetPeriod: "2027-08", textbookRef: "教科書巻末単語集 ＆ 『でる順ターゲット1800』", memo: "毎日寝る前10分で20語ずつ回転。単語力＝長文速読のガソリン。" },
+      { id: "e-18", stage: "p4", stepNum: 18, grade: "全般", unit: "都立長文読解", item: "対話文・説明文の速読と設問スキャン", rank: "A", level: "少し苦手", targetPeriod: "2027-11", textbookRef: "都立過去問 大問3・大問4", memo: "本文を読む前に設問を先読み！該当キーワードを本文から逆引きする。" },
+      { id: "e-19", stage: "p4", stepNum: 19, grade: "全般", unit: "英作文", item: "都立条件英作文（大問2：配点12点・3文構成）", rank: "S", level: "苦手", targetPeriod: "2027-12", textbookRef: "都立過去問 大問2[問2]・英作文型プリント", memo: "第1文:主張、第2文:理由(Because)、第3文:具体例(For example)の型で12点満点！" },
+      { id: "e-20", stage: "p3", stepNum: 20, grade: "全般", unit: "リスニング", item: "都立リスニング（配点20点・メモ取り訓練）", rank: "S", level: "得意", targetPeriod: "2027-07", textbookRef: "都立過去問リスニング音源・QRコード音声", memo: "都立の20点は全問正解できる！選択肢の先読みと数字・場所のメモ取り。" }
+    ]
+  },
+  {
+    id: "sci", name: "理科", icon: "🧪", publisher: "東京書籍『新しい理科 1〜3』",
+    color: "#059669", bg: "#ECFDF5", border: "#6EE7B7", text: "#065F46",
+    units: [
+      { id: "s-1", stage: "p2", stepNum: 1, grade: "中1", unit: "物理", item: "光の反射・屈折・凸レンズの実像と虚像の作図", rank: "A", level: "苦手", targetPeriod: "2026-11", textbookRef: "東書『新しい理科1』第1分野 p.138〜160", memo: "焦点距離の2倍で同じ大きさの実像。焦点の内側で正立の虚像。" },
+      { id: "s-2", stage: "p1", stepNum: 2, grade: "中1", unit: "物理", item: "音の性質（振幅・振動数とオシロスコープ）", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "東書『新しい理科1』第1分野 p.161〜172", memo: "振幅＝大きさ、波の数(振動数)＝高さ。音速340m/s計算。" },
+      { id: "s-3", stage: "p2", stepNum: 3, grade: "中1", unit: "物理", item: "力と圧力・水圧と浮力の計算", rank: "B", level: "苦手", targetPeriod: "2026-12", textbookRef: "東書『新しい理科1』第1分野 p.173〜198", memo: "圧力(Pa)=N/m²。浮力＝水中の体積。難解な複雑計算は後回しでOK。" },
+      { id: "s-4", stage: "p1", stepNum: 4, grade: "中1", unit: "化学", item: "身の回りの物質・気体の発生方法と収集法", rank: "S", level: "普通", targetPeriod: "2026-10", textbookRef: "東書『新しい理科1』第1分野 p.54〜78", memo: "酸素(過酸化水素+二酸化マンガン)、水素、二酸化炭素、アンモニアの集め方。" },
+      { id: "s-5", stage: "p2", stepNum: 5, grade: "中1", unit: "化学", item: "水溶液の濃度計算・溶解度曲線・再結晶", rank: "A", level: "少し苦手", targetPeriod: "2026-11", textbookRef: "東書『新しい理科1』第1分野 p.79〜100", memo: "質量パーセント濃度(%)＝溶質/(溶質+溶媒)×100。引き算で結晶析出量。" },
+      { id: "s-6", stage: "p1", stepNum: 6, grade: "中1", unit: "化学", item: "状態変化と融点・沸点・蒸留実験", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "東書『新しい理科1』第1分野 p.101〜124", memo: "状態変化で質量は不変、体積は変化。エタノールの沸点の違い。" },
+      { id: "s-7", stage: "p1", stepNum: 7, grade: "中1", unit: "生物", item: "植物の分類（種子植物・維管束・葉の構造）", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "東書『新しい理科1』第2分野 p.16〜50", memo: "被子・裸子、単子葉(平行脈・ひげ根)・双子葉(網状脈・主根側根)。" },
+      { id: "s-8", stage: "p2", stepNum: 8, grade: "中1", unit: "生物", item: "光合成・呼吸・蒸散と対照実験", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『新しい理科1』第2分野 p.24〜40", memo: "BTB溶液の変色(酸性:黄, 中性:緑, アルカリ性:青)。二酸化炭素の増減。" },
+      { id: "s-9", stage: "p2", stepNum: 9, grade: "中1", unit: "地学", item: "火山と火成岩（火山岩・深成岩・鉱物）", rank: "S", level: "普通", targetPeriod: "2026-12", textbookRef: "東書『新しい理科1』第2分野 p.64〜88", memo: "語呂合わせ「しんかんせんは刈り上げ」。斑状組織と等粒状組織。" },
+      { id: "s-10", stage: "p2", stepNum: 10, grade: "中1", unit: "地学", item: "地層の重なり・示相化石・示準化石・柱状図", rank: "S", level: "普通", targetPeriod: "2026-12", textbookRef: "東書『新しい理科1』第2分野 p.89〜116", memo: "アサリ・サンゴ(示相：環境)、アンモナイト・三葉虫(示準：時代)。" },
+      { id: "s-11", stage: "p2", stepNum: 11, grade: "中1", unit: "地学", item: "地震の揺れ・初期微動継続時間と震源距離", rank: "A", level: "少し苦手", targetPeriod: "2027-01", textbookRef: "東書『新しい理科1』第2分野 p.117〜134", memo: "P波(初期微動)とS波(主要動)。初期微動継続時間は震源距離に比例。" },
+      { id: "s-12", stage: "p2", stepNum: 12, grade: "中2", unit: "物理", item: "電流・電圧・オームの法則と回路計算", rank: "A", level: "苦手", targetPeriod: "2026-11", textbookRef: "東書『新しい理科2』第1分野 p.166〜194", memo: "直列は電流一定、並列は電圧一定！V=IRのテントウムシ図で計算。" },
+      { id: "s-13", stage: "p2", stepNum: 13, grade: "中2", unit: "物理", item: "電力(W)・熱量(J)と電力量(Wh)の計算", rank: "A", level: "少し苦手", targetPeriod: "2026-12", textbookRef: "東書『新しい理科2』第1分野 p.195〜208", memo: "電力(W)=V×A。熱量(J)=W×秒(s)。1Wh=3600Jの換算。" },
+      { id: "s-14", stage: "p2", stepNum: 14, grade: "中2", unit: "物理", item: "電流がつくる磁界・右ねじの法則・電磁誘導", rank: "A", level: "少し苦手", targetPeriod: "2027-01", textbookRef: "東書『新しい理科2』第1分野 p.209〜236", memo: "右手親指ルール。磁界の向きと誘導電流の向きを矢印で作図。" },
+      { id: "s-15", stage: "p2", stepNum: 15, grade: "中2", unit: "化学", item: "原子記号・化学式・化学反応式の書き方", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『新しい理科2』第1分野 p.16〜44", memo: "基本20元素と代表的な反応式(2H2O→2H2+O2など)をカードで暗記。" },
+      { id: "s-16", stage: "p2", stepNum: 16, grade: "中2", unit: "化学", item: "酸化と還元・発熱反応と吸熱反応", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『新しい理科2』第1分野 p.45〜66", memo: "酸化銅＋炭素の還元実験。石灰水の白濁とピンチコックを閉じる理由。" },
+      { id: "s-17", stage: "p2", stepNum: 17, grade: "中2", unit: "化学", item: "質量保存の法則と化合の質量比グラフ", rank: "A", level: "少し苦手", targetPeriod: "2026-12", textbookRef: "東書『新しい理科2』第1分野 p.67〜82", memo: "銅:酸素=4:1、マグネシウム:酸素=3:2 の比例比を暗記。" },
+      { id: "s-18", stage: "p2", stepNum: 18, grade: "中2", unit: "生物", item: "消化と吸収（消化酵素と柔毛の働き）", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『新しい理科2』第2分野 p.94〜114", memo: "だ液(アミラーゼ)、胃液(ペプシン)、すい液。ブドウ糖・アミノ酸。" },
+      { id: "s-19", stage: "p1", stepNum: 19, grade: "中2", unit: "生物", item: "血液循環・感覚器官と神経系（反射）", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "東書『新しい理科2』第2分野 p.115〜136", memo: "大脳を経由しない無意識の反応＝反射(脊髄)。心臓の部屋の構造。" },
+      { id: "s-20", stage: "p2", stepNum: 20, grade: "中2", unit: "地学", item: "気象観測・雲のでき方と湿度計算", rank: "A", level: "少し苦手", targetPeriod: "2027-01", textbookRef: "東書『新しい理科2』第2分野 p.140〜164", memo: "湿度(%)=現在の水蒸気量/その気温の飽和水蒸気量×100。露点の意味。" },
+      { id: "s-21", stage: "p2", stepNum: 21, grade: "中2", unit: "地学", item: "前線と天気の変化（温暖前線・寒冷前線）", rank: "S", level: "普通", targetPeriod: "2027-02", textbookRef: "東書『新しい理科2』第2分野 p.165〜192", memo: "通過後の気温変化と風向き変化。積乱雲(にわか雨)と乱層雲(おだやかな雨)。" },
+      { id: "s-22", stage: "p3", stepNum: 22, grade: "中3", unit: "化学", item: "水溶液とイオン・電離式・酸とアルカリ", rank: "A", level: "少し苦手", targetPeriod: "2027-06", textbookRef: "東書『新しい理科3』第1分野 p.16〜48", memo: "H+(酸性)、OH-(アルカリ性)。リトマス紙とBTBの色の変化。" },
+      { id: "s-23", stage: "p4", stepNum: 23, grade: "中3", unit: "化学", item: "中和反応と塩・イオンの増減グラフ", rank: "A", level: "苦手", targetPeriod: "2027-09", textbookRef: "東書『新しい理科3』第1分野 p.49〜72", memo: "都立大問の定番！中和点での温度最大・水溶液中のイオン数の変化グラフ。" },
+      { id: "s-24", stage: "p4", stepNum: 24, grade: "中3", unit: "化学", item: "化学変化と電池（ダニエル電池の仕組み）", rank: "A", level: "少し苦手", targetPeriod: "2027-10", textbookRef: "東書『新しい理科3』第1分野 p.73〜92", memo: "亜鉛板(負極)から銅板(正極)への電子の移動。イオン化傾向。" },
+      { id: "s-25", stage: "p3", stepNum: 25, grade: "中3", unit: "物理", item: "物体の運動（等速直線運動・記録タイマー）", rank: "A", level: "少し苦手", targetPeriod: "2027-05", textbookRef: "東書『新しい理科3』第1分野 p.128〜154", memo: "東日本(50Hz:5打点=0.1秒)のテープ計算。斜面を下る運動の速さ増加。" },
+      { id: "s-26", stage: "p3", stepNum: 26, grade: "中3", unit: "物理", item: "仕事と仕事率・動滑車と仕事の原理", rank: "A", level: "苦手", targetPeriod: "2027-07", textbookRef: "東書『新しい理科3』第1分野 p.155〜178", memo: "仕事(J)=力(N)×距離(m)。動滑車は力1/2、引く距離2倍で仕事量は不変。" },
+      { id: "s-27", stage: "p4", stepNum: 27, grade: "中3", unit: "物理", item: "力学的エネルギー保存の法則", rank: "S", level: "普通", targetPeriod: "2027-09", textbookRef: "東書『新しい理科3』第1分野 p.179〜196", memo: "位置エネルギー＋運動エネルギー＝一定。振り子の最高点と最下点。" },
+      { id: "s-28", stage: "p3", stepNum: 28, grade: "中3", unit: "生物", item: "細胞分裂（体細胞分裂・減数分裂）と生殖", rank: "S", level: "普通", targetPeriod: "2027-05", textbookRef: "東書『新しい理科3』第2分野 p.102〜124", memo: "根の先端付近の観察手順。染色体の並びと無性生殖・有性生殖の比較。" },
+      { id: "s-29", stage: "p3", stepNum: 29, grade: "中3", unit: "生物", item: "遺伝の規則性（メンデルの法則・分離の法則）", rank: "A", level: "少し苦手", targetPeriod: "2027-06", textbookRef: "東書『新しい理科3』第2分野 p.125〜146", memo: "丸(AA)とシワ(aa)の孫の代の比率 (3:1)。遺伝子型の表を作成する。" },
+      { id: "s-30", stage: "p4", stepNum: 30, grade: "中3", unit: "地学", item: "天体の動き（日周運動・年周運動）", rank: "A", level: "苦手", targetPeriod: "2027-11", textbookRef: "東書『新しい理科3』第2分野 p.202〜230", memo: "日周(1時間に15°西へ)、年周(1ヶ月に30°西へ)。北極星を中心に反時計回り。" },
+      { id: "s-31", stage: "p4", stepNum: 31, grade: "中3", unit: "地学", item: "月の満ち欠けと金星の見え方", rank: "A", level: "苦手", targetPeriod: "2027-12", textbookRef: "東書『新しい理科3』第2分野 p.231〜254", memo: "都立大問2頻出！夕方の西の空(よいの明星)と明け方の東の空(明けの明星)。" }
+    ]
+  },
+  {
+    id: "soc", name: "社会", icon: "🌍", publisher: "東京書籍『新しい社会』",
+    color: "#D97706", bg: "#FFFBEB", border: "#FCD34D", text: "#92400E",
+    units: [
+      { id: "so-1", stage: "p2", stepNum: 1, grade: "中1", unit: "世界地理", item: "世界の姿・緯度経度・時差の計算", rank: "A", level: "少し苦手", targetPeriod: "2026-11", textbookRef: "東書『地理』第1編 第1章 p.6〜24", memo: "経度15度で1時間の時差。東経同士は引き算、東経と西経は足し算して15で割る。" },
+      { id: "so-2", stage: "p1", stepNum: 2, grade: "中1", unit: "世界地理", item: "世界の気候区分（雨温図の識別）", rank: "S", level: "普通", targetPeriod: "2026-10", textbookRef: "東書『地理』第1編 第2章 p.26〜44", memo: "都立必出！地中海性気候(夏に雨が少ない)、西岸海洋性(年中平均)、熱帯・寒帯。" },
+      { id: "so-3", stage: "p2", stepNum: 3, grade: "中1", unit: "世界地理", item: "世界の諸地域の産業とプランテーション", rank: "A", level: "普通", targetPeriod: "2026-12", textbookRef: "東書『地理』第2編 p.46〜118", memo: "モノカルチャー経済、アメリカ適地適作、中国の経済特区と沿海部発展。" },
+      { id: "so-4", stage: "p1", stepNum: 4, grade: "中1-2", unit: "日本地理", item: "日本の領域・排他的経済水域(EEZ)・領土", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "東書『地理』第3編 第1章 p.122〜136", memo: "北方領土(択捉・国後・色丹・歯舞)、竹島、尖閣諸島、沖ノ鳥島。" },
+      { id: "so-5", stage: "p2", stepNum: 5, grade: "中1-2", unit: "日本地理", item: "日本の気候区分と雨温図の判別", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『地理』第3編 第2章 p.138〜154", memo: "日本海側(冬に降雪多)、瀬戸内(年中少雨)、太平洋側(夏に降雨多)、中央高地。" },
+      { id: "so-6", stage: "p2", stepNum: 6, grade: "中1-2", unit: "日本地理", item: "日本の農業・水産業・工業地帯の統計グラフ", rank: "S", level: "少し苦手", targetPeriod: "2026-12", textbookRef: "東書『地理』第3編 第3章 p.156〜178", memo: "促成栽培(高知・宮崎)と抑制栽培(長野)。中京(機械)・京浜・阪神の割合。" },
+      { id: "so-7", stage: "p2", stepNum: 7, grade: "中1-2", unit: "日本地理", item: "地方別地理（九州〜北海道の特色）", rank: "A", level: "普通", targetPeriod: "2027-01", textbookRef: "東書『地理』第4編 p.182〜274", memo: "各地方の県庁所在地、伝統工芸品、過疎過密対策と交通網。" },
+      { id: "so-8", stage: "p1", stepNum: 8, grade: "中1", unit: "古代史", item: "縄文・弥生〜古墳時代（文明と大和政権）", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "東書『歴史』第1〜2章 p.14〜44", memo: "青銅器・鉄器、邪馬台国・卑弥呼、前方後円墳と渡来人。" },
+      { id: "so-9", stage: "p2", stepNum: 9, grade: "中1", unit: "古代史", item: "飛鳥・奈良・平安（律令国家と貴族政治）", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『歴史』第3章 p.46〜78", memo: "聖徳太子、大化の改新(645)、大宝律令(701)、聖武天皇(東大寺)、藤原氏摂関政治。" },
+      { id: "so-10", stage: "p2", stepNum: 10, grade: "中1-2", unit: "中世史", item: "鎌倉〜室町時代（武家政権と文化）", rank: "S", level: "普通", targetPeriod: "2026-12", textbookRef: "東書『歴史』第4章 p.80〜114", memo: "御恩と奉公、元寇と徳政令、勘合貿易(日明貿易)、北山文化(金閣)・東山(銀閣)。" },
+      { id: "so-11", stage: "p2", stepNum: 11, grade: "中2", unit: "近世史", item: "安土桃山時代（信長・秀吉の全国統一）", rank: "S", level: "得意", targetPeriod: "2026-11", textbookRef: "東書『歴史』第5章 p.116〜134", memo: "太閤検地・刀狩(兵農分離)、楽市楽座、南蛮貿易と桃山文化。" },
+      { id: "so-12", stage: "p2", stepNum: 12, grade: "中2", unit: "近世史", item: "江戸幕府の成立と大名統制・鎖国政策", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "東書『歴史』第5章 p.135〜156", memo: "参勤交代(武家諸法度)、キリスト教禁止(絵踏)、出島でのオランダ・中国貿易。" },
+      { id: "so-13", stage: "p2", stepNum: 13, grade: "中2", unit: "近世史", item: "江戸の三大改革（享保・寛政・天保）と田沼", rank: "A", level: "苦手", targetPeriod: "2026-12", textbookRef: "東書『歴史』第5章 p.157〜178", memo: "都立頻出！吉宗(享保:目安箱)、田沼(株仲間)、松平定信(寛政)、水野忠邦(天保)。" },
+      { id: "so-14", stage: "p2", stepNum: 14, grade: "中2", unit: "近代史", item: "幕末〜明治維新（開国・不平等条約・富国強兵）", rank: "A", level: "苦手", targetPeriod: "2027-02", textbookRef: "東書『歴史』第6章 p.182〜208", memo: "日米修好通商条約(領事裁判権・関税自主権)、地租改正(地価の3%現金)、学制・徴兵令。" },
+      { id: "so-15", stage: "p2", stepNum: 15, grade: "中2", unit: "近代史", item: "自由民権運動と大日本帝国憲法", rank: "A", level: "少し苦手", targetPeriod: "2027-03", textbookRef: "東書『歴史』第6章 p.209〜224", memo: "板垣退助、伊藤博文、大日本帝国憲法(1889年天皇主権)、帝国議会開設。" },
+      { id: "so-16", stage: "p3", stepNum: 16, grade: "中2-3", unit: "近代史", item: "条約改正と日清・日露戦争・八幡製鉄所", rank: "S", level: "少し苦手", targetPeriod: "2027-04", textbookRef: "東書『歴史』第6章 p.225〜244", memo: "陸奥宗光(治外法権撤廃)、小村寿太郎(関税自主権回復)。下関条約・ポーツマス条約。" },
+      { id: "so-17", stage: "p3", stepNum: 17, grade: "中3", unit: "近代史", item: "第一次世界大戦と大正デモクラシー・普通選挙", rank: "S", level: "普通", targetPeriod: "2027-05", textbookRef: "東書『歴史』第7章 p.248〜264", memo: "1925年男子普通選挙法(満25歳以上男子)と治安維持法のセット暗記！" },
+      { id: "so-18", stage: "p3", stepNum: 18, grade: "中3", unit: "現代史", item: "世界恐慌〜第二次世界大戦と戦後改革", rank: "A", level: "少し苦手", targetPeriod: "2027-06", textbookRef: "東書『歴史』第7章 p.265〜298", memo: "GHQの五大改革（財閥解体・農地改革・女性参政権・労働組合育成・教育基本法）。" },
+      { id: "so-19", stage: "p3", stepNum: 19, grade: "中3", unit: "現代史", item: "冷戦と日本の国際復帰・高度経済成長", rank: "S", level: "普通", targetPeriod: "2027-07", textbookRef: "東書『歴史』第8章 p.300〜324", memo: "サンフランシスコ平和条約(1951)、日ソ共同宣言(国連加盟)、日中共同声明(1972)。" },
+      { id: "so-20", stage: "p4", stepNum: 20, grade: "中3", unit: "公民・憲法", item: "日本国憲法の三大原則と平和主義（第9条）", rank: "S", level: "普通", targetPeriod: "2027-09", textbookRef: "東書『公民』第2章 p.34〜54", memo: "国民主権・基本的人権の尊重・平和主義。憲法改正手続き(総議員の2/3＋国民投票過半数)。" },
+      { id: "so-21", stage: "p4", stepNum: 21, grade: "中3", unit: "公民・人権", item: "基本的人権の種類（自由権・平等権・社会権）", rank: "S", level: "少し苦手", targetPeriod: "2027-09", textbookRef: "東書『公民』第2章 p.55〜76", memo: "第25条生存権(健康で文化的な最低限度の生活)、労働基本権(団結権・団体交渉権・団体行動権)。" },
+      { id: "so-22", stage: "p4", stepNum: 22, grade: "中3", unit: "公民・政治", item: "三権分立（国会・内閣・裁判所の相互抑制）", rank: "S", level: "苦手", targetPeriod: "2027-10", textbookRef: "東書『公民』第3章 p.80〜112", memo: "都立大問2の主役！内閣不信任決議、違憲立法審査権、弾劾裁判所の矢印図を完ぺきに。" },
+      { id: "so-23", stage: "p4", stepNum: 23, grade: "中3", unit: "公民・政治", item: "選挙制度（小選挙区比例代表並立制）と地方自治", rank: "A", level: "普通", targetPeriod: "2027-10", textbookRef: "東書『公民』第3章 p.113〜132", memo: "一票の格差問題、直接請求権(条例制定改廃・監査請求・リコール)の署名数と請求先。" },
+      { id: "so-24", stage: "p4", stepNum: 24, grade: "中3", unit: "公民・経済", item: "市場経済と価格の決定（需要・供給曲線）", rank: "S", level: "少し苦手", targetPeriod: "2027-11", textbookRef: "東書『公民』第4章 p.136〜158", memo: "均衡価格の決定グラフ。独占禁止法(公正取引委員会)、インフレとデフレ。" },
+      { id: "so-25", stage: "p4", stepNum: 25, grade: "中3", unit: "公民・経済", item: "日本銀行の金融政策（公開市場操作）と財政", rank: "A", level: "苦手", targetPeriod: "2027-11", textbookRef: "東書『公民』第4章 p.159〜182", memo: "買いオペ(景気刺激で資金供給)と売りオペ。直接税と間接税、累進課税制度。" },
+      { id: "so-26", stage: "p4", stepNum: 26, grade: "中3", unit: "公民・国際", item: "国際連合の仕組み(安保理拒否権)と為替相場", rank: "S", level: "苦手", targetPeriod: "2027-12", textbookRef: "東書『公民』第5章 p.186〜212", memo: "常任理事国5カ国の拒否権。円高・円安が輸出入企業に与える影響のパターン化。" }
+    ]
+  },
+  {
+    id: "jpn", name: "国語", icon: "📖", publisher: "光村図書『国語 1〜3』",
+    color: "#B91C1C", bg: "#FEF2F2", border: "#FCA5A5", text: "#7F1D1D",
+    units: [
+      { id: "j-1", stage: "p1", stepNum: 1, grade: "全般", unit: "知識事項", item: "漢字の読み取り（都立大問1：配点10点）", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "光村図書 各学年巻末「漢字の広場」", memo: "毎年5問(各2点)。過去問プリントで同音異義語・送り仮名を10点満点化。" },
+      { id: "j-2", stage: "p1", stepNum: 2, grade: "全般", unit: "知識事項", item: "漢字の書き取り（都立大問2：配点10点）", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "光村図書 各学年巻末「漢字の広場」", memo: "トメ・ハネ・ハライの減点をゼロに。10点満点死守が武蔵丘合格の基礎。" },
+      { id: "j-3", stage: "p2", stepNum: 3, grade: "中1-2", unit: "文法", item: "品詞の識別・用言の活用（動詞・形容詞）", rank: "A", level: "少し苦手", targetPeriod: "2026-11", textbookRef: "光村『国語2』言葉の窓「用言の活用」", memo: "「ない」をつけて未然形の音(ア行＝五段、イ段＝上一段、エ段＝下一段)で判定。" },
+      { id: "j-4", stage: "p2", stepNum: 4, grade: "中1-2", unit: "文法", item: "敬語の識別（尊敬語・謙譲語・丁寧語）", rank: "S", level: "普通", targetPeriod: "2026-12", textbookRef: "光村『国語1・2』言葉の窓「敬語の使い分け」", memo: "相手を高める「おっしゃる(尊敬)」と自分をへりくだる「申し上げる(謙譲)」の主語判定。" },
+      { id: "j-5", stage: "p1", stepNum: 5, grade: "中1-2", unit: "語彙", item: "慣用句・ことわざ・故事成語の意味", rank: "S", level: "得意", targetPeriod: "2026-10", textbookRef: "光村『国語1・2』言葉の窓「言葉の力」", memo: "日常学習の息抜きに意味と例文をストック。" },
+      { id: "j-6", stage: "p2", stepNum: 6, grade: "中1-3", unit: "現代文", item: "論理的文章の指示語・接続語の把握", rank: "S", level: "普通", targetPeriod: "2026-11", textbookRef: "光村『国語』説明文単元（論理の展開）", memo: "「しかし」「つまり」などの接続語に印をつけ、段落ごとの結論を素早く把握。" },
+      { id: "j-7", stage: "p2", stepNum: 7, grade: "中1-3", unit: "現代文", item: "論理的文章の要旨把握と選択肢消去法", rank: "A", level: "少し苦手", targetPeriod: "2027-01", textbookRef: "光村『国語』説明的文章・評論文単元", memo: "本文に書いていないこと・言い過ぎ(〜のみ, 完全に)を含む選択肢を即消去。" },
+      { id: "j-8", stage: "p2", stepNum: 8, grade: "中1-3", unit: "現代文", item: "論理的文章の記述（理由・言い換え）", rank: "A", level: "少し苦手", targetPeriod: "2027-02", textbookRef: "都立過去問 大問4論理文記述問", memo: "文末を「〜から。」「〜こと。」で統一。本文の該当キーワードを過不足なく結合。" },
+      { id: "j-9", stage: "p2", stepNum: 9, grade: "中1-3", unit: "文学的文章", item: "小説文の登場人物の心情変化と情景描写", rank: "S", level: "普通", targetPeriod: "2026-12", textbookRef: "光村『国語』文学的文章（少年の日の思い出 等）", memo: "会話・表情・行動の直後に現れる心情語に線を引く。" },
+      { id: "j-10", stage: "p2", stepNum: 10, grade: "中1-3", unit: "文学的文章", item: "小説文の心情理由説明の記述", rank: "A", level: "少し苦手", targetPeriod: "2027-03", textbookRef: "都立過去問 大問3小説記述問", memo: "【きっかけとなった出来事】＋【抱いた心情】を因果関係でつなぐ。" },
+      { id: "j-11", stage: "p2", stepNum: 11, grade: "中1-3", unit: "古典", item: "古文の基本（歴史的仮名遣い・基本古語）", rank: "S", level: "得意", targetPeriod: "2026-11", textbookRef: "光村『国語1・2』古典への招待（竹取物語 等）", memo: "は行の「わ・い・う・え・お」、ゐ・ゑ・をの直し。都立大問3の小問で満点。" },
+      { id: "j-12", stage: "p3", stepNum: 12, grade: "中1-3", unit: "古典", item: "古文の読解（主語の補いと会話文の把握）", rank: "A", level: "苦手", targetPeriod: "2027-04", textbookRef: "光村『国語2・3』平家物語・おくのほそ道", memo: "古文は主語が省略される！「て・で・ば」の前後で主語が変わるか確認し主語をメモ。" },
+      { id: "j-13", stage: "p3", stepNum: 13, grade: "中1-3", unit: "古典", item: "漢文の基礎（返り点・書き下し文）", rank: "S", level: "普通", targetPeriod: "2027-05", textbookRef: "光村『国語2・3』漢詩・論語・矛盾", memo: "レ点・一二点・上下点の読む順序のルールさえ覚えればパズル感覚で即満点。" },
+      { id: "j-14", stage: "p3", stepNum: 14, grade: "全般", unit: "都立作文", item: "都立200字作文（大問2：配点10点・12分書き切り）", rank: "S", level: "苦手", targetPeriod: "2027-07", textbookRef: "都立過去問 大問2作文用紙（光村『国語』作文単元）", memo: "第1段落(筆者の主張＋自分の体験)、第2段落(今後の展望)。減点ゼロの鉄板型で10点満点死守！" }
+    ]
+  }
+];
+
+
+// 高校進学後の学習は志望校・教材未確定のため、本人の評価を付けずに登録する。
+const futureStudyUnits = [
+  { subject:"math", id:"m-28", stage:"p5", stepNum:28, grade:"高1", unit:"高校数学の基礎", item:"進学先の授業進度と理解状況を確認し、制作に必要な関数・数値処理を先取りできるようにする", rank:"A", level:"未評価", targetPeriod:"2028-05", textbookRef:"進学先の学校配布教材（入学後に確定）", memo:"学校の進度と作品開発に必要な先取りを分けて記録する。" },
+  { subject:"eng", id:"e-21", stage:"p5", stepNum:21, grade:"高1", unit:"英語の基礎と実践", item:"学校英語を理解し、自分の音楽と作品を短い英語で説明してみる", rank:"A", level:"未評価", targetPeriod:"2028-06", textbookRef:"学校配布教材・本人が選ぶ英会話教材", memo:"英検は本人の到達度に合わせ、学校英語と共通の基礎を使う。" },
+  { subject:"sci", id:"s-32", stage:"p5", stepNum:32, grade:"高1", unit:"作品のための先取り", item:"音の振動・周波数・波形とプログラムの関係を実験で確かめる", rank:"A", level:"未評価", targetPeriod:"2028-08", textbookRef:"学校の理科教材・自作プログラム", memo:"未履修でも作品に必要な内容は、目的に合わせて先取りする。" },
+  { subject:"math", id:"m-29", stage:"p6", stepNum:29, grade:"高2", unit:"学力と開発の接続", item:"学校の数学と音響・ゲームの座標計算を結び付けて理解を確認する", rank:"A", level:"未評価", targetPeriod:"2029-06", textbookRef:"学校配布教材・Mountain of Soundのソース", memo:"入試で必要な範囲と開発の先取り内容を分けて管理する。" },
+  { subject:"eng", id:"e-22", stage:"p6", stepNum:22, grade:"高2", unit:"進学要件の確認", item:"Goldsmithsなどの最新の出願条件を確認し、英語の現在地と必要な学習を整理する", rank:"A", level:"未評価", targetPeriod:"2029-07", textbookRef:"学校配布教材・志望先の公式要項", memo:"IELTSの受験時期は出願時期と結果利用期間を確認して決める。" },
+  { subject:"jpn", id:"j-15", stage:"p6", stepNum:15, grade:"高2", unit:"文章・作品説明", item:"制作意図と改善した点を、本人の言葉で文章にまとめる", rank:"A", level:"未評価", targetPeriod:"2029-11", textbookRef:"学校配布教材・本人の制作記録", memo:"国内の総合型選抜・海外の作品説明に共通する表現を育てる。" },
+  { subject:"sci", id:"s-33", stage:"p7", stepNum:33, grade:"高3", unit:"作品の技術説明", item:"音響・信号処理の実験結果を再現可能な方法で説明する", rank:"A", level:"未評価", targetPeriod:"2030-06", textbookRef:"学校配布教材・制作記録", memo:"本人の実際の制作経験に基づき説明する。" },
+  { subject:"eng", id:"e-23", stage:"p7", stepNum:23, grade:"高3", unit:"出願に向けた英語", item:"志望先の要件に沿って必要な英語技能と資格試験の準備を確認する", rank:"A", level:"未評価", targetPeriod:"2030-07", textbookRef:"学校配布教材・公式の試験資料", memo:"英検とIELTSの学習を重複させず、形式別対策を追加する。" },
+  { subject:"math", id:"m-30", stage:"p7", stepNum:30, grade:"高3", unit:"選抜方式別の学習", item:"志望先の学科試験要件と現在地から、数学の必要範囲を確認する", rank:"A", level:"未評価", targetPeriod:"2030-08", textbookRef:"学校配布教材・該当年度の公式入試問題", memo:"入試に使わない内容を一律に優先しない。" },
+  { subject:"jpn", id:"j-16", stage:"p7", stepNum:16, grade:"高3", unit:"志望理由と面接", item:"出願先の選抜方式に合わせ、志望理由と制作経験を説明する練習をする", rank:"A", level:"未評価", targetPeriod:"2030-10", textbookRef:"該当年度の公式募集要項・本人の作品履歴", memo:"第三者の評価を得ても、本人の考えと事実を優先する。" },
+  { subject:"eng", id:"e-24", stage:"p8", stepNum:24, grade:"進学後", unit:"新しい環境の英語", item:"進学先の授業や制作に必要な英語の学び方を確認する", rank:"A", level:"未評価", targetPeriod:"2031-04", textbookRef:"進学先の教材（確定後）", memo:"進学先や必要な英語水準は事前に決めつけない。" }
+];
+futureStudyUnits.forEach(unit => {
+  const { subject, ...task } = unit;
+  const subjectData = studySubjectsData.find(item => item.id === subject);
+  if (subjectData) subjectData.units.push(task);
+});
+
+// 学校の授業と受験過去問を、既存の中1・中2復習とは別の単元として追加する。
+const RIFF_SCHOOL_AND_EXAM_UNITS = [{"subject":"math","id":"school-math-202609","stage":"p2","grade":"中2","unit":"一次関数・グラフ","item":"一次関数の変化の割合・式・グラフ（学校進度を確認）","rank":"A","level":"未評価","targetPeriod":"2026-09","textbookRef":"東京書籍『新しい数学2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"eng","id":"school-eng-202609","stage":"p2","grade":"中2","unit":"学校英語：文法と読解","item":"学校で学んでいる助動詞・不定詞などの例文を確認（単元は学校に合わせて変更）","rank":"A","level":"未評価","targetPeriod":"2026-09","textbookRef":"光村図書『Here We Go! ENGLISH COURSE 2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"sci","id":"school-sci-202609","stage":"p2","grade":"中2","unit":"理科：授業中の単元","item":"授業で扱う化学・生物・地学・物理の実験と用語を確認","rank":"A","level":"未評価","targetPeriod":"2026-09","textbookRef":"東京書籍『新しい科学2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"soc","id":"school-soc-202609","stage":"p2","grade":"中2","unit":"社会：授業中の単元","item":"地理・歴史の授業範囲を学校ワークと地図・資料で確認","rank":"A","level":"未評価","targetPeriod":"2026-09","textbookRef":"帝国書院『中学生の地理・歴史』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"jpn","id":"school-jpn-202609","stage":"p2","grade":"中2","unit":"国語：文章読解と漢字","item":"授業で扱う説明文・文学作品の根拠と漢字を確認","rank":"A","level":"未評価","targetPeriod":"2026-09","textbookRef":"光村図書『国語2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"math","id":"school-math-202611","stage":"p2","grade":"中2","unit":"図形の性質と証明","item":"平行線・角・合同条件と証明の書き方を練習（学校進度で変更）","rank":"A","level":"未評価","targetPeriod":"2026-11","textbookRef":"東京書籍『新しい数学2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"eng","id":"school-eng-202611","stage":"p2","grade":"中2","unit":"学校英語：表現と文法","item":"授業で扱う比較・文の形などを確認（実際のUnitを優先）","rank":"A","level":"未評価","targetPeriod":"2026-11","textbookRef":"光村図書『Here We Go! ENGLISH COURSE 2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"sci","id":"school-sci-202611","stage":"p2","grade":"中2","unit":"理科：実験と計算","item":"学校で扱う実験の目的・結果・計算を説明する","rank":"A","level":"未評価","targetPeriod":"2026-11","textbookRef":"東京書籍『新しい科学2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"soc","id":"school-soc-202611","stage":"p2","grade":"中2","unit":"社会：地理と歴史の確認","item":"授業範囲の用語と資料問題を学校ワークで練習","rank":"A","level":"未評価","targetPeriod":"2026-11","textbookRef":"帝国書院『中学生の地理・歴史』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"jpn","id":"school-jpn-202611","stage":"p2","grade":"中2","unit":"国語：古典と作文","item":"学校で扱う古典や文章表現を教科書で確認","rank":"A","level":"未評価","targetPeriod":"2026-11","textbookRef":"光村図書『国語2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"math","id":"school-math-202701","stage":"p2","grade":"中2","unit":"確率・データの活用","item":"起こりやすさ・資料の読み方を問題で確かめる（学校進度で変更）","rank":"A","level":"未評価","targetPeriod":"2027-01","textbookRef":"東京書籍『新しい数学2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"eng","id":"school-eng-202701","stage":"p2","grade":"中2","unit":"学校英語：学年末の復習","item":"授業で習った文法・読解・リスニングを組み合わせて確認","rank":"A","level":"未評価","targetPeriod":"2027-01","textbookRef":"光村図書『Here We Go! ENGLISH COURSE 2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"sci","id":"school-sci-202701","stage":"p2","grade":"中2","unit":"理科：学年末の単元","item":"学校の学年末試験範囲を授業ノートで確認","rank":"A","level":"未評価","targetPeriod":"2027-01","textbookRef":"東京書籍『新しい科学2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"soc","id":"school-soc-202701","stage":"p2","grade":"中2","unit":"社会：学年末の単元","item":"学校の歴史・地理の試験範囲を資料で確認","rank":"A","level":"未評価","targetPeriod":"2027-01","textbookRef":"帝国書院『中学生の地理・歴史』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"jpn","id":"school-jpn-202701","stage":"p2","grade":"中2","unit":"国語：学年末の範囲","item":"学年末の本文・漢字・文法を根拠とともに確認","rank":"A","level":"未評価","targetPeriod":"2027-01","textbookRef":"光村図書『国語2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"math","id":"school-math-202704","stage":"p3","grade":"中3","unit":"中3数学：学校の新単元","item":"展開・因数分解や平方根など、学校の実際の進度に合わせる","rank":"A","level":"未評価","targetPeriod":"2027-04","textbookRef":"東京書籍『新しい数学2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"eng","id":"school-eng-202704","stage":"p3","grade":"中3","unit":"中3英語：学校の新単元","item":"授業で扱う文法・長文・英作文の教材を先に確認","rank":"A","level":"未評価","targetPeriod":"2027-04","textbookRef":"光村図書『Here We Go! ENGLISH COURSE 2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"sci","id":"school-sci-202704","stage":"p3","grade":"中3","unit":"中3理科：学校の新単元","item":"授業で扱う実験と計算を先に調べ、授業後に復習","rank":"A","level":"未評価","targetPeriod":"2027-04","textbookRef":"東京書籍『新しい科学2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"soc","id":"school-soc-202704","stage":"p3","grade":"中3","unit":"中3社会：公民・歴史","item":"学校の進度で歴史・公民のテーマを決めて確認","rank":"A","level":"未評価","targetPeriod":"2027-04","textbookRef":"帝国書院『中学生の地理・歴史』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"jpn","id":"school-jpn-202704","stage":"p3","grade":"中3","unit":"中3国語：読解と表現","item":"授業の本文と根拠を確認して短い説明を書く","rank":"A","level":"未評価","targetPeriod":"2027-04","textbookRef":"光村図書『国語2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"math","id":"school-math-202709","stage":"p4","grade":"中3","unit":"中3数学：受験範囲の新単元","item":"二次関数・相似など学校の履修範囲を確認（進度未確定）","rank":"A","level":"未評価","targetPeriod":"2027-09","textbookRef":"東京書籍『新しい数学2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"eng","id":"school-eng-202709","stage":"p4","grade":"中3","unit":"中3英語：受験範囲の新単元","item":"授業のUnitに合わせて長文読解と英作文を練習","rank":"A","level":"未評価","targetPeriod":"2027-09","textbookRef":"光村図書『Here We Go! ENGLISH COURSE 2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"sci","id":"school-sci-202709","stage":"p4","grade":"中3","unit":"中3理科：受験範囲の新単元","item":"実験・計算問題を学校ワークで練習","rank":"A","level":"未評価","targetPeriod":"2027-09","textbookRef":"東京書籍『新しい科学2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"soc","id":"school-soc-202709","stage":"p4","grade":"中3","unit":"中3社会：公民と資料問題","item":"公民・資料の読み取りを学校の進度に合わせて練習","rank":"A","level":"未評価","targetPeriod":"2027-09","textbookRef":"帝国書院『中学生の地理・歴史』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"jpn","id":"school-jpn-202709","stage":"p4","grade":"中3","unit":"中3国語：読解と古典","item":"授業で扱う文章・古典と入試形式の読解を整理","rank":"A","level":"未評価","targetPeriod":"2027-09","textbookRef":"光村図書『国語2』・学校配布ワーク・授業ノート（実際の単元ページは学校で確認）","memo":"2026年度の東村山市立中学校の教科書採択資料を参照。実施月・授業順序は暫定。学校の進度と定期テスト範囲に合わせて変更する。","taskKind":"current","curriculumStatus":"textbook_verified_timing_tentative","sourceUrl":"https://www.kyoiku.metro.tokyo.lg.jp/school/textbook/adoption_policy_other/adoption_result/adoption_result/results_2024_public"},{"subject":"math","id":"exam-math-first","stage":"p4","grade":"中3","unit":"都立入試の過去問","item":"過去問の初回演習と弱点発見（数学）","rank":"A","level":"未評価","targetPeriod":"2027-09","textbookRef":"声の教育社『東京都立高校 7年間スーパー過去問』（購入する版の収録年度を要確認）","memo":"受験学年の履修範囲と定期テストを優先。年度・得点・時間・大問別失点を記録し、解説確認と解き直しを実施する。","taskKind":"pastpaper","curriculumStatus":"reference","sourceUrl":"https://www.koenokyoikusha.co.jp/books/book-item/52726201?search_category=%E9%AB%98%E6%A0%A1%E5%8F%97%E9%A8%93"},{"subject":"math","id":"exam-math-final","stage":"p4","grade":"中3","unit":"都立入試の過去問","item":"時間を計った過去問演習と弱点の再確認（数学）","rank":"A","level":"未評価","targetPeriod":"2027-12","textbookRef":"声の教育社『東京都立高校 7年間スーパー過去問』（購入する版の収録年度を要確認）","memo":"受験学年の履修範囲と定期テストを優先。年度・得点・時間・大問別失点を記録し、解説確認と解き直しを実施する。","taskKind":"pastpaper","curriculumStatus":"reference","sourceUrl":"https://www.koenokyoikusha.co.jp/books/book-item/52726201?search_category=%E9%AB%98%E6%A0%A1%E5%8F%97%E9%A8%93"},{"subject":"eng","id":"exam-eng-first","stage":"p4","grade":"中3","unit":"都立入試の過去問","item":"過去問の初回演習と弱点発見（英語）","rank":"A","level":"未評価","targetPeriod":"2027-09","textbookRef":"声の教育社『東京都立高校 7年間スーパー過去問』（購入する版の収録年度を要確認）","memo":"受験学年の履修範囲と定期テストを優先。年度・得点・時間・大問別失点を記録し、解説確認と解き直しを実施する。","taskKind":"pastpaper","curriculumStatus":"reference","sourceUrl":"https://www.koenokyoikusha.co.jp/books/book-item/52726201?search_category=%E9%AB%98%E6%A0%A1%E5%8F%97%E9%A8%93"},{"subject":"eng","id":"exam-eng-final","stage":"p4","grade":"中3","unit":"都立入試の過去問","item":"時間を計った過去問演習と弱点の再確認（英語）","rank":"A","level":"未評価","targetPeriod":"2027-12","textbookRef":"声の教育社『東京都立高校 7年間スーパー過去問』（購入する版の収録年度を要確認）","memo":"受験学年の履修範囲と定期テストを優先。年度・得点・時間・大問別失点を記録し、解説確認と解き直しを実施する。","taskKind":"pastpaper","curriculumStatus":"reference","sourceUrl":"https://www.koenokyoikusha.co.jp/books/book-item/52726201?search_category=%E9%AB%98%E6%A0%A1%E5%8F%97%E9%A8%93"},{"subject":"sci","id":"exam-sci-first","stage":"p4","grade":"中3","unit":"都立入試の過去問","item":"過去問の初回演習と弱点発見（理科）","rank":"A","level":"未評価","targetPeriod":"2027-09","textbookRef":"声の教育社『東京都立高校 7年間スーパー過去問』（購入する版の収録年度を要確認）","memo":"受験学年の履修範囲と定期テストを優先。年度・得点・時間・大問別失点を記録し、解説確認と解き直しを実施する。","taskKind":"pastpaper","curriculumStatus":"reference","sourceUrl":"https://www.koenokyoikusha.co.jp/books/book-item/52726201?search_category=%E9%AB%98%E6%A0%A1%E5%8F%97%E9%A8%93"},{"subject":"sci","id":"exam-sci-final","stage":"p4","grade":"中3","unit":"都立入試の過去問","item":"時間を計った過去問演習と弱点の再確認（理科）","rank":"A","level":"未評価","targetPeriod":"2027-12","textbookRef":"声の教育社『東京都立高校 7年間スーパー過去問』（購入する版の収録年度を要確認）","memo":"受験学年の履修範囲と定期テストを優先。年度・得点・時間・大問別失点を記録し、解説確認と解き直しを実施する。","taskKind":"pastpaper","curriculumStatus":"reference","sourceUrl":"https://www.koenokyoikusha.co.jp/books/book-item/52726201?search_category=%E9%AB%98%E6%A0%A1%E5%8F%97%E9%A8%93"},{"subject":"soc","id":"exam-soc-first","stage":"p4","grade":"中3","unit":"都立入試の過去問","item":"過去問の初回演習と弱点発見（社会）","rank":"A","level":"未評価","targetPeriod":"2027-09","textbookRef":"声の教育社『東京都立高校 7年間スーパー過去問』（購入する版の収録年度を要確認）","memo":"受験学年の履修範囲と定期テストを優先。年度・得点・時間・大問別失点を記録し、解説確認と解き直しを実施する。","taskKind":"pastpaper","curriculumStatus":"reference","sourceUrl":"https://www.koenokyoikusha.co.jp/books/book-item/52726201?search_category=%E9%AB%98%E6%A0%A1%E5%8F%97%E9%A8%93"},{"subject":"soc","id":"exam-soc-final","stage":"p4","grade":"中3","unit":"都立入試の過去問","item":"時間を計った過去問演習と弱点の再確認（社会）","rank":"A","level":"未評価","targetPeriod":"2027-12","textbookRef":"声の教育社『東京都立高校 7年間スーパー過去問』（購入する版の収録年度を要確認）","memo":"受験学年の履修範囲と定期テストを優先。年度・得点・時間・大問別失点を記録し、解説確認と解き直しを実施する。","taskKind":"pastpaper","curriculumStatus":"reference","sourceUrl":"https://www.koenokyoikusha.co.jp/books/book-item/52726201?search_category=%E9%AB%98%E6%A0%A1%E5%8F%97%E9%A8%93"},{"subject":"jpn","id":"exam-jpn-first","stage":"p4","grade":"中3","unit":"都立入試の過去問","item":"過去問の初回演習と弱点発見（国語）","rank":"A","level":"未評価","targetPeriod":"2027-09","textbookRef":"声の教育社『東京都立高校 7年間スーパー過去問』（購入する版の収録年度を要確認）","memo":"受験学年の履修範囲と定期テストを優先。年度・得点・時間・大問別失点を記録し、解説確認と解き直しを実施する。","taskKind":"pastpaper","curriculumStatus":"reference","sourceUrl":"https://www.koenokyoikusha.co.jp/books/book-item/52726201?search_category=%E9%AB%98%E6%A0%A1%E5%8F%97%E9%A8%93"},{"subject":"jpn","id":"exam-jpn-final","stage":"p4","grade":"中3","unit":"都立入試の過去問","item":"時間を計った過去問演習と弱点の再確認（国語）","rank":"A","level":"未評価","targetPeriod":"2027-12","textbookRef":"声の教育社『東京都立高校 7年間スーパー過去問』（購入する版の収録年度を要確認）","memo":"受験学年の履修範囲と定期テストを優先。年度・得点・時間・大問別失点を記録し、解説確認と解き直しを実施する。","taskKind":"pastpaper","curriculumStatus":"reference","sourceUrl":"https://www.koenokyoikusha.co.jp/books/book-item/52726201?search_category=%E9%AB%98%E6%A0%A1%E5%8F%97%E9%A8%93"}];
+// 7年分の過去問は「全部を必須」にせず候補プールとして保持する。
+// 初回・12月の通し・1月の弱点再演習を基本計画に残し、追加5回は初期状態で「必要か考える」。
+// 第何回かのみ管理し、購入前に収録年度を推定しない。
+["math","eng","sci","soc","jpn"].forEach(subject => {
+  const names = {math:"数学",eng:"英語",sci:"理科",soc:"社会",jpn:"国語"};
+  ["2027-10","2027-10","2027-11","2027-11","2027-12"].forEach((month,index) => {
+    const round = index + 2;
+    RIFF_SCHOOL_AND_EXAM_UNITS.push({
+      subject, id:"exam-"+subject+"-round-"+round, stage:"p4", grade:"中3",
+      unit:"都立入試・7年分の演習",
+      item:names[subject]+"：過去問の第"+round+"回・解き直し",
+      rank:"A", level:"未評価", targetPeriod:month, defaultPlan:"review",
+      textbookRef:"声の教育社『東京都立高校 7年間スーパー過去問』（購入版で収録年度を確認）",
+      memo:"年度・得点・失点分野・時間を記録。既に解いた年度との重複を避け、間違い直しと翌週の弱点確認も実施。",
+      taskKind:"pastpaper", curriculumStatus:"reference",
+      sourceUrl:"https://www.koenokyoikusha.co.jp/books/book-item/52726201?search_category=%E9%AB%98%E6%A0%A1%E5%8F%97%E9%A8%93"
+    });
+  });
+});
+// 2028年1月は新しい年度を無限に追加せず、既に解いた年度の再演習と弱点確認を実施。
+["math","eng","sci","soc","jpn"].forEach(subject => {
+  const source = RIFF_SCHOOL_AND_EXAM_UNITS.find(row =>
+    row.id === "exam-" + subject + "-final");
+  if (source) RIFF_SCHOOL_AND_EXAM_UNITS.push({ ...source,
+    id: "exam-" + subject + "-finalcheck", targetPeriod: "2028-01",
+    item: "過去問で残った弱点の再演習・50分通し練習（" +
+      ({math:"数学",eng:"英語",sci:"理科",soc:"社会",jpn:"国語"}[subject]) + "）",
+    memo: "12月までの記録から間違えた大問・分野を選ぶ。初めて見る問題を増やすだけでなく、同じ失点を防ぐ練習をする。" });
+});
+RIFF_SCHOOL_AND_EXAM_UNITS.forEach(entry => {
+  const { subject, ...unit } = entry;
+  const data = studySubjectsData.find(item => item.id === subject);
+  if (!data) return;
+  // 表示番号は既存の教科内番号と重複させない。
+  unit.stepNum = data.units.reduce((max, row) => Math.max(max, row.stepNum || 0), 0) + 1;
+  data.units.push(unit);
+});
+// 新しい細分化タスク。従来の単元IDとチェック状態は変更せず、独立したIDで保存する。
+// 時間は本人の実測ではなく最初の計画用の仮見積もり。実施後に調整する。
+const buildStudySubtasks = (unit, subjectId) => {
+  if (unit.taskKind === "current") return [
+    { id: unit.id + "-task-1", text: "次の授業で扱う「" + unit.item + "」の教科書を読み、わからない言葉と公式を2つまでメモする。授業の進度が異なる場合は学校の予定を優先する", shortTitle: "授業前に教科書を読んで準備", estimateMinutes: 20, estimateSource: "research_informed_planning_budget" },
+    { id: unit.id + "-task-2", text: "その日の授業で学んだ「" + unit.item + "」をノートを閉じて思い出し、学校ワークの基本問題を2〜4問解く", shortTitle: "授業後に思い出して基本問題", estimateMinutes: 40, estimateSource: "research_informed_planning_budget" },
+    { id: unit.id + "-task-3", text: "間違えた問題を解説・授業ノートで確認し、解答を見ずにもう一度解いて学校ワークの宿題を進める", shortTitle: "間違い直しと学校ワーク", estimateMinutes: 40, estimateSource: "research_informed_planning_budget" }
+  ];
+  if (unit.taskKind === "pastpaper") return [
+    { id: unit.id + "-task-1", text: "声の教育社『東京都立高校 7年間スーパー過去問』から学校の履修範囲で解ける年度・教科を選び、年と制限時間を記録して原則50分で解く。英語はリスニング音声も確認する", shortTitle: "過去問を50分で解く", estimateMinutes: 50, estimateSource: "exam_time_practice" },
+    { id: unit.id + "-task-2", text: "採点して得点と失点分野を記録し、過去問題集の解説と教科書を使ってわからない問題を解きほぐす", shortTitle: "採点・解説・弱点の記録", estimateMinutes: 45, estimateSource: "research_informed_planning_budget" },
+    { id: unit.id + "-task-3", text: "間違えた問題を解答を見ずに解き直し、次に解く年度と重点分野を決める", shortTitle: "間違い直しと次の対策", estimateMinutes: 40, estimateSource: "research_informed_planning_budget" }
+  ];
+  if (unit.id === "m-1") return [
+    { id: "m-1-task-1", text: "正負の数の符号と累乗の規則を例題で確認し、途中式を説明する", estimateMinutes: 5 },
+    { id: "m-1-task-2", text: "四則計算と計算順序を使った問題を3問解き、符号ミスを確認する", estimateMinutes: 15, estimateSource: "provisional_session_budget" },
+    { id: "m-1-task-3", text: "かっこを含む計算を1問、何も見ずに解いて答え合わせする", estimateMinutes: 10, estimateSource: "provisional_session_budget" }
+  ];
+  const future = ["高1", "高2", "高3", "進学後"].includes(unit.grade);
+  const label = unit.item;
+  const practice = {
+    math: "教科書・ワークの基本問題を2〜3問解き、途中式と計算を確かめる",
+    eng: "教科書の例文を声に出し、該当表現で例文を2つ作る",
+    sci: "図・実験・計算のいずれかで具体例を一つ説明する",
+    soc: "資料・地図・年表などを確認し、重要な関係を自分の言葉でまとめる",
+    jpn: "本文・例題を読み、根拠を示して設問を1〜2問解く"
+  }[subjectId] || "基本問題や実例を使って取り組む";
+  return future ? [
+    { id: unit.id + "-task-1", text: "「" + label + "」に必要な教材・現状・達成条件を確認する", estimateMinutes: 10 },
+    { id: unit.id + "-task-2", text: "「" + label + "」を実際の教材や作品で一つ試し、結果を記録する", estimateMinutes: 20 },
+    { id: unit.id + "-task-3", text: "理解できた点と未解決の点を分け、次の作業を決める", estimateMinutes: 10 }
+  ] : [
+    { id: unit.id + "-task-1", text: "「" + label + "」の要点を教科書や授業ノートで確認する",
+      estimateMinutes: 20, estimateSource: "research_informed_planning_budget" },
+    { id: unit.id + "-task-2", text: practice + "（対象：「" + label + "」）",
+      estimateMinutes: unit.level === "苦手" ? 55 : unit.level === "少し苦手" ? 45 : 40,
+      estimateSource: "research_informed_planning_budget" },
+    { id: unit.id + "-task-3", text: "間違えた点を直し、「" + label + "」の確認問題を1問、自力で解く",
+      estimateMinutes: 30, estimateSource: "research_informed_planning_budget" }
+  ];
+};
+studySubjectsData.forEach(subject => subject.units.forEach(unit => {
+  unit.subtasks = buildStudySubtasks(unit, subject.id);
+  // 分散学習・思い出す練習の研究を参考にした予備的な間隔。
+  // 1・4・14日という日数や所要時間自体が実証された最適値という意味ではない。
+  if (unit.grade && /^中[123]$/.test(unit.grade) && unit.taskKind !== "pastpaper") {
+    [1, 4, 14].forEach((days, index) => unit.subtasks.push({
+      id: unit.id + "-review-" + days,
+      text: "「" + unit.item + "」について前に解いた問題から、答えを見ずに思い出す確認をする。間違えたら解説を読み、自力で解き直す（前回の基本学習から" + days + "日後を目安。本人の理解度で変更）",
+      shortTitle: days + "日後に思い出して確認",
+      estimateMinutes: [15, 20, 25][index],
+      estimateSource: "research_informed_spaced_review_budget",
+      reviewOffsetDays: days,
+      reviewIndex: index
+    }));
+  }
+}));
+
+// 各作業の初期見積もり。時間指定が明示された項目は個別に優先する。
+// 「目安」は測定済みの実績ではなく、ユーザーが後から調整する計画値。
+const TASK_TIME_OVERRIDES = {
+  "mus-1-1": 5, "py-1-1": 10, "mus-2-4": 10,
+  "mus-8-1": 10, "mus-8-2": 10
+};
+const inferTaskMinutes = (task, domain) => {
+  if (TASK_TIME_OVERRIDES[task.id]) return TASK_TIME_OVERRIDES[task.id];
+  if (/10分以内|10分基礎|1日10分/.test(task.text)) return 10;
+  if (/毎日|確認|設定|接続|チェック|記録|整理|選定/.test(task.text)) return 10;
+  if (/録音|ミックス|実装|構築|デバッグ|制作|描画|演算|完成/.test(task.text))
+    return domain === "python" ? 40 : 30;
+  if (/練習|演奏|試す|実験|聴き比べ|テスト/.test(task.text)) return 20;
+  return domain === "python" ? 25 : 15;
+};
+[musicSteps, pythonSteps].forEach((steps, index) => {
+  const domain = index === 0 ? "music" : "python";
+  steps.forEach(step => step.subtasks.forEach(task => {
+    task.estimateMinutes = inferTaskMinutes(task, domain);
+  }));
+});
+// 全音楽・開発タスクの一覧用の短い題名。詳しい原文は task.text に残す。
+const RIFF_CONCISE_TASK_TITLES = Object.fromEntries([["mus-1-1","Amber i2の入力をHI-Zにする"],["mus-1-2","RAT2とAmber i2の接続を確かめる"],["mus-1-3","ギターの入力音量を調整する"],["mus-1-4","ヘッドホンで遅延なく音を聴く"],["mus-1-5","GarageBandの入力モニターを確認"],["mus-2-1","Amp Designerでクリーン音を選ぶ"],["mus-2-2","RAT2とアンプの二重歪みを防ぐ"],["mus-2-3","RAT2のFilterの効き方を聴く"],["mus-2-4","Pocket Ampで10分の基礎練習"],["mus-3-1","ギター音とMIDI操作の経路を描く"],["mus-3-2","MIDIは音ではなく操作データと理解する"],["mus-3-3","MiniLab 3のMIDI信号を見る"],["mus-3-4","ギター録音とMIDI演奏を比べる"],["mus-4-1","ゲームに使うギターリフを録音"],["mus-4-2","音を整えてWAVを書き出す"],["mus-4-3","オリジナル曲のコード進行を作る"],["mus-5-1","MainStageの準備とMIDI機能を確認"],["mus-5-2","Chocolate PlusのMIDI信号を確認"],["mus-5-3","スイッチA/Bでエフェクトを切り替える"],["mus-5-4","Moog EP-3をワウに連動させる"],["mus-6-1","ダイアトニックと代理コードを聴く"],["mus-6-2","アコギとレスポールを重ねて録音"],["mus-6-3","ライブ前の機材11項目を点検"],["mus-7-1","ゲームの効果音を自作する"],["mus-7-2","BX5の位置を調整してミックス確認"],["mus-7-3","SoundCloudへ制作音源を保存"],["mus-8-1","受験期もギターの指を動かす"],["mus-8-2","思いついたリフを10分で録音"],["mus-9-1","GarageBandの曲をLogicへ移す"],["mus-9-2","HX StompとMoog EP-3を接続"],["mus-9-3","Chocolate Plusの使い道を決める"],["mus-9-4","JBGで作編曲理論を学ぶ"],["mus-10-1","出願用のオリジナル曲を選ぶ"],["mus-10-2","音源をマスタリングする"],["mus-11-1","過去と今の演奏を聴き比べる"],["mus-11-2","制作意図と改善履歴をまとめる"],["mus-12-1","クリーンと歪みと空間系を比較"],["mus-12-2","選んだ音色の設定を残す"],["mus-13-1","ギターと打ち込みでデモを作る"],["mus-13-2","別アレンジを録音して選ぶ"],["mus-14-1","演奏と録音の伝わり方を比べる"],["mus-14-2","演奏か録音を一つ改善する"],["mus-15-1","出願先の作品提出形式を確認"],["mus-15-2","提出用の音源と動画を整える"],["mus-16-1","自分の言葉で作品を説明する"],["mus-16-2","講師の意見から改善点を選ぶ"],["mus-17-1","進学先に合う制作環境を選ぶ"],["py-1-1","ギター音をsounddeviceで受け取る"],["py-1-2","NumPyで音量と周波数を計算"],["py-2-1","dequeに最新の波形をためる"],["py-2-2","Pygameに波形の線を描く"],["py-3-1","音声と画面のデータ競合を防ぐ"],["py-3-2","60FPSとスクロール速度を合わせる"],["py-4-1","波形からキャラの接地点を計算"],["py-4-2","重力とジャンプの動きを作る"],["py-5-1","無音と障害物のゲームオーバーを作る"],["py-5-2","クリア画面とファンファーレを作る"],["py-6-1","展示PCで動く版を完成させる"],["py-6-2","フェス用の説明資料を準備"],["py-7-1","midoをインストールして確認"],["py-7-2","MIDI機器のポート名を調べる"],["py-8-1","MIDI値をゲームの数値に変換"],["py-8-2","ノブで速度と波形の大きさを動かす"],["py-9-1","MIDI受信を別スレッドにする"],["py-9-2","画面を止めずMIDIを取り出す"],["py-10-1","ゲーム画面を4分割する"],["py-10-2","4画面に同じ波形を描く"],["py-11-1","フットスイッチで足型を登場させる"],["py-11-2","キャラを隣の画面へ蹴り飛ばす"],["py-12-1","移動先の画面を拡大する"],["py-12-2","再押下で4画面に戻す"],["py-13-1","Pythonから仮想MIDIを送る準備"],["py-13-2","ピンチでギターをファズ音にする"],["py-14-1","HX StompからMIDIを受信する"],["py-14-2","音色とゲーム画面を同時切替"],["py-15-1","コードとREADMEを整理する"],["py-15-2","実機デモと出願作品を準備"],["py-16-1","再現できる不具合を記録"],["py-16-2","数学と理科を作品で試す"],["py-17-1","音声の反応と遅延を比べる"],["py-17-2","端末を変えて動作をテスト"],["py-18-1","音の数値とキャラの動きを比べる"],["py-18-2","先取りの理数知識を実装で確認"],["py-19-1","公開範囲と開発の判断を整理"],["py-19-2","出願用の動画と作品説明を作る"],["py-20-1","機材なしのデモ方法を考える"],["py-20-2","試してもらい改善点を直す"],["py-21-1","素材の権利と個人情報を確認"],["py-21-2","別の環境でも動く手順を整える"],["py-22-1","進学後のコードをバックアップ"]]);
+[musicSteps, pythonSteps].forEach(steps => steps.forEach(step =>
+  step.subtasks.forEach(task => { task.shortTitle = RIFF_CONCISE_TASK_TITLES[task.id]; })
+));
+const studyTopicTitle = unit => {
+  const original = String(unit.item || unit.unit || "");
+  if (/be動詞と一般動詞の区別・三人称単数現在形/.test(original))
+    return "be / 一般動詞の区別・三人称単数現在形";
+  const core = original.replace(/^「|」$/g, "").split(/[（(]/)[0].split(/[、，。]/)[0].trim();
+  return core.length <= 29 ? core : unit.unit;
+};
+studySubjectsData.forEach(subject => subject.units.forEach(unit => {
+  const topic = studyTopicTitle(unit);
+  const future = ["高1","高2","高3","進学後"].includes(unit.grade);
+  unit.subtasks.forEach((task, index) => {
+    if (!task.shortTitle && unit.taskKind === "current")
+      task.shortTitle = ["授業前の予習","授業後の基本問題","間違い直しと学校ワーク"][index];
+    if (!task.shortTitle && unit.taskKind === "pastpaper")
+      task.shortTitle = ["過去問を時間内に解く","採点・弱点の記録","間違い直し"][index];
+    if (unit.id === "m-1") {
+      task.shortTitle = ["正負の数の符号と累乗を確認","四則計算の基本問題を3問解く","かっこ付き計算を自力で解く"][index];
+    } else if (unit.taskKind === "current" || unit.taskKind === "pastpaper" || task.reviewOffsetDays) {
+      task.shortTitle = task.shortTitle || (task.reviewOffsetDays ? task.reviewOffsetDays + "日後の確認" : "「" + topic + "」の確認");
+    } else if (future) {
+      task.shortTitle = ["「" + topic + "」の準備","「" + topic + "」を実際に試す","「" + topic + "」の次の作業を決める"][index];
+    } else {
+      task.shortTitle = ["「" + topic + "」の要点の確認",
+        "「" + topic + "」の基本練習","「" + topic + "」の間違い直し"][index];
+    }
+  });
+}));
+// 一覧は個別に要約した題名、説明は省略しない原文を表示する。
+const taskShortTitle = source => {
+  if (source && typeof source === "object" && source.shortTitle)
+    return source.shortTitle;
+  const value = String(source && typeof source === "object" ? source.text : source || "").trim();
+  if (/be動詞と一般動詞の区別・三人称単数現在形/.test(value) && /要点/.test(value))
+    return "「be / 一般動詞の区別・三人称単数現在形」の要点の確認";
+  const match = value.match(/^「(.+?)」の要点を教科書や授業ノートで確認する/);
+  if (match) return "「" + match[1].split(/[（(]/)[0] + "」の要点の確認";
+  const shortened = value.replace(/教科書や授業ノートで確認する/g, "を確認")
+    .replace(/授業の進度が異なる場合は学校の予定を優先する/g, "")
+    .replace(/わからない言葉と公式を2つまでメモする/g, "疑問点をメモ")
+    .replace(/学校ワークの宿題を進める/g, "宿題を進める")
+    .replace(/（対象：「(.+?)」）/g, "（$1）");
+  return shortened.length <= 38 ? shortened :
+    shortened.slice(0, 31).replace(/[、，のを・]+$/, "") + "…";
+};
+const taskMinutes = task => task.estimateMinutes || 0;
+const stepMinutes = step => (step.subtasks || []).reduce((sum, task) => sum + taskMinutes(task), 0);
+const formatTaskMinutes = minutes => minutes >= 60
+  ? Math.floor(minutes / 60) + "時間" + (minutes % 60 ? minutes % 60 + "分" : "")
+  : minutes + "分";
+
+// 全タブ共有の分類名と色。既存の計画期間（p1〜p8）は保持する。
+const RIFF_TAXONOMY = {
+  tab: "タブ", genre: "ジャンル", grade: "学年", subject: "科目",
+  rank: "ランク", stage: "ステージ", step: "ステップ", task: "やること"
+};
+const RIFF_GENRES = {
+  music: { label: "音楽", icon: "🎸", tab: "music", color: C.music },
+  python: { label: "開発", icon: "💻", tab: "python", color: C.code },
+  study: { label: "学習", icon: "📚", tab: "study", color: C.study }
+};
+// 学習では科目・学年・単元単位でステージを定義する。
+const STUDY_STAGE_BY_UNIT_ID = {};
+studySubjectsData.forEach(subject => {
+  const stageNumbers = new Map();
+  subject.units.forEach(unit => {
+    const key = unit.grade + "|" + unit.unit;
+    if (!stageNumbers.has(key)) stageNumbers.set(key, stageNumbers.size + 1);
+    STUDY_STAGE_BY_UNIT_ID[unit.id] = {
+      number: stageNumbers.get(key), title: unit.unit, subject: subject.name,
+      grade: unit.grade, subjectId: subject.id
+    };
+  });
+});
+const TASK_CATALOG = {
+  music: musicSteps.flatMap(step => step.subtasks.map(task => ({
+    ...task, genre: "music", stepId: step.id, stepNum: step.stepNum,
+    stepTitle: step.title, stageKey: step.stage, tab: "music"
+  }))),
+  python: pythonSteps.flatMap(step => step.subtasks.map(task => ({
+    ...task, genre: "python", stepId: step.id, stepNum: step.stepNum,
+    stepTitle: step.title, stageKey: step.stage, tab: "python"
+  }))),
+  study: studySubjectsData.flatMap(subject => subject.units.flatMap(step =>
+    step.subtasks.map(task => ({
+      ...task, genre: "study", stepId: step.id, stepNum: step.stepNum,
+      stepTitle: step.item, stageKey: step.stage, grade: step.grade,
+      subject: subject.name, subjectId: subject.id, rank: step.rank, level: step.level,
+      taskKind: step.taskKind || "review", targetPeriod: step.targetPeriod,
+      tab: "study"
+    }))
+  ))
+};
+const ALL_TASKS_BY_ID = Object.fromEntries(
+  Object.values(TASK_CATALOG).flat().map(task => [task.id, task]));
+const ALL_STUDY_UNIT_BY_ID = Object.fromEntries(
+  studySubjectsData.flatMap(subject => subject.units).map(unit => [unit.id, unit]));
+const parseScheduleDuration = text => {
+  const [from, to] = String(text || "").split("〜");
+  if (!from || !to) return 0;
+  const toMinutes = value => {
+    const parts = value.trim().split(":").map(Number);
+    return parts.length === 2 && parts.every(Number.isFinite)
+      ? parts[0] * 60 + parts[1] : NaN;
+  };
+  const start = toMinutes(from), end = toMinutes(to);
+  return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : 0;
+};
+// 再調整で「過去／現在の時間枠」を動かさないため、開始時刻を分に変換する。
+const scheduleStartMinute = item => {
+  const from = String(item?.t || "").split("〜")[0];
+  const match = from.match(/^(\d{1,2}):(\d{2})$/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : -1;
+};
+const schedulePreferredSubject = item => {
+  const label = String(item.a || "");
+  if (/英語|英会話|英単語|リスニング|英作文|🇬🇧/.test(label)) return "eng";
+  if (/数学|算数/.test(label)) return "math";
+  if (/理科|理科実験/.test(label)) return "sci";
+  if (/社会|地理|歴史|公民/.test(label)) return "soc";
+  if (/国語|漢字|古文/.test(label)) return "jpn";
+  return null;
+};
+// 今日の自動提案：開始時刻順・番号順で、枠を超えず重複させない。
+const proposeDailySlots = (items, completed, minutesForTask = taskMinutes,
+  includeTask = () => true) => {
+  const slots = {}, occupied = new Set();
+  items.slice().sort((a, b) => String(a.t).localeCompare(String(b.t))).forEach(item => {
+    const genre = getScheduleCategory(item);
+    const duration = parseScheduleDuration(item.t);
+    slots[item.id] = [];
+    if (!TASK_CATALOG[genre] || !duration) return;
+    const subject = genre === "study" ? schedulePreferredSubject(item) : null;
+    let remaining = duration;
+    const orderedTasks = genre === "study" ? TASK_CATALOG.study.slice().sort((a,b) => {
+      // 今日の自動提案は、期限が来た思い出す練習→学校授業→復習バンク→過去問。
+      // 同じ種類ならS/A/B、苦手度、予定月の順で、必要度の高いものから出す。
+      const priority = task => task.reviewOffsetDays ? 0 :
+        task.taskKind === "current" ? 1 :
+        task.taskKind === "pastpaper" ? 3 : 2;
+      const ranks = { S:0, A:1, B:2 };
+      const levels = { "苦手":0, "少し苦手":1, "未評価":2, "普通":3, "得意":4 };
+      return priority(a)-priority(b) ||
+        (ranks[a.rank] ?? 3)-(ranks[b.rank] ?? 3) ||
+        (levels[a.level] ?? 2)-(levels[b.level] ?? 2) ||
+        String(a.targetPeriod || "").localeCompare(String(b.targetPeriod || ""));
+    }) : TASK_CATALOG[genre];
+    for (const task of orderedTasks) {
+      if (subject && task.subjectId !== subject) continue;
+      if (!includeTask(task) || completed[task.id] || occupied.has(task.id)) continue;
+      const minutes = minutesForTask(task);
+      if (minutes > remaining) break; // 同じ優先グループの順序を保ち、次に回す
+      slots[item.id].push(task.id);
+      occupied.add(task.id);
+      remaining -= minutes;
+      if (!remaining) break;
+    }
+  });
+  return slots;
+};
+
+const defaultSchedulesData = {
+  club: {
+    name: "部活あり", color: C.study, bg: C.studyBg, border: C.studyBorder, text: C.studyText,
+    items: [
+      { id: "sch-c1", t: "17:00〜17:10", a: "着替え・水分補給", hi: false },
+      { id: "sch-c2", t: "17:10〜17:20", a: "🎸 ギター基礎（Pocket Ampで即開始）クロマチック5分＋ミュート5分", hi: true },
+      { id: "sch-c3", t: "17:20〜19:00", a: "自由時間（休憩・ゲーム）", hi: false },
+      { id: "sch-c4", t: "19:00〜20:30", a: "夕食・入浴・休憩", hi: false },
+      { id: "sch-c5", t: "20:30〜20:55", a: "🇬🇧 英会話または英語学習（無理のないペースでOK）", hi: true },
+      { id: "sch-c6", t: "21:00〜21:50", a: "📚 学習50分枠：【Sランク/大問1即効枠 25分】+【学校ワーク定着 15分】+【暗記10分】", hi: true },
+      { id: "sch-c7", t: "21:50〜22:15", a: "💻 Mountain of Sound 開発（Chocolate Plus / Moog EP-3連動コード調整）", hi: true },
+      { id: "sch-c8", t: "22:15〜23:00", a: "就寝準備", hi: false },
+      { id: "sch-c9", t: "23:00〜23:30", a: "就寝", hi: false },
+    ]
+  },
+  noclub: {
+    name: "部活なし", color: C.code, bg: C.codeBg, border: C.codeBorder, text: C.codeText,
+    items: [
+      { id: "sch-nc1", t: "16:00〜17:00", a: "図書室等で宿題・復習（30〜60分）", hi: false },
+      { id: "sch-nc2", t: "17:00〜17:10", a: "着替え・水分補給", hi: false },
+      { id: "sch-nc3", t: "17:10〜17:40", a: "🎸 ギター練習　クロマチック10分＋コピー練習20分（Pocket Amp活用）", hi: true },
+      { id: "sch-nc4", t: "17:40〜19:00", a: "📚 学習前半（80分集中枠: 数学・英語のSランク苦手・大問別集中特訓）", hi: true },
+      { id: "sch-nc5", t: "19:00〜20:30", a: "夕食・入浴・休憩", hi: false },
+      { id: "sch-nc6", t: "20:30〜20:55", a: "🇬🇧 英会話または読書", hi: true },
+      { id: "sch-nc7", t: "21:00〜21:45", a: "📚 学習後半（45分枠: 理科・社会の一問一答暗記＆学校ワーク3周目）", hi: true },
+      { id: "sch-nc8", t: "21:45〜22:20", a: "🎵 DTMギターパート録音（Amber i2 / GarageBand活用）", hi: true },
+      { id: "sch-nc9", t: "22:20〜23:00", a: "就寝準備", hi: false },
+      { id: "sch-nc10", t: "23:00〜23:30", a: "就寝", hi: false },
+    ]
+  },
+  weekend: {
+    name: "週末スパート", color: "#FF9500", bg: "#FFFBEB", border: "#FDE68A", text: "#B45309",
+    items: [
+      { id: "sch-w1", t: "10:00〜12:00", a: "💻 Mountain of Sound 開発（Chocolate Plus 4方向 ＆ Moog EP-3連動）", hi: true },
+      { id: "sch-w2", t: "12:00〜13:00", a: "昼食・休憩", hi: false },
+      { id: "sch-w3", t: "13:00〜14:30", a: "📚 週末学習（90分特訓: 【弱点特訓40分】+【理社暗記30分】+【定着テスト20分】）", hi: true },
+      { id: "sch-w4", t: "14:30〜15:00", a: "🇬🇧 英語学習（単語総チェック・英作文添削・リスニング）", hi: true },
+      { id: "sch-w5", t: "15:00〜16:30", a: "🎸 ギター練習（本格版）GarageBand録音パート作成・Moog EP-3操作感確認", hi: true },
+      { id: "sch-w6", t: "16:30〜19:00", a: "自由時間", hi: false },
+    ]
+  },
+  exam: {
+    name: "テスト前", color: "#FF3B30", bg: "#FFF1F2", border: "#FECDD3", text: "#BE123C",
+    items: [
+      { id: "sch-e1", t: "17:10〜17:20", a: "🎸 ギター10分だけ（Pocket Ampで手軽に種火を守る）", hi: true },
+      { id: "sch-e2", t: "17:20〜19:00", a: "📚 学校の学習（テスト範囲苦手潰し・ワーク3周目完成・内申点死守）", hi: true },
+      { id: "sch-e3", t: "20:30〜20:55", a: "📚 暗記系チェック（理・社・漢字・英単語のテスト範囲完全暗記）", hi: true },
+      { id: "sch-e4", t: "21:00〜22:30", a: "📚 学校の学習（過去問演習・提出物完成・換算内申44以上へ）", hi: true },
+      { id: "sch-e5", t: "22:30〜23:00", a: "就寝", hi: false }
+    ]
+  },
+  juken: {
+    name: "受験中（中3）", color: "#B91C1C", bg: "#FEF2F2", border: "#FCA5A5", text: "#7F1D1D",
+    items: [
+      { id: "sch-j1", t: "17:10〜17:20", a: "🎸 ギター10分（Pocket Ampで種火を絶対維持）", hi: true },
+      { id: "sch-j2", t: "17:20〜19:00", a: "📚 都立高校受験対策（都立共通過去問演習・大問1満点トレーニング）", hi: true },
+      { id: "sch-j3", t: "20:30〜20:55", a: "📚 受験英語・単語1800・英作文テンプレート暗記", hi: true },
+      { id: "sch-j4", t: "21:00〜22:30", a: "📚 高校受験総仕上げ（都立過去問解き直し・ケアレスミス撲滅）", hi: true },
+      { id: "sch-j5", t: "22:30〜23:00", a: "就寝", hi: false }
+    ]
+  }
+};
+
+// Category is inferred for legacy schedule items; a saved explicit category takes precedence.
+const getScheduleCategory = item => {
+  if (["study", "music", "python", "other"].includes(item.category)) return item.category;
+  const description = String(item.a || "");
+  if (/🎸|🎵|ギター|録音|DTM|作曲|ライブ|音楽|演奏/.test(description)) return "music";
+  if (/💻|開発|Python|コード|Mountain of Sound|ゲーム制作|プログラミング/.test(description)) return "python";
+  if (/📚|🇬🇧|英会話|英語|学習|勉強|宿題|ワーク|暗記|受験|テスト|図書室|読書/.test(description)) return "study";
+  return "other";
+};
+
+// Track colors are defined by stable track IDs, so older localStorage records retain their existing contents.
+const MUSIC_TRACK_COLORS = {
+  "track-a": "#FBBF24", "track-b": "#34D399", "track-c": "#60A5FA", "track-d": "#F472B6"
+};
+const trackColor = id => MUSIC_TRACK_COLORS[id] || C.music;
+
+const defaultMusicTracks = [
+  { id: "track-a", name: "曲A", pct: 75 },
+  { id: "track-b", name: "曲B", pct: 50 },
+  { id: "track-c", name: "曲C", pct: 50 },
+  { id: "track-d", name: "曲D", pct: 25 }
+];
+
+const monthPlans = [
+  {
+    "date": "2026-10",
+    "target": "新期間の開始・ワンフェス発表・学校の現在地確認",
+    "events": [
+      "10月以降の予定を本人と確認",
+      "以前の未完了課題は削除せず持ち越す"
+    ],
+    "musSteps": [
+      "mus-1",
+      "mus-2",
+      "mus-3",
+      "mus-4"
+    ],
+    "pySteps": [
+      "py-1",
+      "py-2",
+      "py-3",
+      "py-4",
+      "py-5",
+      "py-6"
+    ]
+  },
+  {
+    "date": "2026-11",
+    "target": "音声とMIDIの接続・中2定期テスト対策",
+    "events": [
+      "学校ワーク・チェック表の苦手を確認",
+      "機材導入は所有状況に合わせて調整"
+    ],
+    "musSteps": [
+      "mus-5"
+    ],
+    "pySteps": [
+      "py-7",
+      "py-8"
+    ]
+  },
+  {
+    "date": "2026-12",
+    "target": "中2の学び直し・制作の基礎を継続",
+    "events": [
+      "冬休みに必要な単元を選ぶ",
+      "作品に必要な音と数値の関係を試す"
+    ],
+    "musSteps": [
+      "mus-6"
+    ],
+    "pySteps": [
+      "py-9"
+    ]
+  },
+  {
+    "date": "2027-01",
+    "target": "新学期の学校学習・波形プロトタイプ改善",
+    "events": [
+      "学校の進度を確認",
+      "MIDI操作と画面表示を試す"
+    ],
+    "musSteps": [
+      "mus-6"
+    ],
+    "pySteps": [
+      "py-10"
+    ]
+  },
+  {
+    "date": "2027-02",
+    "target": "学年末テスト・苦手の再確認",
+    "events": [
+      "学校ワークと実問題を使う",
+      "次の学年へ残す苦手を確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-03",
+    "target": "中2の振り返り・中3への準備",
+    "events": [
+      "未完了課題を整理",
+      "学校・部活・制作に使える時間を再確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-04",
+    "target": "中3スタート・高校受験の基礎診断",
+    "events": [
+      "内申に関わる学校課題を確認",
+      "目標校の条件は該当年度の資料で更新"
+    ],
+    "musSteps": [
+      "mus-7"
+    ],
+    "pySteps": [
+      "py-11"
+    ]
+  },
+  {
+    "date": "2027-05",
+    "target": "学校の学びとゲーム操作演出の両立",
+    "events": [
+      "定期テスト・提出物を確認",
+      "足元コントローラーの動作を試す"
+    ],
+    "musSteps": [],
+    "pySteps": [
+      "py-12"
+    ]
+  },
+  {
+    "date": "2027-06",
+    "target": "中3の定期テスト・制作状況の確認",
+    "events": [
+      "学校ワークを優先",
+      "作品の実装範囲を実際の進捗で調整"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-07",
+    "target": "夏休み計画・英語資格の到達度を確認",
+    "events": [
+      "英検は現在の英語力に合わせて受験可否を判断",
+      "演奏・作品も記録する"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-08",
+    "target": "高校受験に必要な基礎の集中補強",
+    "events": [
+      "長期休みの学習合宿は本人の予定と結果に応じて調整"
+    ],
+    "musSteps": [
+      "mus-8"
+    ],
+    "pySteps": []
+  },
+  {
+    "date": "2027-09",
+    "target": "学校・模試・制作を見ながら計画を再調整",
+    "events": [
+      "模試を受けた場合は誤答の原因を記録",
+      "音楽の継続時間も確保"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-10",
+    "target": "定期テストと高校の情報収集",
+    "events": [
+      "学校の評定に関わる課題を優先",
+      "志望校の学校行事は公式日程を確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-11",
+    "target": "学校の学習・都立入試問題の演習",
+    "events": [
+      "提出物と定期テストを確認",
+      "既習範囲を中心に過去問を使う"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2027-12",
+    "target": "苦手の優先順位を再設定・冬休み演習",
+    "events": [
+      "入試までの残り時間から問題の種類と練習回数を見直す"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-01",
+    "target": "都立高校入試直前の確認",
+    "events": [
+      "該当年度の入試日程に合わせて調整",
+      "睡眠と休憩を確保"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-02",
+    "target": "高校受験・これまでの学びの確認",
+    "events": [
+      "都立入試の日程と結果は該当年度の公式発表に従う"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-03",
+    "target": "中学卒業・高校生活の準備",
+    "events": [
+      "進学先が確定したら通学・部活・学習時間を組み直す"
+    ],
+    "musSteps": [
+      "mus-9"
+    ],
+    "pySteps": [
+      "py-13"
+    ]
+  },
+  {
+    "date": "2028-04",
+    "target": "高校生活スタート・音楽制作環境の整理",
+    "events": [
+      "軽音活動と学校の学習を確認",
+      "JBG受講は費用・予定を相談"
+    ],
+    "musSteps": [
+      "mus-9"
+    ],
+    "pySteps": [
+      "py-14"
+    ]
+  },
+  {
+    "date": "2028-05",
+    "target": "高校の授業とバンド・開発の習慣づくり",
+    "events": [
+      "高校の教科書・ワークを登録",
+      "演奏と開発の実績を残す"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-06",
+    "target": "高校の定期テストと作品制作を両立",
+    "events": [
+      "学校のテスト範囲・提出物を先に確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-07",
+    "target": "高1前半の振り返り・夏の制作計画",
+    "events": [
+      "無理のない制作・学習時間を本人と相談"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-08",
+    "target": "夏休みの演奏・録音・プログラミング",
+    "events": [
+      "制作の集中期間と休息を両立",
+      "作品のデモを保存"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-09",
+    "target": "学校生活に合わせた制作習慣の再調整",
+    "events": [
+      "部活・ライブ日程に合わせて週間計画を更新"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-10",
+    "target": "楽曲とゲームの制作記録を蓄積",
+    "events": [
+      "録音・コード・機材設定を作品に関連付ける"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-11",
+    "target": "高1の定期テスト・英語基礎の継続",
+    "events": [
+      "学校の進度を優先",
+      "英会話は負担に合わせて調整"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2028-12",
+    "target": "冬の作品レビューと学校学習の確認",
+    "events": [
+      "年内に作った作品と学習履歴を振り返る"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-01",
+    "target": "高校の学習と制作の進捗点検",
+    "events": [
+      "必要な基礎学習を絞り直す"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-02",
+    "target": "高1学年末の確認・作品の整理",
+    "events": [
+      "学年末テスト・提出物を優先",
+      "公開できる作品を選ぶ"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-03",
+    "target": "高1の振り返り・Mountain of Soundの公開準備",
+    "events": [
+      "公開版の動作・権利・説明資料を確認"
+    ],
+    "musSteps": [
+      "mus-9"
+    ],
+    "pySteps": [
+      "py-15"
+    ]
+  },
+  {
+    "date": "2029-04",
+    "target": "高2スタート・国内外の進学条件を調べる",
+    "events": [
+      "洗足・Goldsmiths等のコースと出願経路を一次情報で確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-05",
+    "target": "作品の改善・高校の授業を継続",
+    "events": [
+      "学校課題と制作目標の時間配分を見直す"
+    ],
+    "musSteps": [
+      "mus-11"
+    ],
+    "pySteps": []
+  },
+  {
+    "date": "2029-06",
+    "target": "音楽制作と開発の技術的な課題を整理",
+    "events": [
+      "楽曲とプログラムの未解決事項を記録"
+    ],
+    "musSteps": [],
+    "pySteps": [
+      "py-16"
+    ]
+  },
+  {
+    "date": "2029-07",
+    "target": "進路相談・英語力の到達度を確認",
+    "events": [
+      "英検・IELTSの受験時期は志望先と本人の現状から判断"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-08",
+    "target": "夏の作品制作・進学先を比較する",
+    "events": [
+      "オープンキャンパス等は公式日程を確認",
+      "作品の改善に集中"
+    ],
+    "musSteps": [
+      "mus-12"
+    ],
+    "pySteps": [
+      "py-17"
+    ]
+  },
+  {
+    "date": "2029-09",
+    "target": "演奏・制作・学習の実績をまとめる",
+    "events": [
+      "学校の学習とポートフォリオ素材を整理"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-10",
+    "target": "高2の定期テスト・音楽作品のレビュー",
+    "events": [
+      "学校の評価に必要な課題を確認",
+      "作品の第三者評価も検討"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2029-11",
+    "target": "作品説明の練習・進学条件の再確認",
+    "events": [
+      "国内総合型と海外出願で必要な資料を比較"
+    ],
+    "musSteps": [
+      "mus-13"
+    ],
+    "pySteps": []
+  },
+  {
+    "date": "2029-12",
+    "target": "高2後半の学力・作品を振り返る",
+    "events": [
+      "冬の集中学習は必要な単元だけに絞る"
+    ],
+    "musSteps": [],
+    "pySteps": [
+      "py-18"
+    ]
+  },
+  {
+    "date": "2030-01",
+    "target": "高2の学習と進路資料の更新",
+    "events": [
+      "公式要項の公開状況を確認",
+      "高校の学年末課題を進める"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-02",
+    "target": "学年末テスト・次年度の制作計画",
+    "events": [
+      "評価結果で高3の学習と制作時間を見積もる"
+    ],
+    "musSteps": [
+      "mus-14"
+    ],
+    "pySteps": []
+  },
+  {
+    "date": "2030-03",
+    "target": "高2の振り返り・出願準備の棚卸し",
+    "events": [
+      "作品・英語力・学力・費用・入学資格の確認事項を整理"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-04",
+    "target": "高3スタート・出願方式別の準備",
+    "events": [
+      "国内の一般・総合型・推薦と海外出願を別々に管理"
+    ],
+    "musSteps": [
+      "mus-15"
+    ],
+    "pySteps": [
+      "py-19"
+    ]
+  },
+  {
+    "date": "2030-05",
+    "target": "志望コースの募集要項・作品要件を確認",
+    "events": [
+      "該当年度の公式要項に従って必要資料を更新"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-06",
+    "target": "学校の学習・作品とプレゼンの改善",
+    "events": [
+      "作品の第三者評価と実問題による学力確認を並行"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-07",
+    "target": "出願用作品の候補を絞る",
+    "events": [
+      "英語試験は出願期限と必要スコアから受験日を検討"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-08",
+    "target": "夏の制作・学科・面接の集中準備",
+    "events": [
+      "作品と学校の学習の配分を本人と調整"
+    ],
+    "musSteps": [],
+    "pySteps": [
+      "py-20"
+    ]
+  },
+  {
+    "date": "2030-09",
+    "target": "国内外の出願書類・日程を確認",
+    "events": [
+      "学校推薦の条件も在籍高校へ確認",
+      "未確定の日程は固定しない"
+    ],
+    "musSteps": [
+      "mus-16"
+    ],
+    "pySteps": []
+  },
+  {
+    "date": "2030-10",
+    "target": "作品・志望理由・選抜方式ごとの演習",
+    "events": [
+      "提出・面接日程は志望先の公式発表に合わせる"
+    ],
+    "musSteps": [],
+    "pySteps": [
+      "py-21"
+    ]
+  },
+  {
+    "date": "2030-11",
+    "target": "出願状況・学習進捗に応じて計画を更新",
+    "events": [
+      "選抜方式ごとに必要な学習と作品作業を再配分"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2030-12",
+    "target": "学力と作品の最終調整・次の選抜に備える",
+    "events": [
+      "未完了の必要要件を確認",
+      "休息時間も守る"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2031-01",
+    "target": "出願・選抜・学校生活の予定を再確認",
+    "events": [
+      "国内外の該当年度の選抜日程と必要書類を確認"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2031-02",
+    "target": "進学先の選抜状況に沿って準備",
+    "events": [
+      "結果が未確定の進路を合格済みと扱わない"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2031-03",
+    "target": "高校卒業・進学先と必要手続きの確認",
+    "events": [
+      "進学先が決まったら学習・音楽・開発の次の予定を立てる"
+    ],
+    "musSteps": [],
+    "pySteps": []
+  },
+  {
+    "date": "2031-04",
+    "target": "進学後の生活と制作環境へ移行",
+    "events": [
+      "進学先は本人の意思と実際の選抜結果に基づいて設定"
+    ],
+    "musSteps": [
+      "mus-17"
+    ],
+    "pySteps": [
+      "py-22"
+    ]
+  }
+];
+// 入試直前は過去問演習・採点・解き直しの時間を毎月確保。
+const RIFF_EXAM_PAPER_MONTHLY_PLAN = {
+  "2027-09": "東京都立高校の過去問：未履修範囲を確認し、教科別の初回演習と採点を開始",
+  "2027-10": "過去問の大問別練習：英語長文・数学図形など弱点分野の確認",
+  "2027-11": "過去問の通し演習：原則1教科50分で解き、採点と解き直しを別日に実施",
+  "2027-12": "過去問集中期：5教科の年度別演習、解説確認、弱点分野を反復",
+  "2028-01": "過去問仕上げ期：時間配分の再確認、繰り返し失点する大問を解き直す",
+  "2028-02": "直前期：新しい大量の課題を増やさず、過去問の失点記録と基礎を確認"
+};
+monthPlans.forEach(entry => {
+  if (RIFF_EXAM_PAPER_MONTHLY_PLAN[entry.date])
+    entry.events = [...entry.events, "📚 " + RIFF_EXAM_PAPER_MONTHLY_PLAN[entry.date]];
+});
+const monthPlanByDate = Object.fromEntries(monthPlans.map(entry => [entry.date, entry]));
+const yearGrade = { 2026: "中学2年生", 2027: "中2〜中3", 2028: "中3〜高1", 2029: "高1〜高2", 2030: "高2〜高3", 2031: "高3〜進学" };
+const calendarData = [2026,2027,2028,2029,2030,2031].map(year => ({
+  year: String(year) + "年", grade: yearGrade[year],
+  months: allGanttMonthLabels.filter(m => m.year === year).map(month => {
+    const note = monthPlanByDate[month.date];
+    const stage = Object.keys(stageDateRanges).find(key => stageDateRanges[key].start <= month.date && month.date <= stageDateRanges[key].end);
+    return { m: month.m + "月", date: month.date, stage, target: note.target, events: note.events,
+      musSteps: note.musSteps, pySteps: note.pySteps,
+      star: ["2026-10","2028-02","2028-04","2030-09","2031-04"].includes(month.date) };
+  })
+}));
+
+const ganttTasks = [
+  { nameLines: ["🏆 ワンダーメイクフェス", "現在地・発表と振り返り"], stage: "p1", start: "2026-10", end: "2026-10" },
+  { nameLines: ["💻 Mountain of Sound", "音声波形のプロトタイプ"], stage: "p1", start: "2026-10", end: "2027-03" },
+  { nameLines: ["🎛️ MIDI機材と制作", "Chocolate Plus連動"], stage: "p2", start: "2026-11", end: "2027-03" },
+  { nameLines: ["📚 中2学習・苦手補強", "学校ワークと基礎の確認"], stage: "p2", start: "2026-10", end: "2027-03" },
+  { nameLines: ["🎸 中3の音楽・開発", "作品・発表を継続"], stage: "p3", start: "2027-04", end: "2027-07" },
+  { nameLines: ["📝 都立高校受験", "学校・入試の準備"], stage: "p4", start: "2027-08", end: "2028-02" },
+  { nameLines: ["📖 都立高校の7年過去問", "教科別演習・採点・解き直し"], stage: "p4", start: "2027-09", end: "2028-02" },
+  { nameLines: ["🎓 高校入学準備", "音楽・開発の次の段階"], stage: "p5", start: "2028-03", end: "2028-04" },
+  { nameLines: ["🎸 高校の軽音・制作", "演奏と作品を育てる"], stage: "p5", start: "2028-04", end: "2031-03" },
+  { nameLines: ["🎹 JBG音楽院（候補）", "高校との両立・費用を確認"], stage: "p5", start: "2028-04", end: "2029-03" },
+  { nameLines: ["💻 作品の公開・発展", "Mountain of Sound"], stage: "p6", start: "2028-04", end: "2030-03" },
+  { nameLines: ["🌏 国内・海外進路調査", "洗足・Goldsmiths等"], stage: "p6", start: "2029-04", end: "2030-09" },
+  { nameLines: ["📂 作品・選抜準備", "出願・面接・英語要件"], stage: "p7", start: "2030-04", end: "2031-03" },
+  { nameLines: ["🎓 進学・次の制作", "進学先は未確定"], stage: "p8", start: "2031-04", end: "2031-04" }
+];
+
+// Reference dates are for the historical 2026-entry cycles; none is a confirmed 2028/2031 exam date.
+// 2027-entry official reference cycle (NOT the user's 2028 high-school / 2031 university admission cycle).
+// Dates in autumn 2026 belong to the 2027 academic-year entrance selection.
+const EXAM_REFERENCE_NOTES = [
+  { label: "都立高校・令和9年度（2027年入学者）選抜", status: "2027年度公式日程",
+    detail: "推薦に基づく選抜：2027年1月26日（火）・27日（水）／第一次募集の学力検査：2027年2月21日（日）。真が受験する2028年入学者選抜の確定日ではありません。",
+    url: "https://www.kyoiku.metro.tokyo.lg.jp/admission/high_school/exam/nyuusenn_9_20260528" },
+  { label: "洗足・2027年度の募集コース", status: "両コースを正式掲載",
+    detail: "音楽・音響デザインと音楽音響クリエイティブ表現（キーボード／Eギター／Eベース／二胡）の両コースを2027年度総合型選抜・一般選抜要項で確認。試験科目と提出形式はそれぞれのコース別要項で確認します。",
+    url: "https://www.senzoku.ac.jp/music/admission/pdf/nyuushi_yoko.pdf" },
+  { label: "洗足・2027年度 総合型選抜（旧AO）", status: "2027年度公式日程",
+    detail: "第1回：2026年9月19・20日／第2回：10月17・18日／第3回：11月21・22日／第4回：12月24日／第5回：2027年2月6・7日。第2回は音楽・音響デザインが17・18日またはいずれか1日、音楽音響クリエイティブ表現は18日のみ。その他の回も受験日の詳細は大学からの案内に従います。",
+    url: "https://www.senzoku.ac.jp/music/admission/advance" },
+  { label: "洗足・2027年度 一般選抜A日程", status: "2027年度公式日程",
+    detail: "2027年2月6日（土）・7日（日）。音楽・音響デザインと音楽音響クリエイティブ表現は、それぞれのコース別専門試験に従います。個人の試験日程は2027年1月29日以降の大学発表で確認します。",
+    url: "https://www.senzoku.ac.jp/music/admission/exam_a_schedule" },
+  { label: "洗足・2027年度 一般選抜B日程", status: "実施・募集コースは条件付き",
+    detail: "2027年3月4日（木）・5日（金）の予定。募集人員に達した場合は実施しない可能性があり、一部コース限定の場合もあります。音楽・音響デザインと音楽音響クリエイティブ表現の実施有無は大学の12月中の発表と、2027年2月26日以降の試験日程で確認します。",
+    url: "https://www.senzoku.ac.jp/music/admission/exam_b_schedule" },
+  { label: "洗足・2027年度 学校推薦型選抜（指定校）", status: "在籍高校への確認が必要",
+    detail: "2027年度の指定校推薦は詳細を各指定校へ通知。志望コースで利用可能か、推薦条件、選抜日程は高校側の案内で確認します。公開ページから一律の試験日を推測しません。",
+    url: "https://www.senzoku.ac.jp/music/admission/recommendation" },
+  { label: "Goldsmiths・2027年入学：Creative Computing", status: "UCASの公式出願期限",
+    detail: "2027年入学の一般的な学士課程のUCAS主要出願期限は2027年1月13日（水）18:00（英国時間）。BSc Creative Computingの募集条件は大学のコース案内も確認します。これは入学試験日ではなく、面接等の個別日程は別途通知・確認となります。",
+    url: "https://www.ucas.com/applying/applying-to-university/dates-and-deadlines-for-uni-applications" },
+  { label: "Goldsmiths・2027年入学：Music Computing系", status: "現行コース名・募集方式を確認",
+    detail: "旧称Music Computingとして検討している分野は、大学の現行学部案内にBMus/BSc Electronic Music, Computing & Technologyとして掲載。2027年入学の一般的なUCAS主要出願期限は2027年1月13日（水）18:00（英国時間）。個別試験・面接日の一律の公表値は確認できないため、正式な募集要項と招待案内で確認します。",
+    url: "https://www.gold.ac.uk/ug/computing/" }
+];
+// These marks are planning windows, NOT university-announced dates for the user's entry year.
+const EXAM_PLAN_MILESTONES = [
+  { date: "2028-02", label: "高校受験", full: "都立高校の受験予定月。実際の2028年度入学試験の正式日付は公式発表後に更新。", color: "#B91C1C" },
+  { date: "2030-09", label: "総合型", full: "国内大学の総合型選抜への準備期間を示す仮置き。該当年度の出願・試験日は未公表。", color: "#7C3AED" },
+  { date: "2030-11", label: "学校推薦", full: "学校推薦型選抜への準備期間を示す仮置き。指定校推薦の有無・試験日は在籍高校と大学に確認。", color: "#7C3AED" },
+  { date: "2031-01", label: "海外出願", full: "Goldsmithsへの出願・選考の確認時期を示す仮置き。試験日ではなく、該当年度の正式期限は未公表。", color: "#047857" },
+  { date: "2031-02", label: "一般A", full: "洗足の一般選抜Aなどへの準備期間を示す仮置き。該当年度の正式試験日は未公表。", color: "#7C3AED" },
+  { date: "2031-03", label: "一般B", full: "洗足の一般選抜Bなどへの準備期間を示す仮置き。該当年度の正式試験日は未公表。", color: "#7C3AED" }
+];
+
+const schoolCardsData = [
+  {
+    key: "junior_high",
+    title: "🏫 1. 中学の選択（現在地・育成とギター指導環境）",
+    color: C.music,
+    badge: "中学期基盤",
+    group: [
+      {
+        name: "LITALICOワンダー 立川教室",
+        badge: "プログラミング＆DTM",
+        location: "東京都立川市柴崎町（立川駅南口 徒歩4分）",
+        url: "https://wonder.litalico.jp/classroom/tachikawa/",
+        learn: [
+          "Pythonプログラミング・Pygameゲーム制作・物理演算のマンツーマン直接指導",
+          "GarageBandを用いた楽曲録音・オーディオ編集・ミックス手法の習得",
+          "メンター（きゃぷてんさん＆なみぴーさん）による個別伴走指導体制"
+        ],
+        advantages: "真くんの『Mountain of Sound』のゲーム物理演算やMIDI信号処理をマンツーマンで最速実装できる最高のサポーター環境。",
+        teachers: ["きゃぷてんさん（Python・ゲームロジック担当）", "なみぴーさん（DTM・作編曲・音楽理論担当）"],
+        alumni: "ワンダーメイクフェス最優秀賞受賞者、若手アプリ開発エンジニア多数。",
+        otherPoints: "中3受験期は月1〜2回にペース調整しつつ、高校合格後はGitHub公開に向けた本格ブラッシュアップを継続。"
+      },
+      {
+        name: "ギター講師候補 Final Pool 7名（選定中）",
+        badge: "プロギター指導",
+        location: "自宅レッスン / 出張レッスン / 立川・吉祥寺音楽スタジオ",
+        url: "https://docs.google.com/spreadsheets/d/1qFHt3AN7h_Fv9dQEqQSKZGbm_D_onou3M3VL402faTI/edit?gid=1289552235#gid=1289552235",
+        learn: [
+          "Les Paul ＋ RAT2実機 ＋ Amber i2の適正ゲインマッチング・二重歪み防止指導",
+          "MainStageを用いた足元MIDIペダル（Chocolate Plus）アサイン＆音色切り替え",
+          "高校軽音楽部・バンドアンサンブル実戦（Marshall / JC-120アンプ対策）"
+        ],
+        advantages: "スプレッドシート（v3_project_summary）に基づき、アナログエフェクターとMac内蔵DAW/MainStageのハイブリッド指導ができるプロを厳選。",
+        teachers: ["Final Pool 7名（スプレッドシートにて指導方針・機材知見・立地を比較選定中）"],
+        alumni: "現役サポートギタリスト、音大・軽音強豪校進学ギタリスト多数。",
+        otherPoints: "高校軽音部での即戦力ギタリストを目指し、月2回（隔週）の実技レッスンを想定。"
+      }
+    ]
+  },
+  {
+    key: "prog",
+    title: "🚀 2. 中高生が挑戦できる育成プログラム",
+    color: C.music,
+    badge: "最高峰",
+    group: [
+      {
+        name: "未踏ジュニア（Mitou Junior / IPA・経済産業省系）",
+        badge: "17歳以下対象・最高峰",
+        location: "オンライン ＆ 都内合宿・成果報告会",
+        url: "https://jr.mitou.org/",
+        learn: [
+          "独創的なアイディアのプログラミング・ハードウェア作品開発（約50万円の開発資金補助）",
+          "トップクリエイターメンターによる1対1の技術・デザイン直接指導",
+          "成果発表、著作権・知的所有権の自身保持、未踏スーパークリエイター認定"
+        ],
+        advantages: "『Mountain of Sound』のような「音楽×ハードウェア×ゲーム」の独自プロダクトは未踏ジュニアの採択基準に極めて合致。採択されれば大学総合型選抜（慶應SFC等）で最強の実績になる。",
+        teachers: ["安川 要平 氏（未踏ジュニア統括 / ソフトウェアエンジニア）", "関 治之 氏（Code for Japan代表 / オープンイノベーション）", "※Python、音響信号処理、ゲーム演出に強みを持つエンジニアメンター陣が揃っています。"],
+        alumni: "矢倉 大夢 氏（Alpaca創業者）、山内 奏人 氏（WED創業者）など、天才中高生エンジニア多数。",
+        otherPoints: "中3または高1での応募を推奨。倍率は高いが応募書類作成自体が強力な自己分析になる。"
+      },
+      {
+        name: "UTokyoGSC-Next（東京大学グローバルサイエンスキャンパス）",
+        badge: "東大主催・高校生向け",
+        location: "東京大学本郷・駒場キャンパス ＆ オンライン",
+        url: "https://gsc.adm.s.u-tokyo.ac.jp/",
+        learn: [
+          "先端科学・情報技術の研究体験・フィールドワーク",
+          "音響・AI・情報科学における大学研究室レベルの基礎研究手法"
+        ],
+        advantages: "先端音響科学やHCI（ヒューマンコンピュータインタラクション）の基礎研究を高校時代に東大研究室で体験できる。",
+        teachers: ["東京大学情報理工学系研究科・教養学部の先端情報・音響科学研究者陣"],
+        alumni: "全国の難関大学研究者・先端IT起業家多数。",
+        otherPoints: "高校1年時の春に応募・選考。"
+      }
+    ]
+  },
+  {
+    key: "high",
+    title: "🏫 3. 高校の選択肢",
+    color: "#E02424",
+    badge: "高校本番",
+    group: [
+      {
+        name: "都立武蔵丘高等学校（第一本命・鷺ノ宮）",
+        badge: "第一目標候補・軽音超強豪",
+        location: "東京都中野区上鷺宮（西武新宿線「鷺ノ宮駅」徒歩12分 / 東村山より乗り換えなし約40分）",
+        url: "https://www.metro.ed.jp/musashigaoka-h/",
+        learn: [
+          "全国トップレベルの軽音楽部活動（85年の歴史、ライブ演出、ステージパフォーマンス、アンサンブル）",
+          "ギタリストとしての実戦経験と魅せ方"
+        ],
+        advantages: "武蔵丘高軽音部でのバンド活動を通じ、ギタリストとしての圧倒的なライブ表現力とステージ度胸を獲得できる。",
+        teachers: ["軽音楽部顧問・指導陣（全国レベルのバンドパフォーマンス指導力）"],
+        alumni: "浜田 麻里 氏（ミュージシャン）、窪田 晴男 氏（ギタリスト/プロデューサー・パール兄弟）、クジラ夜の街（ロックバンド）",
+        otherPoints: "東京都の就学支援金制度により学費が実質無償化。浮いた資金をJBGや機材・英語教育へ集中投資可能。"
+      },
+      {
+        name: "都立鷺宮高等学校（中野区若宮）",
+        badge: "アクセス至便・部活活発",
+        location: "東京都中野区若宮（西武新宿線「都立家政駅」徒歩3分 / 鷺ノ宮駅徒歩10分 / 東村山より約35分）",
+        url: "https://www.metro.ed.jp/saginomiya-h/",
+        learn: [
+          "活発な部活動（軽音楽部・運動部）、自主自立を重んじる校風",
+          "標準的な共通問題対策、バランスの取れた普通科カリキュラム"
+        ],
+        advantages: "西武新宿線沿線で通学ストレスが極めて低く、都立家政駅から徒歩3分。部活動が非常に盛んで、高校生活と課外活動（DTM・JBG）を両立しやすい。",
+        teachers: ["普通科教員・部活動顧問陣"],
+        alumni: "多くの卒業生が中堅〜上位私立大学（MARCH・成成明学等）や芸術系大学へ進学。",
+        otherPoints: "武蔵丘高校と同エリアに位置し、倍率や内申点状況に応じた現実的な併願・志望校候補。"
+      },
+      {
+        name: "都立多摩科学技術高等学校（武蔵小金井）",
+        badge: "理数・先端技術特化",
+        location: "東京都小金井市本町（JR中央線「武蔵小金井駅」徒歩10分 / 東村山よりバス・電車約35分）",
+        url: "https://www.metro.ed.jp/tamakagakugijutsu-h/",
+        learn: [
+          "情報科学・電子工作・プログラミング、学校課題研究での先端技術探求"
+        ],
+        advantages: "Pythonプログラミングやハードウェア制御（エフェクター信号処理等）を学校の課題研究で追及可能。",
+        teachers: ["情報科学科・課題研究担当教員"],
+        alumni: "理系国公立・難関私立大学（情報・工学系）進学者多数。",
+        otherPoints: "理系国公立大学や慶應SFC・明治FMS等の指定校推薦・総合型選抜にも強い。"
+      },
+      {
+        name: "JBG音楽院（スタンダードコース・高校並行1年制）",
+        badge: "本格音楽理論・高校ダブルスクール",
+        location: "東京都渋谷区代々木 / オンライン受講対応",
+        url: "https://www.jbg-music.com/",
+        learn: [
+          "バークリー音楽大学メソッドによる本格的な作編曲理論・和声学（コードプログレッション）",
+          "Logic Proを用いたコマーシャルクオリティのDTMレコーディング・ミキシング技術",
+          "プロミュージシャン・プロデューサーによる楽曲添削"
+        ],
+        advantages: "高校合格祝いとして入学。武蔵丘高校に通いながら土日・夜間に通学し、1年間で音大作曲科レベルの理論を完全修得。",
+        teachers: ["バークリー音楽大学出身のトップ作編曲家・現役プロデューサー陣"],
+        alumni: "メジャーアーティストへ楽曲提供を行うプロ作家、劇伴作曲家を多数輩出。",
+        otherPoints: "高校1年時に受講することで、高2〜3での大学総合型選抜（30曲ポートフォリオ）制作がプロ水準に跳ね上がる。"
+      }
+    ]
+  },
+  {
+    key: "kosen",
+    title: "🏛 4. 高等専門学校（高専・5年制）の選択肢",
+    color: C.study,
+    badge: "国立・5年制",
+    group: [
+      {
+        name: "国立東京高等専門学校（東京高専 / 八王子）",
+        badge: "国立・5年制高等教育",
+        location: "東京都八王子市椚田町（京王線「狭間駅」徒歩5分 / 東村山より電車約50分）",
+        url: "https://www.tokyo-ct.ac.jp/",
+        learn: [
+          "15歳からのプログラミング（Python, C/C++）",
+          "デジタル信号処理（DSP）、電気・電子回路設計、ハードウェア制御"
+        ],
+        advantages: "15歳からプログラミング、デジタル信号処理（DSP）、電気回路設計を大学レベルで学べる。",
+        teachers: ["情報工学科・電気工学科の教授陣（信号処理・回路・組み込みシステム専門）"],
+        alumni: "高専発ベンチャー起業家、筑波大学・東京工業大学等への国公立編入研究者多数。",
+        otherPoints: "5年卒業後は筑波大学・東京工業大学等の国公立大学3年次編入や海外大学編入ルートが極めて強固。"
+      }
+    ]
+  },
+  {
+    key: "domestic",
+    title: "🎓 5. 国内大学の選択候補（総合型選抜/AO活用）",
+    color: C.study,
+    badge: "国内大学",
+    group: [
+      {
+        name: "慶應義塾大学 総合政策学部 / 環境情報学部（SFC）",
+        badge: "IT×メディア系最高峰",
+        location: "神奈川県藤沢市（相鉄・東急直通線/小田急線「湘南台駅」よりバス15分）",
+        url: "https://www.sfc.keio.ac.jp/",
+        learn: [
+          "メディアアート、音響神経科学・身体科学、AI×音楽、Python/C++インタラクティブシステム開発"
+        ],
+        advantages: "総合型選抜（AO入試）で自作プロダクトと30曲作品集を100%評価。真くんの「音楽×Python」を最も歓迎。",
+        teachers: [
+          "藤井 進也 准教授（音楽神経科学・x-Musicラボ室長 / ドラマー研究者）",
+          "脇田 玲 教授（データドリブンアート・メディアアート）"
+        ],
+        alumni: "光藤 祐基 氏（ソニーAIアメリカ リードリサーチサイエンティスト / 音源分離技術権威）、野村 達雄 氏（『Pokémon GO』シニアプロデューサー）",
+        otherPoints: "研究資金・設備が日本最高峰。在学中の海外留学支援も極めて充実。"
+      },
+      {
+        name: "洗足学園音楽大学（溝の口）",
+        badge: "音大系本命候補",
+        location: "神奈川県川崎市高津区（東急田園都市線「溝の口駅」徒歩8分 / 東村山より約60分）",
+        url: "https://www.senzoku.ac.jp/",
+        learn: [
+          "コース選択：音楽音響クリエイティブ表現コース または 音楽・音響デザインコース",
+          "主科エレキギター実技レッスン（演奏表現・技術）",
+          "DAW（DTM）作編曲、音響工学、レコーディング技術、シンセサイザー理論",
+          "インタラクティブ音響演出、Max/MSP音響プログラミング（先端音楽表現研究所）"
+        ],
+        advantages: "E.ギター主科レッスンで演奏力を高めつつ、演出テクノロジーや録音技術を学べる国内唯一無二の環境。",
+        teachers: [
+          "森 威功 教授（先端音楽表現研究所長 / 電子音楽・音響プログラミング）",
+          "前田 康徳 教授（音楽環境創造 / メディアパフォーマンス）"
+        ],
+        alumni: "Saori 氏（SEKAI NO OWARI）、大間々 昂 氏（劇伴作曲家『機動戦士ガンダム 水星の魔女』）、山田 豊 氏（劇伴作曲家『東京喰種』）",
+        otherPoints: "選考のポイント（総合型選抜/AO入試）：伝統的な演奏試験だけでなく、自作DTM楽曲や自作ゲーム（Mountain of Sound）を持参し実技プレゼンするスタイルが正当評価されます。"
+      },
+      {
+        name: "東京藝術大学（音楽学部 音楽環境創造科）",
+        badge: "国立芸大・先端音響アート",
+        location: "東京都足立区千住（北千住駅 徒歩5分）",
+        url: "https://mce.geidai.ac.jp/",
+        learn: [
+          "音響空間デザイン、先端メディア表現、現代音楽創作、舞台音響・音響心理学",
+          "音楽・アート・テクノロジー・社会を結ぶ総合的な表現・研究探求"
+        ],
+        advantages: "日本の芸術系大学の最高峰。商業音楽の枠を超えたサウンドインスタレーションやインタラクティブアートの研究環境。",
+        teachers: ["音楽環境創造科の教授陣（現代音響工学・サウンドアート・先端芸術表現の世界的権威）"],
+        alumni: "世界で活躍するサウンドアーティスト、映画音響監督、先端メディアクリエイター多数。",
+        otherPoints: "小論文・作品面接・自己表現プレゼンが重視され、独創的な自作ソフトウェアと楽曲集が最大の強みになる。"
+      },
+      {
+        name: "国立音楽大学（玉川上水）",
+        badge: "通学至便・音楽デザイン専修",
+        location: "東京都立川市柏町（西武立川線・多摩モノレール「玉川上水駅」徒歩2分 / 東村山より約25分）",
+        url: "https://www.kunitachi.ac.jp/",
+        learn: [
+          "演奏・創作学科 音楽デザイン専修",
+          "コンピュータ音楽、クリエイティブコーディング、サウンドデザイン",
+          "録音技術、オーディオ工学、現代作曲法"
+        ],
+        advantages: "東村山から近く通学ストレスがゼロ。上品でアカデミックな音楽理論と音響技術を学べる。",
+        teachers: ["濵野 峻行 准教授（クリエイティブコーディング・音響プログラミング）"],
+        alumni: "小島 裕規 / Yaffle 氏（音楽プロデューサー / 藤井風等をプロデュース）、日向 萌 氏（劇伴作曲家）",
+        otherPoints: "アクセス抜群で集中して高度なサウンドデザインを追及できる。"
+      },
+      {
+        name: "明治大学 総合数理学部 先端メディアサイエンス学科（FMS）",
+        badge: "HCI・コンテンツIT名門",
+        location: "東京都中野区中野（JR中央線・東西線「中野駅」徒歩8分 / 東村山より西武線経由約35分）",
+        url: "https://www.meiji.ac.jp/ims/fms/",
+        learn: [
+          "ヒューマンコンピュータインタラクション（HCI）、コンテンツ・エンタテインメントプログラミング、音・身体・表現の拡張技術（Python/C++）"
+        ],
+        advantages: "自分でコードを書き、新しい音体験やゲーム体験を作る真くんのスタイルに完全にマッチ。",
+        teachers: [
+          "宮下 芳明 教授（人間表現能力のコンピュータ拡張・HCI権威）",
+          "渡邊 恵太 教授（インタラクションデザイン）"
+        ],
+        alumni: "CEDEC賞や学会賞を受賞したエンタメITエンジニア・研究者多数。",
+        otherPoints: "中野キャンパスで通学利便性が高く、先端エンタメIT業界への実績抜群。"
+      },
+      {
+        name: "東京工科大学 メディア学部（八王子）",
+        badge: "ゲームサウンド・メディア",
+        location: "東京都八王子市片倉町（JR横浜線「八王子みなみ野駅」徒歩13分）",
+        url: "https://www.teu.ac.jp/gakubu/media/",
+        learn: [
+          "音響エンジニアリング、ゲームサウンド制作（Unity/Unreal Engine）、サウンドプログラミング"
+        ],
+        advantages: "プロ仕様の録音スタジオやゲーム開発・サウンド演出設備が国内随一。",
+        teachers: ["吉岡 英樹 講師（ゲームサウンド制作・音響プログラミング）"],
+        alumni: "ゲーム会社サウンドクリエイター・エンジニア多数。",
+        otherPoints: "実務的なゲームサウンドプログラミングを徹底的に実践可能。"
+      }
+    ]
+  },
+  {
+    key: "overseas",
+    title: "🌏 6. 海外大学・大学院候補（将来の第一目標）",
+    color: "#6D28D9",
+    badge: "将来・海外",
+    group: [
+      {
+        name: "Goldsmiths, University of London",
+        badge: "世界最高峰Music Computing",
+        location: "英国ロンドン（London SE14 6NW）",
+        url: "https://www.gold.ac.uk/",
+        learn: [
+          "Creative Computing / Music Computing（Python/C++による音響システム開発、ライブコーディング、インタラクティブアート）"
+        ],
+        advantages: "武蔵丘高校卒業後の学士課程への進学を希望。国内大学を経た大学院進学も別経路として残し、必要な入学資格・英語・費用を公式に確認する。",
+        teachers: ["Prof. Mick Grierson（Creative Computing学科長）", "Dr. Rebecca Fiebrink（『Wekinator』開発者）"],
+        alumni: "Damon Albarn 氏（Gorillaz / Blur 創始者）、James Blake 氏（グラミー賞音楽家）",
+        otherPoints: "英国政府Chevening奨学金等の対象校。音楽×ITの領域で世界最高のブランド力。"
+      },
+      {
+        name: "Berklee College of Music（米国ボストン・バークリー音楽大学）",
+        badge: "音楽×テクノロジー最高峰",
+        location: "米国マサチューセッツ州ボストン",
+        url: "https://www.berklee.edu/",
+        learn: [
+          "Electronic Production and Design (EPD)、ゲームスコアリング、シンセサイザー開発、Max/MSP、ギター実技"
+        ],
+        advantages: "JBG音楽院の親体メソッドであり、世界中のトップミュージシャン・エンジニアが集まる環境。",
+        teachers: ["Dr. Richard Boulanger（EPD教授 / Max/MSP・CSound世界的権威）"],
+        alumni: "John Mayer 氏（ギタリスト）、Charlie Puth 氏、上原 ひろみ 氏",
+        otherPoints: "世界最高レベルのポピュラー音楽＆テクノロジーのネットワーク。"
+      }
+    ]
+  }
+];
+
+const recommendationRankingData = {
+  junior: [
+    { rank: "第1位", name: "未踏ジュニア（IPA / 経済産業省系）", merit: "50万円の資金補助＋プロ講師指名。", demerit: "採択率数%の超難関。" },
+    { rank: "第2位", name: "都立武蔵丘高等学校（軽音楽部）", merit: "全国トップ級のステージ経験＋学費無償化。", demerit: "人気校で高倍率（要685点以上）。" },
+    { rank: "第3位", name: "LITALICOワンダー立川（キャプテンさん＆なみぴーさんタッグ）", merit: "Python×DTMの実装をマンツーマンで最速化。", demerit: "月謝が必要。" }
+  ],
+  higher: [
+    { rank: "第1位", name: "慶應義塾大学 SFC / 明治大学 FMS", merit: "IT×音楽表現の最高峰、AO入試で自作アプリ完全評価。" },
+    { rank: "第2位", name: "洗足学園音楽大学", merit: "E.ギター実技＋演出テクノロジーが両立。" },
+    { rank: "第3位", name: "Goldsmiths（学士課程・将来の大学院も検討）", merit: "音楽×プログラミングで世界最強のブランド力。" },
+    { rank: "4位", name: "国立音楽大学（音楽デザイン専修）", merit: "通学ストレスゼロ、アカデミックな音響デザイン。" },
+    { rank: "5位", name: "東京工科大学 メディア学部", merit: "プロ仕様のサウンドスタジオ・ゲーム開発環境。" }
+  ]
+};
+
+const FEEDBACK_QUESTIONS = [
+  { id: "q1_general", text: "1. 全体のデザインや操作感はどう？", placeholder: "画面の見やすさ、色合い、文字サイズ、タブの使いやすさなど" },
+  { id: "q2_schedule", text: "2. 今日のタスク・時間割機能は役立っている？", placeholder: "予定の確認しやすさ、時間の過不足、ルーティンの使いやすさなど" },
+  { id: "q3_music", text: "3. 音楽（ギター・DTM）の進捗管理はどう？", placeholder: "練習のモチベーション、曲ごとの進み具合、ステップの分かりやすさなど" },
+  { id: "q4_python", text: "4. 開発（Mountain of Sound）の進捗管理はどう？", placeholder: "ステップの具体性、次やることが迷わず分かるか、メンター相談のしやすさなど" },
+  { id: "q5_study", text: "5. 学習（都立武蔵丘高・各教科）の進捗管理はどう？", placeholder: "Sランク単元のやりやすさ、毎日の負担感、大問1即効枠の活用状況など" },
+  { id: "q6_requests", text: "6. 次に追加・改善してほしい機能はある？", placeholder: "もっとこうしてほしい！こんな機能がほしい！という要望を何でも自由に" }
+];
+
+const createEmptyFeedbackForm = () => ({
+  ratings: {
+    q1_general: 5,
+    q2_schedule: 5,
+    q3_music: 5,
+    q4_python: 5,
+    q5_study: 5
+  },
+  comments: {
+    q1_general: "",
+    q2_schedule: "",
+    q3_music: "",
+    q4_python: "",
+    q5_study: "",
+    q6_requests: ""
+  },
+  editingFeedbackId: null
+});
+
+function App() {
+  const [tab, setTab] = useState("today");
+  const [openHelpMenu, setOpenHelpMenu] = useState(false);
+  const [helpPage, setHelpPage] = useState(null); // "intro" or "manual"
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const isWeekend = currentTime.getDay() === 0 || currentTime.getDay() === 6;
+  const [schedType, setSchedType] = useState(isWeekend ? "weekend" : "club");
+
+  const [schedules, setSchedules] = useState(() => {
+    try {
+      const saved = window.localStorage ? localStorage.getItem("shin_schedules_v9") : null;
+      return saved ? JSON.parse(saved) : defaultSchedulesData;
+    } catch(e) {
+      return defaultSchedulesData;
+    }
+  });
+
+  const saveSchedules = (newScheds) => {
+    setSchedules(newScheds);
+    try {
+      if (window.localStorage) {
+        localStorage.setItem("shin_schedules_v9", JSON.stringify(newScheds));
+      }
+    } catch(e) {}
+  };
+
+  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
+  const [backupScheduleItems, setBackupScheduleItems] = useState(null);
+
+  const startEditSchedule = () => {
+    setBackupScheduleItems(JSON.parse(JSON.stringify(schedules[schedType].items)));
+    setIsEditingSchedule(true);
+  };
+
+  const cancelEditSchedule = () => {
+    if (backupScheduleItems) {
+      const updated = { ...schedules, [schedType]: { ...schedules[schedType], items: backupScheduleItems } };
+      saveSchedules(updated);
+    }
+    setIsEditingSchedule(false);
+    setBackupScheduleItems(null);
+  };
+
+  const finishEditSchedule = () => {
+    setIsEditingSchedule(false);
+    setBackupScheduleItems(null);
+  };
+
+  const moveScheduleItem = (type, index, direction) => {
+    const list = [...schedules[type].items];
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+    const temp = list[index];
+    list[index] = list[targetIdx];
+    list[targetIdx] = temp;
+    saveSchedules({ ...schedules, [type]: { ...schedules[type], items: list } });
+  };
+
+  const updateScheduleItemField = (type, index, field, value) => {
+    const list = [...schedules[type].items];
+    list[index] = { ...list[index], [field]: value,
+      ...(field === "category" && getScheduleCategory(list[index]) !== value ? { linkedStepId: "" } : {}) };
+    saveSchedules({ ...schedules, [type]: { ...schedules[type], items: list } });
+  };
+
+  const updateScheduleItemTimeRange = (type, index, isStart, newVal) => {
+    const item = schedules[type].items[index];
+    let [s, e] = item.t.includes("〜") ? item.t.split("〜") : [item.t, ""];
+    if (isStart) s = newVal; else e = newVal;
+    const newRange = e ? `${s}〜${e}` : s;
+    updateScheduleItemField(type, index, "t", newRange);
+  };
+
+
+  // 時刻の区切り記号は入力させない。編集するのは数字（時・分）のみ。
+  const renderTimeRangeEditor = (range, onChange, label = "時間帯") => {
+    const [from = "00:00", to = "00:00"] = String(range || "").split("〜");
+    const parts = [from, to].map(value => {
+      const [hh = "00", mm = "00"] = String(value).split(":");
+      return [hh, mm];
+    });
+    const updatePart = (which, part, raw) => {
+      const digits = String(raw).replace(/\D/g, "").slice(-2);
+      const max = part === 0 ? 24 : 59;
+      const value = String(Math.min(max, Number(digits || 0))).padStart(2, "0");
+      const next = parts.map(row => [...row]);
+      next[which][part] = value;
+      if (next[which][0] === "24") next[which][1] = "00";
+      onChange(next.map(row => row.join(":")).join("〜"));
+    };
+    return h('div', { className: "riff-time-range",
+      style: { display: "flex", alignItems: "center", gap: "5px",
+        flexWrap: "wrap", minWidth: 0, maxWidth: "100%" } },
+      parts.map((time, which) => h(React.Fragment, { key: which },
+        which === 1 && h('span', { style: { fontWeight: 800, color: C.muted } }, "〜"),
+        h('div', { style: { display: "inline-flex", gap: "2px", alignItems: "center" } },
+          [0,1].map(part => h(React.Fragment, { key: part },
+            part === 1 && h('span', { style: { fontWeight: 800 } }, ":"),
+            h('input', { type: "text", inputMode: "numeric", pattern: "[0-9]*",
+              maxLength: 2, className: "time-input-inline",
+              "aria-label": label + (which ? "終了" : "開始") + (part ? "分" : "時"),
+              value: time[part], onFocus: e => e.currentTarget.select(),
+              onChange: e => updatePart(which, part, e.target.value),
+              style: { width: "36px", minWidth: 0, textAlign: "center",
+                fontSize: "16px", padding: "6px 2px" } })
+          ))
+        ),
+        h('select', { className: "time-input-inline", value: "",
+          "aria-label": label + (which ? "終了" : "開始") + "時刻を選択",
+          onChange: e => { if (e.target.value) {
+            const next = parts.map(row => row.join(":"));
+            next[which] = e.target.value;
+            onChange(next.join("〜"));
+          }},
+          style: { width: "32px", minWidth: 0, padding: "5px 0",
+            fontSize: "13px", textAlign: "center" } },
+          h('option', { value: "" }, "▼"),
+          TIME_OPTIONS.map(option => h('option', { key: option, value: option }, option)))
+      )));
+  };
+
+  const addScheduleItem = (type) => {
+    const list = [...schedules[type].items];
+    const newItem = { id: `sch-custom-${Date.now()}`, t: "00:00〜00:00", a: "新規やること", category: "other", hi: false };
+    saveSchedules({ ...schedules, [type]: { ...schedules[type], items: [newItem, ...list] } });
+  };
+
+  const duplicateScheduleTemplate = (type) => {
+    const cur = schedules[type];
+    const newKey = `custom_${Date.now()}`;
+    const newName = `${cur.name} コピー`;
+    const newScheds = {
+      ...schedules,
+      [newKey]: {
+        ...cur,
+        name: newName,
+        items: JSON.parse(JSON.stringify(cur.items))
+      }
+    };
+    saveSchedules(newScheds);
+    setSchedType(newKey);
+  };
+
+  const deleteScheduleTemplate = (type) => {
+    const keys = Object.keys(schedules);
+    if (keys.length <= 1) return;
+    const nextKey = keys.find(k => k !== type) || keys[0];
+    const newScheds = { ...schedules };
+    delete newScheds[type];
+    saveSchedules(newScheds);
+    setSchedType(nextKey);
+  };
+
+  // 計測・教材難易度は実際に本人が記録したセッションだけを保存する。
+  const [taskSessions, setTaskSessions] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_task_sessions_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const [activeTaskTimers, setActiveTaskTimers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_active_timers_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const [taskSessionDrafts, setTaskSessionDrafts] = useState({});
+  const [taskTextbookPages, setTaskTextbookPages] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_task_textbook_pages_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const updateTaskTextbookPage = (id, value) => setTaskTextbookPages(prev => {
+    const next = { ...prev, [id]: value };
+    try { localStorage.setItem("riff_task_textbook_pages_v1", JSON.stringify(next)); }
+    catch (e) {}
+    return next;
+  });
+  // v2.3.4: これまで本人が設定した時間を全件いったん解除。
+  // 手動設定があった作業だけ初期目安を5分（仮）にする。
+  // 他の作業の元々の仮見積もりと、実際に計った履歴は消さない。
+  const [resetToFiveTaskIds] = useState(() => {
+    try {
+      const key = "riff_manual_time_reset_v234_done";
+      const existing = JSON.parse(localStorage.getItem("riff_task_initial_five_v1") || "[]");
+      if (localStorage.getItem(key) === "1") {
+        return Object.fromEntries((Array.isArray(existing) ? existing : [])
+          .map(id => [id, true]));
+      }
+      const prior = JSON.parse(localStorage.getItem("riff_task_estimate_overrides_v1") || "{}");
+      const saved = Array.isArray(existing) ? existing : [];
+      const previouslySet = prior && typeof prior === "object" && !Array.isArray(prior)
+        ? Object.keys(prior).filter(id => Number(prior[id]) > 0) : [];
+      const ids = Array.from(new Set([...saved, ...previouslySet]));
+      localStorage.setItem("riff_task_initial_five_v1", JSON.stringify(ids));
+      localStorage.setItem("riff_task_estimate_overrides_v1", "{}");
+      localStorage.setItem(key, "1");
+      return Object.fromEntries(ids.map(id => [id, true]));
+    } catch (e) { return {}; }
+  });
+  const [taskEstimateOverrides, setTaskEstimateOverrides] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_task_estimate_overrides_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const initialTaskMinutes = task =>
+    resetToFiveTaskIds[task.id] ? 5 : taskMinutes(task);
+  const setTaskEstimateOverride = (id, value) => setTaskEstimateOverrides(prev => {
+    const next = { ...prev };
+    if (value === "" || value == null) delete next[id];
+    else next[id] = Math.min(1440, Math.max(1, Number(value) || 1));
+    try { localStorage.setItem("riff_task_estimate_overrides_v1", JSON.stringify(next)); }
+    catch (e) {}
+    return next;
+  });
+  const [openTaskMeasurements, setOpenTaskMeasurements] = useState({});
+  const [openTaskDescriptions, setOpenTaskDescriptions] = useState({});
+  const setTaskSessionDraft = (id, field, value) => {
+    setTaskSessionDrafts(prev => ({ ...prev,
+      [id]: { ...(prev[id] || {}), [field]: value } }));
+  };
+  const startTaskTimer = id => {
+    if (activeTaskTimers[id] || Object.keys(activeTaskTimers).length > 0) return;
+    setActiveTaskTimers(prev => {
+      const next = { ...prev, [id]: Date.now() };
+      try { localStorage.setItem("riff_active_timers_v1", JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+  };
+  const finishTaskTimer = id => {
+    const started = Number(activeTaskTimers[id]);
+    if (!started || started > Date.now()) return;
+    const draft = taskSessionDrafts[id] || {};
+    const seconds = Math.round((Date.now() - started) / 1000);
+    if (seconds <= 0) return;
+    if (seconds > 14400) {
+      setTaskSessionDraft(id, "error",
+        "計測時間が4時間を超えています。記録の正確性を確認し、誤って継続した場合は「計測を破棄」してください。");
+      return;
+    }
+    const attempted = draft.attempted === "" || draft.attempted == null
+      ? null : Number(draft.attempted);
+    const correct = draft.correct === "" || draft.correct == null
+      ? null : Number(draft.correct);
+    if ((attempted != null || correct != null) &&
+        (!Number.isInteger(attempted) || attempted <= 0 ||
+          !Number.isInteger(correct) || correct < 0 || correct > attempted)) {
+      setTaskSessionDraft(id, "error", "正答数と問題数を確認してください（0〜問題数）。");
+      return;
+    }
+    const record = { id: "session-" + Date.now(), at: new Date().toISOString(),
+      seconds, difficulty: draft.difficulty ? Number(draft.difficulty) : null,
+      attempted, correct, material: String(draft.material || "").trim(),
+      notes: String(draft.notes || "").trim() };
+    setTaskSessions(prev => {
+      const next = { ...prev, [id]: [...(prev[id] || []), record] };
+      try { localStorage.setItem("riff_task_sessions_v1", JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+    setActiveTaskTimers(prev => {
+      const next = { ...prev };
+      delete next[id];
+      try { localStorage.setItem("riff_active_timers_v1", JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
+  };
+  const discardTaskTimer = id => setActiveTaskTimers(prev => {
+    const next = { ...prev };
+    delete next[id];
+    try { localStorage.setItem("riff_active_timers_v1", JSON.stringify(next)); }
+    catch (e) {}
+    return next;
+  });
+  const getMeasuredMinutes = task => {
+    const records = (taskSessions[task.id] || [])
+      .filter(record => Number(record.seconds) > 0);
+    if (records.length < 3) return null;
+    const durations = records.map(record => record.seconds / 60).sort((a,b) => a-b);
+    const mid = Math.floor(durations.length / 2);
+    const median = durations.length % 2 ? durations[mid] :
+      (durations[mid - 1] + durations[mid]) / 2;
+    return Math.max(1, Math.ceil(median));
+  };
+  const effectiveTaskMinutes = task =>
+    Number(taskEstimateOverrides[task.id]) > 0 ? Number(taskEstimateOverrides[task.id]) :
+    (getMeasuredMinutes(task) || initialTaskMinutes(task));
+  const effectiveStepMinutes = step =>
+    (step.subtasks || []).reduce((sum, task) => sum + effectiveTaskMinutes(task), 0);
+  const stepTimeLabel = step => "合計目安" + formatTaskMinutes(effectiveStepMinutes(step)) +
+    ((step.subtasks || []).some(task => Number(taskEstimateOverrides[task.id]) > 0 ||
+      getMeasuredMinutes(task) != null) ? "（記録を反映）" : "（仮）");
+  const taskEstimateLabel = task => Number(taskEstimateOverrides[task.id]) > 0
+    ? "本人設定" + formatTaskMinutes(effectiveTaskMinutes(task))
+    : (getMeasuredMinutes(task) == null
+      ? "目安" + formatTaskMinutes(initialTaskMinutes(task)) + "（仮）"
+      : "実際に計った目安" + formatTaskMinutes(getMeasuredMinutes(task)) + "（3回以上）");
+  const renderTaskMeasurement = (task, part = "both") => {
+    const opened = !!openTaskMeasurements[task.id];
+    const records = taskSessions[task.id] || [];
+    const draft = taskSessionDrafts[task.id] || {};
+    const materialName = String(draft.material || records[records.length - 1]?.material || "").trim();
+    const sameMaterialScores = materialName ? records.filter(record =>
+      record.material === materialName && Number(record.attempted) > 0 &&
+      record.correct != null) : [];
+    const materialAttempted = sameMaterialScores.reduce((n,record) => n + record.attempted,0);
+    const materialCorrect = sameMaterialScores.reduce((n,record) => n + record.correct,0);
+    const sameMaterialDifficulty = sameMaterialScores.filter(record =>
+      Number.isFinite(record.difficulty));
+    const running = Number(activeTaskTimers[task.id]) > 0;
+    const elapsed = running ?
+      Math.max(0, Math.floor((currentTime.getTime() - activeTaskTimers[task.id]) / 1000)) : 0;
+    return h(React.Fragment, null,
+      part !== "panel" && h('button', { type: "button", className: "riff-clock-button",
+        "aria-expanded": opened,
+        "aria-label": "作業時間を記録（" + taskShortTitle(task) + "）",
+        title: "時間を計ると、次の予定に必要な時間を考えやすくなります。",
+        style: {},
+        onClick: () => setOpenTaskMeasurements(prev =>
+          ({ ...prev, [task.id]: !prev[task.id] })) },
+        "⏱"),
+      part !== "button" && opened && h('div', { className: "riff-task-panel", style: { flex: "1 1 100%", width: "100%",
+        marginTop: "6px", padding: "9px", borderRadius: "7px",
+        background: "#FFFFFF", border: "1px solid " + C.border, color: C.text,
+        display: "flex", flexDirection: "column", gap: "7px" } },
+        h('div', { style: { color: C.studyText, fontSize: "14px",
+          fontWeight: 800 } },
+          "この作業に何分かかったか記録して、次の予定の目安に使おう。"),
+        h('div', { style: { color: C.muted } },
+          "最初の目安 " + formatTaskMinutes(initialTaskMinutes(task)) +
+          "｜計った時間からの目安 "  + (getMeasuredMinutes(task) == null ?
+            "3回の記録後（現在" + records.length + "回）" :
+            formatTaskMinutes(getMeasuredMinutes(task)) + "（中央値）")),
+        h('div', { style: { display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" } },
+          h('button', { type: "button", className: "btn-action",
+            disabled: running || Object.keys(activeTaskTimers).length > 0,
+            style: { color: "#FFFFFF", background: C.code },
+            onClick: () => startTaskTimer(task.id) }, "▶ 時間をはかる"),
+          h('button', { type: "button", className: "btn-action",
+            disabled: !running, style: { color: "#FFFFFF", background: C.study },
+            onClick: () => finishTaskTimer(task.id) }, "■ 止めて記録"),
+          running && h('button', { type: "button", className: "btn-action",
+            style: { color: "#991B1B", background: "#FEE2E2" },
+            onClick: () => discardTaskTimer(task.id) }, "計測を破棄"),
+          h('span', { style: { fontWeight: 900 } },
+            running ? "計測中 " + Math.floor(elapsed / 60) + "分" +
+              (elapsed % 60) + "秒" : "未計測")
+        ),
+        h('details', { className: "riff-help-section riff-record-extra",
+          style: { background: "#FFFFFF" } },
+          h('summary', null, "＋ 追加の記録（任意）"),
+        h('label', null, "次にやるときの目安を変える（分）",
+          h('input', { type: "number", min: 1, max: 1440,
+            className: "time-input-inline", style: { marginLeft: "7px", width: "85px" },
+            value: taskEstimateOverrides[task.id] || "",
+            placeholder: "自動",
+            onChange: e => setTaskEstimateOverride(task.id, e.target.value) }),
+          h('span', { style: { color: C.muted, marginLeft: "6px" } },
+            "空欄のままなら、計った時間から自動で目安を決めます。")
+        ),
+        h('label', null, "やってみて、どうだった？",
+          h('select', { className: "time-input-inline", value: draft.difficulty || "",
+            style: { marginLeft: "7px" },
+            onChange: e => setTaskSessionDraft(task.id, "difficulty", e.target.value) },
+            h('option', { value: "" }, "未評価"),
+            [1,2,3,4,5].map(n => h('option', { key: n, value: n },
+              n + "（" + (["","簡単","やや簡単","普通","難しい","非常に難しい"][n]) + "）")))
+        ),
+        task.genre === "study" || task.id.startsWith("m-") ||
+          task.id.startsWith("e-") || task.id.startsWith("s-") ||
+          task.id.startsWith("so-") || task.id.startsWith("j-") ?
+          h('div', { style: { display: "flex", gap: "8px", flexWrap: "wrap" } },
+            h('label', null, "問題数",
+              h('input', { type: "number", min: 1, className: "time-input-inline",
+                style: { width: "68px", marginLeft: "5px" },
+                value: draft.attempted || "",
+                onChange: e => setTaskSessionDraft(task.id, "attempted", e.target.value) })),
+            h('label', null, "正答数",
+              h('input', { type: "number", min: 0, className: "time-input-inline",
+                style: { width: "68px", marginLeft: "5px" },
+                value: draft.correct === 0 ? "0" : (draft.correct || ""),
+                onChange: e => setTaskSessionDraft(task.id, "correct", e.target.value) }))
+          ) : null,
+        h('input', { type: "text", className: "time-input-inline",
+          placeholder: "使った教材・資料名／ページ（任意）", value: draft.material || "",
+          onChange: e => setTaskSessionDraft(task.id, "material", e.target.value) }),
+        h('input', { type: "text", className: "time-input-inline",
+          placeholder: "つまずき・次回の確認点（任意）", value: draft.notes || "",
+          onChange: e => setTaskSessionDraft(task.id, "notes", e.target.value) })
+        ),
+        draft.error && h('div', { style: { color: "#B91C1C" } }, draft.error),
+        records.length > 0 && h('div', { style: { color: C.sub } },
+          "直近 " + (records[records.length - 1].seconds / 60).toFixed(1) +
+          "分" + (records[records.length - 1].difficulty ?
+            "｜体感難易度" + records[records.length - 1].difficulty + "/5" : "") +
+          (records[records.length - 1].attempted != null ?
+            "｜正答" + records[records.length - 1].correct + "/" +
+            records[records.length - 1].attempted : "")),
+        materialName && h('div', { style: { padding: "7px", background: "#F8FAFC",
+          color: C.sub, borderRadius: "5px" } },
+          "教材「" + materialName + "」の正答データ：" +
+          (sameMaterialScores.length >= 3 ?
+            sameMaterialScores.length + "回・" + materialCorrect + "/" + materialAttempted +
+            "（" + Math.round(100*materialCorrect/materialAttempted) + "%）" +
+            (sameMaterialDifficulty.length >= 3 ?
+              "｜体感難易度平均 " +
+              (sameMaterialDifficulty.reduce((sum,r)=>sum+r.difficulty,0)/sameMaterialDifficulty.length)
+                .toFixed(1) + "/5" : "") :
+            sameMaterialScores.length + "回／比較表示には同じ教材で3回以上の正答記録が必要") +
+          "。教材自体の客観的難易度を保証する値ではありません。")
+      )
+    );
+  };
+  const [studyMonthOverrides, setStudyMonthOverrides] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_study_month_overrides_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const setStudyMonthOverride = (id,month) => setStudyMonthOverrides(prev => {
+    const updated = { ...prev, [id]: month };
+    try { localStorage.setItem("riff_study_month_overrides_v1", JSON.stringify(updated)); }
+    catch (e) {}
+    return updated;
+  });
+  const [studyTaskCompletedAt, setStudyTaskCompletedAt] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_study_completed_at_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const [studyUnitPlan, setStudyUnitPlan] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_study_unit_plan_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const [weeklyUnlistedSchoolMinutes, setWeeklyUnlistedSchoolMinutes] = useState(() => {
+    try {
+      const val = localStorage.getItem("riff_unlisted_school_minutes_v1");
+      return val == null ? 180 : Math.max(0,Math.min(10080,Number(val)||0));
+    } catch (e) { return 180; }
+  });
+  const [weeklyStudyMinutes, setWeeklyStudyMinutes] = useState(() => {
+    try { return Number(localStorage.getItem("riff_weekly_study_budget_v1")) || 300; }
+    catch (e) { return 300; }
+  });
+  const [studyTargetDate, setStudyTargetDate] = useState(() => {
+    try { return localStorage.getItem("riff_study_planning_date_v1") || "2028-02-01"; }
+    catch (e) { return "2028-02-01"; }
+  });
+  const saveStudyUnitPlan = (id, status) => setStudyUnitPlan(prev => {
+    const next = { ...prev, [id]: status };
+    try { localStorage.setItem("riff_study_unit_plan_v1", JSON.stringify(next)); } catch (e) {}
+    return next;
+  });
+  const defaultStudyUnitPlan = id => ALL_STUDY_UNIT_BY_ID[id]?.defaultPlan || "active";
+  const getStudyUnitPlan = id => studyUnitPlan[id] || defaultStudyUnitPlan(id);
+  const studyTaskIsPlanned = task => {
+    if (task.genre !== "study") return true;
+    if (getStudyUnitPlan(task.stepId) !== "active") return false;
+    const startMonth = studyMonthOverrides[task.stepId] || task.targetPeriod || "";
+    const monthNow = [currentTime.getFullYear(),
+      String(currentTime.getMonth() + 1).padStart(2,"0")].join("-");
+    // 学校授業・過去問は1か月先まで予習候補にできる。
+    // 復習バンクの通常課題は targetPeriod の月になるまで「今日」へ自動投入しない。
+    const nextMonth = new Date(currentTime.getFullYear(),currentTime.getMonth()+1,1);
+    const nextMonthKey = nextMonth.getFullYear()+"-"+String(nextMonth.getMonth()+1).padStart(2,"0");
+    if (task.taskKind === "current" || task.taskKind === "pastpaper") {
+      if (startMonth > nextMonthKey) return false;
+    } else if (startMonth > monthNow) {
+      return false;
+    }
+    if (task.reviewOffsetDays) {
+      const source = ALL_STUDY_UNIT_BY_ID[task.stepId];
+      if (!source) return false;
+      const basics = source.subtasks.filter(row => !row.reviewOffsetDays);
+      if (!basics.every(row => !!checkedItems[row.id])) return false;
+      const previous = source.subtasks.filter(row => row.reviewOffsetDays &&
+        row.reviewOffsetDays < task.reviewOffsetDays);
+      if (!previous.every(row => !!checkedItems[row.id])) return false;
+      const lastBaseDate = basics.map(row => studyTaskCompletedAt[row.id])
+        .filter(Boolean).sort().at(-1);
+      // 旧完了チェックは日時を記録していないので、架空の完了日を作らない。
+      // 既存分は基本の完了確認後、最初の復習に進める。
+      if (!lastBaseDate) return task.reviewIndex === 0 || previous.length > 0;
+      return currentTime.getTime() >= Date.parse(lastBaseDate) +
+        task.reviewOffsetDays * 86400000;
+    }
+    return true;
+  };
+  const [checkedItems, setCheckedItems] = useState(() => {
+    try {
+      const saved = window.localStorage ? localStorage.getItem("shin_checks_v9") : null;
+      return saved ? JSON.parse(saved) : {};
+    } catch(e) {
+      return {};
+    }
+  });
+
+  const toggleCheck = (id) => {
+    const newCompleted = !checkedItems[id];
+    setCheckedItems(prev => {
+      const updated = { ...prev, [id]: !prev[id] };
+      try {
+        if (window.localStorage) localStorage.setItem("shin_checks_v9", JSON.stringify(updated));
+      } catch(e) {}
+      return updated;
+    });
+    if (ALL_TASKS_BY_ID[id]?.genre === "study") {
+      setStudyTaskCompletedAt(prev => {
+        const next = { ...prev };
+        if (newCompleted) next[id] = new Date().toISOString();
+        else delete next[id];
+        try { localStorage.setItem("riff_study_completed_at_v1", JSON.stringify(next)); }
+        catch (e) {}
+        return next;
+      });
+    }
+  };
+
+  /* Accordions */
+  const [openTodaySched, setOpenTodaySched] = useState(true);
+  const [openTodayScheduleDetails, setOpenTodayScheduleDetails] = useState({});
+  const [openTodayStudy, setOpenTodayStudy] = useState(true);
+  const [openTodayMusic, setOpenTodayMusic] = useState(true);
+  const [openTodayCode, setOpenTodayCode] = useState(true);
+  const [openExamPlan, setOpenExamPlan] = useState(false);
+  const [openGantt, setOpenGantt] = useState(true);
+  const [openGanttRows, setOpenGanttRows] = useState({});
+  const [examPopupAnchor, setExamPopupAnchor] = useState(null);
+  const [examPopupTop, setExamPopupTop] = useState(null);
+  const [openTodayLinkFor, setOpenTodayLinkFor] = useState(null);
+  const [todayReplaceTarget, setTodayReplaceTarget] = useState("");
+  const [todayReplaceGenre, setTodayReplaceGenre] = useState("study");
+  const [todayReplaceStage, setTodayReplaceStage] = useState("");
+  const [todayReplaceStep, setTodayReplaceStep] = useState("");
+  const [todayReplaceQuery, setTodayReplaceQuery] = useState("");
+  const [openTodayAddFor, setOpenTodayAddFor] = useState(null);
+  const [todayNewTaskDraft, setTodayNewTaskDraft] = useState({
+    text: "", minutes: "5", genre: "study"
+  });
+  const [todayReplanPreview, setTodayReplanPreview] = useState(null);
+  const [todayReplanNotice, setTodayReplanNotice] = useState("");
+  const [newOtherTitle, setNewOtherTitle] = useState("");
+  const [newOtherTime, setNewOtherTime] = useState("17:00〜17:15");
+  const [editingOtherId, setEditingOtherId] = useState(null);
+  const [otherMessage, setOtherMessage] = useState("");
+  const [highlightedTaskId, setHighlightedTaskId] = useState(null);
+  const [openMusicProgress, setOpenMusicProgress] = useState(true);
+  const [openPythonProgress, setOpenPythonProgress] = useState(true);
+  const [openStudyProgress, setOpenStudyProgress] = useState(true);
+  const [openGenreStages, setOpenGenreStages] = useState({});
+  const [activeExamMark, setActiveExamMark] = useState(null);
+  useEffect(() => {
+    if (!activeExamMark || !examPopupAnchor) return;
+    const popup = document.getElementById("riff-exam-popup");
+    if (!popup) return;
+    const height = popup.getBoundingClientRect().height;
+    const available = window.innerHeight - 10 - examPopupAnchor.bottom;
+    // ボタン直下に収まればそのまま。収まらなければ画面上端から開く。
+    setExamPopupTop(height <= available ? examPopupAnchor.bottom + 6 : 8);
+  }, [activeExamMark, examPopupAnchor]);
+  const [manualStepByTask, setManualStepByTask] = useState({});
+  const [assignmentWarning, setAssignmentWarning] = useState("");
+  const [todayCustomTasks, setTodayCustomTasks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("shin_today_custom_tasks_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const [expandedDetailTasks, setExpandedDetailTasks] = useState({});
+
+  const toggleTaskDetail = (id) => {
+    setExpandedDetailTasks(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const [openMonths, setOpenMonths] = useState({});
+  const toggleMonth = (moKey) => {
+    setOpenMonths(prev => ({ ...prev, [moKey]: prev[moKey] === false ? true : false }));
+  };
+
+  const [openMonthSubGroups, setOpenMonthSubGroups] = useState({});
+  const toggleMonthSubGroup = (key) => {
+    setOpenMonthSubGroups(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const [openStageCards, setOpenStageCards] = useState({});
+  const toggleStageCard = (sKey) => {
+    setOpenStageCards(prev => ({ ...prev, [sKey]: !prev[sKey] }));
+  };
+
+  const [openStageMilestone, setOpenStageMilestone] = useState({});
+  const toggleStageMilestone = (sKey) => {
+    setOpenStageMilestone(prev => ({ ...prev, [sKey]: !prev[sKey] }));
+  };
+
+  const [openStageCategory, setOpenStageCategory] = useState({});
+  const toggleStageCategory = (key) => {
+    setOpenStageCategory(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const [openSchoolCards, setOpenSchoolCards] = useState({});
+  const [openSchoolAddCard, setOpenSchoolAddCard] = useState(false);
+  const [customSchools, setCustomSchools] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_custom_schools_v1") || "[]"); }
+    catch (e) { return []; }
+  });
+  const [hiddenSchools, setHiddenSchools] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_hidden_schools_v1") || "[]"); }
+    catch (e) { return []; }
+  });
+  const [showArchivedSchools, setShowArchivedSchools] = useState(false);
+  const [newSchool, setNewSchool] = useState({
+    section: "junior_high", name: "", url: "", location: ""
+  });
+  const [schoolEditorMessage, setSchoolEditorMessage] = useState("");
+  const saveCustomSchools = rows => {
+    setCustomSchools(rows);
+    try { localStorage.setItem("riff_custom_schools_v1", JSON.stringify(rows)); }
+    catch (e) {}
+  };
+  const saveHiddenSchools = ids => {
+    setHiddenSchools(ids);
+    try { localStorage.setItem("riff_hidden_schools_v1", JSON.stringify(ids)); }
+    catch (e) {}
+  };
+  const addSchool = () => {
+    const name = newSchool.name.trim(), url = newSchool.url.trim();
+    if (!name) { setSchoolEditorMessage("教育機関名を入力してください。"); return; }
+    if (url && !/^https?:\/\//i.test(url)) {
+      setSchoolEditorMessage("公式サイトは http または https のURLを入力してください。");
+      return;
+    }
+    const row = {
+      id: "school-custom-" + Date.now(), section: newSchool.section,
+      name, url, location: newSchool.location.trim(),
+      badge: "調査待ち", learn: [], teachers: [], alumni: "",
+      advantages: "", otherPoints: "",
+      sourceStatus: "未調査（本人入力のみ・公式確認前）"
+    };
+    saveCustomSchools([...customSchools, row]);
+    setOpenSchoolCards(prev => ({ ...prev, [row.section]: true }));
+    setNewSchool(prev => ({ ...prev, name: "", url: "", location: "" }));
+    setSchoolEditorMessage("候補として追加しました。詳細情報は未調査です。");
+  };
+
+  const toggleSchoolCard = (key) => {
+    setOpenSchoolCards(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const [openStudyVisionCard, setOpenStudyVisionCard] = useState(false);
+  const [openStudyCapacity, setOpenStudyCapacity] = useState(false);
+  const [openStudyMemos, setOpenStudyMemos] = useState({});
+  const [openStudySubjects, setOpenStudySubjects] = useState({
+    math: false, eng: false, sci: false, soc: false, jpn: false
+  });
+  const toggleStudySubject = (subKey) => {
+    setOpenStudySubjects(prev => ({ ...prev, [subKey]: !prev[subKey] }));
+  };
+
+  /* Music tracks state with 5% step editable */
+  const [musicTracks, setMusicTracks] = useState(() => {
+    try {
+      const saved = window.localStorage ? localStorage.getItem("shin_music_tracks_v1") : null;
+      return saved ? JSON.parse(saved) : defaultMusicTracks;
+    } catch(e) {
+      return defaultMusicTracks;
+    }
+  });
+  const [isEditingTracks, setIsEditingTracks] = useState(false);
+
+  const updateTrackPct = (id, newPct) => {
+    const updated = musicTracks.map(t => t.id === id ? { ...t, pct: Number(newPct) } : t);
+    setMusicTracks(updated);
+    try {
+      if (window.localStorage) localStorage.setItem("shin_music_tracks_v1", JSON.stringify(updated));
+    } catch(e) {}
+  };
+
+  /* Study filters */
+  const [studyFilterRankS, setStudyFilterRankS] = useState(false);
+  const [studyFilterWeak, setStudyFilterWeak] = useState(false);
+  const [studyFilterSubjects, setStudyFilterSubjects] = useState({ math: false, eng: false, sci: false, soc: false, jpn: false });
+
+  const toggleSubjectFilter = (subKey) => {
+    setStudyFilterSubjects(prev => ({ ...prev, [subKey]: !prev[subKey] }));
+  };
+
+  /* Progress Calculations: Linking subtasks for Music & Python */
+  const allStudyUnits = studySubjectsData.flatMap(s => s.units);
+  // 今日の時間割は既存IDを使って計画に明示的に紐付ける。旧保存データは変更しない。
+  const scheduleStepChoices = {
+    study: allStudyUnits.map(u => ({ ...u, tab: "study", taskTitle: u.item })),
+    music: musicSteps.map(s => ({ ...s, tab: "music", taskTitle: s.title })),
+    python: pythonSteps.map(s => ({ ...s, tab: "python", taskTitle: s.title }))
+  };
+  const getLinkedStep = item => (scheduleStepChoices[getScheduleCategory(item)] || [])
+    .find(step => step.id === item.linkedStepId) || null;
+  // 学習進捗は「やること」の共有チェックを基準に算出する。
+  // 古い単元の完了チェックはそのまま保存し、勝手に387件の小タスクへ転記しない。
+  const allStudyTasks = allStudyUnits.flatMap(unit =>
+    unit.subtasks.map(task => ({ ...task, rank: unit.rank,
+      targetPeriod: unit.targetPeriod, stepId: unit.id,
+      plan: getStudyUnitPlan(unit.id) })));
+  // 高校受験の試算には目標管理日までの学習だけを含め、高校進学後の単元は混ぜない。
+  const studyScopeTasks = allStudyTasks.filter(task =>
+    (studyMonthOverrides[task.stepId] || task.targetPeriod) <= studyTargetDate.slice(0,7));
+  const studyRemainingByRank = ["S","A","B"].map(rank => ({
+    rank, minutes: studyScopeTasks
+      .filter(task => task.rank === rank && task.plan === "active" && !checkedItems[task.id])
+      .reduce((total, task) => total + effectiveTaskMinutes(task), 0),
+    tasks: studyScopeTasks.filter(task => task.rank === rank &&
+      task.plan === "active" && !checkedItems[task.id]).length
+  }));
+  const studyReviewMinutes = studyScopeTasks.filter(task =>
+    task.plan === "review" && !checkedItems[task.id])
+    .reduce((total, task) => total + effectiveTaskMinutes(task), 0);
+  const studyDeferredMinutes = studyScopeTasks.filter(task =>
+    task.plan === "defer" && !checkedItems[task.id])
+    .reduce((total, task) => total + effectiveTaskMinutes(task), 0);
+  const studyRemainingMinutes = studyRemainingByRank.reduce((sum,r) => sum+r.minutes,0);
+  const parsedDeadline = new Date(studyTargetDate + "T00:00:00");
+  const remainingDays = Number.isFinite(parsedDeadline.getTime())
+    ? Math.max(0, Math.ceil((parsedDeadline.getTime() - currentTime.getTime()) / 86400000)) : 0;
+  const studyAvailableMinutes = Math.floor(remainingDays / 7 * weeklyStudyMinutes);
+  const studySchoolReserveMinutes = Math.ceil(remainingDays / 7 * weeklyUnlistedSchoolMinutes);
+  const studyFullBudgetMinutes = studyRemainingMinutes + studySchoolReserveMinutes;
+  const studyCapacityGap = studyFullBudgetMinutes - studyAvailableMinutes;
+  const totalSRankUnits = allStudyTasks.filter(task => task.rank === "S").length;
+  const checkedSRankUnits = allStudyTasks.filter(task =>
+    task.rank === "S" && checkedItems[task.id]).length;
+  const sRankPct = totalSRankUnits
+    ? Math.round(checkedSRankUnits / totalSRankUnits * 100) : 0;
+
+  const totalStudyUnits = allStudyTasks.length;
+  const checkedStudyUnits = allStudyTasks.filter(task => checkedItems[task.id]).length;
+  const studyPct = totalStudyUnits
+    ? Math.round(checkedStudyUnits / totalStudyUnits * 100) : 0;
+  const studyWeekStart = currentTime.getTime() - 7 * 86400000;
+  const studyWeekSeconds = allStudyTasks.reduce((total,task) => total +
+    (taskSessions[task.id] || []).filter(record => {
+      const t = Date.parse(record.at);
+      return Number.isFinite(t) && t >= studyWeekStart && t <= currentTime.getTime();
+    }).reduce((sum,record) => sum + Math.max(0, Number(record.seconds) || 0), 0), 0);
+
+  /* Music subtasks progress */
+  const allMusicSubtasks = musicSteps.flatMap(s => s.subtasks);
+  const totalMusSubtasks = allMusicSubtasks.length;
+  const checkedMusSubtasks = allMusicSubtasks.filter(st => checkedItems[st.id]).length;
+  const musPct = totalMusSubtasks > 0 ? Math.round((checkedMusSubtasks / totalMusSubtasks) * 100) : 0;
+
+  /* Python subtasks progress */
+  const allPythonSubtasks = pythonSteps.flatMap(s => s.subtasks);
+  const totalPySubtasks = allPythonSubtasks.length;
+  const checkedPySubtasks = allPythonSubtasks.filter(st => checkedItems[st.id]).length;
+  const pyPct = totalPySubtasks > 0 ? Math.round((checkedPySubtasks / totalPySubtasks) * 100) : 0;
+
+  const todaySched = schedules[schedType] || schedules.club;
+  const todayDateKey = [currentTime.getFullYear(), String(currentTime.getMonth() + 1).padStart(2, "0"), String(currentTime.getDate()).padStart(2, "0")].join("-");
+  const scheduleCheckKey = (id) => "sched@" + todayDateKey + ":" + schedType + ":" + id;
+  const setTodayCustomTask = (itemId, text) => {
+    const key = scheduleCheckKey(itemId);
+    setTodayCustomTasks(prev => {
+      const updated = { ...prev, [key]: text };
+      try { localStorage.setItem("shin_today_custom_tasks_v1", JSON.stringify(updated)); }
+      catch (e) {}
+      return updated;
+    });
+  };
+  const dailyPlanKey = todayDateKey + "@" + schedType;
+  const dailyTemplateFingerprint = JSON.stringify(todaySched.items.map(item =>
+    [item.id, item.t, item.a, getScheduleCategory(item)]));
+  const [dailyPlans, setDailyPlans] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_daily_plans_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  // 旧自由入力は消さずに保持。ここから先の「今日だけ追加」は独立したタスクIDで保存する。
+  const [todayCustomCatalog, setTodayCustomCatalog] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("riff_daily_custom_catalog_v1") || "{}"); }
+    catch (e) { return {}; }
+  });
+  const todayCustomEntries = todayCustomCatalog[dailyPlanKey] || {};
+  const resolveTodayTask = id => ALL_TASKS_BY_ID[id] || todayCustomEntries[id] || null;
+  const priorDailyPlan = dailyPlans[dailyPlanKey];
+  const todayPinned = priorDailyPlan?.fingerprint === dailyTemplateFingerprint
+    ? (priorDailyPlan.pinned || {}) : {};
+  const todaySlots = priorDailyPlan && priorDailyPlan.fingerprint === dailyTemplateFingerprint
+    ? priorDailyPlan.slots : proposeDailySlots(todaySched.items, checkedItems, effectiveTaskMinutes,
+      studyTaskIsPlanned);
+  const persistDailySlots = (slots, pinned = todayPinned) => {
+    setDailyPlans(prev => {
+      const next = { ...prev, [dailyPlanKey]: {
+        fingerprint: dailyTemplateFingerprint, slots, pinned } };
+      try { localStorage.setItem("riff_daily_plans_v1", JSON.stringify(next)); }
+      catch (e) {}
+      return next;
+    });
+  };
+  useEffect(() => {
+    if (!priorDailyPlan || priorDailyPlan.fingerprint !== dailyTemplateFingerprint) {
+      persistDailySlots(todaySlots);
+    }
+  }, [dailyPlanKey, dailyTemplateFingerprint]);
+  const setTodayDraftField = (field, value) => setTodayNewTaskDraft(prev =>
+    ({ ...prev, [field]: value }));
+  const openTodayReplacement = (slotId, stepId, task) => {
+    const key = slotId + ":" + stepId;
+    setOpenTodayAddFor(null);
+    if (openTodayLinkFor === key) { setOpenTodayLinkFor(null); return; }
+    setTodayReplaceTarget(task.id);
+    setTodayReplaceGenre(task.genre || "study");
+    setTodayReplaceStage(task.stageKey || "");
+    setTodayReplaceStep(task.stepId || "");
+    setTodayReplaceQuery("");
+    setTodayNewTaskDraft({ text: "", minutes: "5", genre: task.genre || "study" });
+    setAssignmentWarning("");
+    setOpenTodayLinkFor(key);
+  };
+  const updateDailyTask = (slotId, oldId, replacementId) => {
+    const slot = todaySched.items.find(item => item.id === slotId);
+    const replacement = ALL_TASKS_BY_ID[replacementId];
+    const original = resolveTodayTask(oldId);
+    if (!slot || !replacement || !original || checkedItems[oldId]) {
+      setAssignmentWarning("完了した作業は入れ替えできません。");
+      return;
+    }
+    const occupied = Object.entries(todaySlots).some(([id, ids]) =>
+      ids.includes(replacementId) && !(id === slotId && replacementId === oldId));
+    if (occupied) {
+      setAssignmentWarning("そのやることは、今日の別の枠に既にあります。");
+      return;
+    }
+    const withoutOld = (todaySlots[slotId] || []).filter(id => id !== oldId);
+    const used = withoutOld.reduce((total, id) =>
+      total + effectiveTaskMinutes(resolveTodayTask(id) || {}), 0);
+    const budget = parseScheduleDuration(slot.t);
+    if (used + effectiveTaskMinutes(replacement) > budget) {
+      setAssignmentWarning("時間枠を超えるため入れ替えできません。短い作業を選んでください。");
+      return;
+    }
+    const nextPinned = { ...todayPinned, [slotId]: [
+      ...(todayPinned[slotId] || []).filter(id => id !== oldId),
+      replacementId
+    ] };
+    persistDailySlots({ ...todaySlots, [slotId]: [...withoutOld, replacementId] }, nextPinned);
+    setAssignmentWarning("");
+    setOpenTodayLinkFor(null);
+    setTodayReplanPreview(null);
+  };
+  const addTodayCustomTask = (slotId, replaceId = null, textOverride = null) => {
+    const slot = todaySched.items.find(item => item.id === slotId);
+    const text = String(textOverride == null ? todayNewTaskDraft.text : textOverride).trim();
+    const minutes = Number(todayNewTaskDraft.minutes);
+    if (!slot || !text || !Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+      setAssignmentWarning("やることの名前と目安時間（1〜1440分）を確認してください。");
+      return;
+    }
+    if (replaceId && checkedItems[replaceId]) {
+      setAssignmentWarning("完了した作業は入れ替えできません。");
+      return;
+    }
+    const withoutOld = (todaySlots[slotId] || []).filter(id => id !== replaceId);
+    const used = withoutOld.reduce((total, id) =>
+      total + effectiveTaskMinutes(resolveTodayTask(id) || {}), 0);
+    if (used + minutes > parseScheduleDuration(slot.t)) {
+      setAssignmentWarning("時間枠を超えます。目安時間を短くするか、別の枠を選んでください。");
+      return;
+    }
+    let id = "riff-today-" + todayDateKey + "-" + Date.now();
+    while (todayCustomEntries[id]) id += "-1";
+    const genre = RIFF_GENRES[todayNewTaskDraft.genre] ?
+      todayNewTaskDraft.genre : getScheduleCategory(slot);
+    const customTask = { id, text, shortTitle: text, estimateMinutes: minutes,
+      genre, tab: "today", custom: true, slotId, stepId: "custom:" + id,
+      stepNum: "追加", stepTitle: "今日だけのやること", stageKey: null };
+    setTodayCustomCatalog(prev => {
+      const next = { ...prev, [dailyPlanKey]: {
+        ...(prev[dailyPlanKey] || {}), [id]: customTask } };
+      try { localStorage.setItem("riff_daily_custom_catalog_v1", JSON.stringify(next)); }
+      catch (e) {}
+      return next;
+    });
+    const nextPinned = { ...todayPinned, [slotId]: [
+      ...(todayPinned[slotId] || []).filter(old => old !== replaceId), id] };
+    persistDailySlots({ ...todaySlots, [slotId]: [...withoutOld, id] }, nextPinned);
+    if (textOverride != null) setTodayCustomTask(slotId, "");
+    setTodayNewTaskDraft({ text: "", minutes: "5", genre });
+    setOpenTodayAddFor(null);
+    setOpenTodayLinkFor(null);
+    setAssignmentWarning("");
+    setTodayReplanPreview(null);
+  };
+  // 計測と目安の更新は今日の割当を変更しない。本人が押したときだけ変更案を生成。
+  const dailyReplanSignature = () => JSON.stringify(
+    todaySched.items.map(item => [item.id, item.t,
+      (todaySlots[item.id] || []).map(id => [id, !!checkedItems[id],
+        effectiveTaskMinutes(resolveTodayTask(id) || {})])])); 
+  const previewTodayReplan = () => {
+    setAssignmentWarning("");
+    const now = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const future = todaySched.items.slice().sort((a,b) =>
+      scheduleStartMinute(a) - scheduleStartMinute(b))
+      .filter(item => scheduleStartMinute(item) > now);
+    const proposal = Object.fromEntries(todaySched.items.map(item =>
+      [item.id, [...(todaySlots[item.id] || [])]]));
+    const reserved = new Set();
+    const queue = [];
+    const fixedOverflow = [];
+    future.forEach(item => {
+      const pinned = todayPinned[item.id] || [];
+      const ids = todaySlots[item.id] || [];
+      const fixed = ids.filter(id => checkedItems[id] ||
+        pinned.includes(id) || resolveTodayTask(id)?.custom);
+      proposal[item.id] = fixed.slice();
+      fixed.forEach(id => reserved.add(id));
+      const fixedMinutes = fixed.reduce((total,id) =>
+        total + effectiveTaskMinutes(resolveTodayTask(id) || {}), 0);
+      if (fixedMinutes > parseScheduleDuration(item.t)) {
+        fixedOverflow.push(item.a + "（固定した作業が" +
+          formatTaskMinutes(fixedMinutes - parseScheduleDuration(item.t)) + "超過）");
+      }
+    });
+    // 過去／現在の枠のタスクは、候補にも入れずそのまま維持。
+    todaySched.items.filter(item => scheduleStartMinute(item) <= now)
+      .forEach(item => (todaySlots[item.id] || []).forEach(id => reserved.add(id)));
+    future.forEach(item => (todaySlots[item.id] || []).forEach(id => {
+      if (!reserved.has(id)) {
+        queue.push({ id, from: item.id, fromStart: scheduleStartMinute(item) });
+        reserved.add(id);
+      }
+    }));
+    const deferred = [], moved = [];
+    queue.forEach(row => {
+      const task = resolveTodayTask(row.id);
+      if (!task) return;
+      const target = future.find(item => {
+        if (scheduleStartMinute(item) < row.fromStart) return false;
+        if (getScheduleCategory(item) !== task.genre) return false;
+        const used = proposal[item.id].reduce((total,id) =>
+          total + effectiveTaskMinutes(resolveTodayTask(id) || {}), 0);
+        return used + effectiveTaskMinutes(task) <= parseScheduleDuration(item.t);
+      });
+      if (!target) { deferred.push(row); return; }
+      proposal[target.id].push(row.id);
+      if (target.id !== row.from) moved.push({ ...row, to: target.id });
+    });
+    const changed = future.some(item =>
+      JSON.stringify(todaySlots[item.id] || []) !== JSON.stringify(proposal[item.id]));
+    setTodayReplanPreview({ slots: proposal, deferred, moved, fixedOverflow,
+      changed, fingerprint: dailyTemplateFingerprint, planKey: dailyPlanKey,
+      originalSlots: JSON.stringify(todaySlots),
+      originalSignature: dailyReplanSignature(),
+      futureSlotIds: future.map(item => item.id), createdAt: Date.now() });
+    setTodayReplanNotice(changed ?
+      "変更案を作りました。内容を確認してから反映してください。" :
+      "今の割り当てから変更する必要はありません。");
+  };
+  const confirmTodayReplan = () => {
+    const preview = todayReplanPreview;
+    if (!preview || !preview.changed) return;
+    const now = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const movedSlotStarted = todaySched.items.some(item =>
+      scheduleStartMinute(item) <= now &&
+      JSON.stringify(todaySlots[item.id] || []) !==
+        JSON.stringify(preview.slots[item.id] || []));
+    if (preview.planKey !== dailyPlanKey ||
+        preview.fingerprint !== dailyTemplateFingerprint ||
+        JSON.stringify(todaySlots) !== preview.originalSlots ||
+        dailyReplanSignature() !== preview.originalSignature ||
+        preview.futureSlotIds.some(id => {
+          const item = todaySched.items.find(slot => slot.id === id);
+          return !item || scheduleStartMinute(item) <= now;
+        }) || movedSlotStarted) {
+      setTodayReplanPreview(null);
+      setTodayReplanNotice("予定や時刻が変わりました。もう一度、変更案を確認してください。");
+      return;
+    }
+    persistDailySlots(preview.slots, todayPinned);
+    setTodayReplanPreview(null);
+    setTodayReplanNotice("確認した変更案を反映しました。");
+  };
+  const completedSchedCount = todaySched.items.filter(it => checkedItems[scheduleCheckKey(it.id)]).length;
+
+  const currentMonthKey = String(currentTime.getFullYear()) + "-" + String(currentTime.getMonth() + 1).padStart(2, "0");
+  const currentStageKey = Object.keys(stageInfo).find(k => checkIsCurrentStage(k, currentTime)) || (currentMonthKey < PLAN_START ? "p1" : "p8");
+
+  // 今月の期限と未完了状態から課題候補を選ぶ。本人が今日の予定を確定するまでは自動決定しない。
+  const todayStudySuggestions = allStudyUnits
+    .filter(unit => unit.targetPeriod <= currentMonthKey && !checkedItems[unit.id])
+    .sort((a, b) => {
+      const aNow = a.targetPeriod === currentMonthKey ? 0 : 1;
+      const bNow = b.targetPeriod === currentMonthKey ? 0 : 1;
+      const ranks = { S: 0, A: 1, B: 2 };
+      return aNow - bNow || (ranks[a.rank] ?? 3) - (ranks[b.rank] ?? 3) || a.targetPeriod.localeCompare(b.targetPeriod);
+    });
+  const todayMusicSuggestions = musicSteps
+    .filter(step => stageDateRanges[step.stage].start <= currentMonthKey && step.subtasks.some(task => !checkedItems[task.id]))
+    .sort((a, b) => Number(b.stage.slice(1)) - Number(a.stage.slice(1)));
+  const todayCodeSuggestions = pythonSteps
+    .filter(step => stageDateRanges[step.stage].start <= currentMonthKey && step.subtasks.some(task => !checkedItems[task.id]))
+    .sort((a, b) => Number(b.stage.slice(1)) - Number(a.stage.slice(1)));
+  const daysJa = ["日", "月", "火", "水", "木", "金", "土"];
+  const formattedDateStr = `${currentTime.getFullYear()}年${currentTime.getMonth() + 1}月${currentTime.getDate()}日 (${daysJa[currentTime.getDay()]})`;
+
+  /* ================== FEEDBACK STATE & LOGIC ================== */
+  const [feedbacks, setFeedbacks] = useState(() => {
+    try {
+      const saved = window.localStorage ? localStorage.getItem("shin_feedbacks_v1") : null;
+      return saved ? JSON.parse(saved) : [];
+    } catch(e) {
+      return [];
+    }
+  });
+
+  const saveFeedbacksToStorage = (list) => {
+    setFeedbacks(list);
+    try {
+      if (window.localStorage) {
+        localStorage.setItem("shin_feedbacks_v1", JSON.stringify(list));
+      }
+    } catch(e) {}
+  };
+
+  const [currentRespondent, setCurrentRespondent] = useState("真");
+
+  /* 回答者ごとの独立した入力状態（下書き・編集中データ）を保持 */
+  const [feedbackDrafts, setFeedbackDrafts] = useState(() => {
+    try {
+      const saved = window.localStorage ? localStorage.getItem("shin_feedback_drafts_v1") : null;
+      if (saved) return JSON.parse(saved);
+    } catch(e) {}
+    return {
+      "真": createEmptyFeedbackForm(),
+      "パパ": createEmptyFeedbackForm(),
+      "その他": createEmptyFeedbackForm()
+    };
+  });
+
+  const saveDraftsToStorage = (updatedDrafts) => {
+    setFeedbackDrafts(updatedDrafts);
+    try {
+      if (window.localStorage) {
+        localStorage.setItem("shin_feedback_drafts_v1", JSON.stringify(updatedDrafts));
+      }
+    } catch(e) {}
+  };
+
+  const currentForm = feedbackDrafts[currentRespondent] || createEmptyFeedbackForm();
+
+  const handleRespondentSwitch = (newRespondent) => {
+    setCurrentRespondent(newRespondent);
+    if (!feedbackDrafts[newRespondent]) {
+      const updated = { ...feedbackDrafts, [newRespondent]: createEmptyFeedbackForm() };
+      saveDraftsToStorage(updated);
+    }
+  };
+
+  const handleRatingChange = (qId, val) => {
+    const updated = {
+      ...feedbackDrafts,
+      [currentRespondent]: {
+        ...currentForm,
+        ratings: {
+          ...currentForm.ratings,
+          [qId]: val
+        }
+      }
+    };
+    saveDraftsToStorage(updated);
+  };
+
+  const handleCommentChange = (qId, val) => {
+    const updated = {
+      ...feedbackDrafts,
+      [currentRespondent]: {
+        ...currentForm,
+        comments: {
+          ...currentForm.comments,
+          [qId]: val
+        }
+      }
+    };
+    saveDraftsToStorage(updated);
+  };
+
+  const handleResetCurrentForm = () => {
+    const updated = {
+      ...feedbackDrafts,
+      [currentRespondent]: createEmptyFeedbackForm()
+    };
+    saveDraftsToStorage(updated);
+    setFeedbackSavedMessage("🔄 入力をリセットしました");
+    setTimeout(() => setFeedbackSavedMessage(""), 2500);
+  };
+
+  const [exportScope, setExportScope] = useState("latest"); // "latest" or "all"
+  const [feedbackPrivateRepo, setFeedbackPrivateRepo] = useState(() => {
+    try { return localStorage.getItem("riff_feedback_private_repo_v1") || ""; }
+    catch (e) { return ""; }
+  });
+  const [confirmPrivateRepo, setConfirmPrivateRepo] = useState(false);
+  const [feedbackSavedMessage, setFeedbackSavedMessage] = useState("");
+  const [feedbackManualCopy, setFeedbackManualCopy] = useState("");
+
+  const handleSaveFeedback = () => {
+    const now = new Date();
+    const formattedNow = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const recordId = currentForm.editingFeedbackId || `fb_${Date.now()}`;
+
+    const newRecord = {
+      feedback_id: recordId,
+      app_version: APP_VERSION,
+      respondent: currentRespondent,
+      submitted_at: now.toISOString(),
+      submitted_at_formatted: formattedNow,
+      answers: FEEDBACK_QUESTIONS.map(q => ({
+        question_id: q.id,
+        question_text: q.text,
+        rating: q.id === "q6_requests" ? null : (currentForm.ratings[q.id] || null),
+        comment: (currentForm.comments[q.id] || "").trim()
+      }))
+    };
+
+    let updatedList;
+    if (currentForm.editingFeedbackId) {
+      updatedList = feedbacks.map(item => item.feedback_id === currentForm.editingFeedbackId ? newRecord : item);
+    } else {
+      updatedList = [newRecord, ...feedbacks];
+    }
+
+    saveFeedbacksToStorage(updatedList);
+
+    // 保存後も入力内容・星の数をリセットせずそのまま残す
+    const updatedDrafts = {
+      ...feedbackDrafts,
+      [currentRespondent]: {
+        ...currentForm,
+        editingFeedbackId: recordId
+      }
+    };
+    saveDraftsToStorage(updatedDrafts);
+
+    setFeedbackSavedMessage(`✅ 【${currentRespondent}】の感想を保存しました！（入力内容は画面に残っています）`);
+    setTimeout(() => setFeedbackSavedMessage(""), 3500);
+  };
+
+  const startEditExistingFeedback = (fb) => {
+    let targetRespondent = fb.respondent || "真";
+    if (targetRespondent === "真くん") targetRespondent = "真";
+    if (targetRespondent === "お父様") targetRespondent = "パパ";
+    setCurrentRespondent(targetRespondent);
+
+    const newRatings = { ...createEmptyFeedbackForm().ratings };
+    const newComments = { ...createEmptyFeedbackForm().comments };
+
+    fb.answers.forEach(a => {
+      if (a.rating !== null) newRatings[a.question_id] = a.rating;
+      newComments[a.question_id] = a.comment || "";
+    });
+
+    const updatedDrafts = {
+      ...feedbackDrafts,
+      [targetRespondent]: {
+        ratings: newRatings,
+        comments: newComments,
+        editingFeedbackId: fb.feedback_id
+      }
+    };
+    saveDraftsToStorage(updatedDrafts);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setFeedbackSavedMessage(`✏️ 【${targetRespondent}】の過去回答を読み込みました`);
+    setTimeout(() => setFeedbackSavedMessage(""), 3000);
+  };
+
+  const deleteFeedback = (fbId) => {
+    const updated = feedbacks.filter(f => f.feedback_id !== fbId);
+    saveFeedbacksToStorage(updated);
+
+    if (currentForm.editingFeedbackId === fbId) {
+      handleResetCurrentForm();
+    }
+  };
+
+  const getTargetFeedbacksForExport = () => {
+    if (feedbacks.length === 0) return [];
+    if (exportScope === "latest") return [feedbacks[0]];
+    return feedbacks;
+  };
+
+  // 認証情報はHTMLに保存しない。GitHubのログイン済み画面でユーザーが
+  // Privateリポジトリを確認して送信する。ここではIssue下書きを開くだけ。
+  const openPrivateGithubFeedbackDraft = () => {
+    const repo = feedbackPrivateRepo.trim();
+    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) {
+      setFeedbackSavedMessage("保存先のGitHub Privateリポジトリを owner/repo 形式で入力してください。");
+      return;
+    }
+    if (repo.toLowerCase() === "ncambok0/riff") {
+      setFeedbackSavedMessage("公開RIFF本体は保存先にできません。Privateリポジトリを指定してください。");
+      return;
+    }
+    if (!confirmPrivateRepo) {
+      setFeedbackSavedMessage("GitHub側でPrivate設定と共有範囲を確認してからチェックしてください。");
+      return;
+    }
+    const targets = getTargetFeedbacksForExport();
+    if (targets.length === 0) {
+      setFeedbackSavedMessage("先に感想を保存してください。");
+      return;
+    }
+    const title = "[RIFF Feedback] " + new Date().toISOString().slice(0,10) +
+      " " + targets.length + "件";
+    const contents = targets.map(fb => ({
+      feedback_id: fb.feedback_id, app_version: fb.app_version,
+      submitted_at: fb.submitted_at,
+      // 氏名はIssue本文へ自動転記しない。内容を確認してから送信する。
+      answers: fb.answers
+    }));
+    const body = "RIFF改善用フィードバック（投稿前に個人情報を確認）\n\n" +
+      "回答者名・アカウント情報は自動転記していません。\n\n" +
+      "\x60\x60\x60json\n" + JSON.stringify(contents, null, 2) + "\n\x60\x60\x60";
+    const base = "https://github.com/" + repo + "/issues/new";
+    const url = base + "?title=" + encodeURIComponent(title) +
+      "&body=" + encodeURIComponent(body);
+    if (url.length > 7500) {
+      setFeedbackSavedMessage("本文が長いためURL転記を中止しました。既存のJSONエクスポートを使い、Private Issueに添付してください。");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+    setFeedbackSavedMessage("GitHubにIssueの下書きを開きました。Private設定と本文を確認し、GitHub側で投稿してください。");
+  };
+  const copyFeedbackText = () => {
+    const targets = getTargetFeedbacksForExport();
+    if (targets.length === 0) {
+      setFeedbackSavedMessage("⚠️ 保存された感想がまだありません。「感想を保存する」を押してください。");
+      setTimeout(() => setFeedbackSavedMessage(""), 3000);
+      return;
+    }
+
+    let text = "【真のクリエイターロードマップ 利用者フィードバック】\n\n";
+    targets.forEach((fb, idx) => {
+      text += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      text += `■ 回答日時: ${fb.submitted_at_formatted}\n`;
+      text += `■ 回答者: ${fb.respondent}\n`;
+      text += `■ バージョン: ${fb.app_version}\n\n`;
+      fb.answers.forEach(ans => {
+        text += `${ans.question_text}\n`;
+        if (ans.rating !== null) {
+          text += `  [評価] ${"★".repeat(ans.rating)}${"☆".repeat(5 - ans.rating)} (${ans.rating}/5)\n`;
+        }
+        text += `  [コメント] ${ans.comment || "(特になし)"}\n\n`;
+      });
+      if (idx < targets.length - 1) text += "\n";
+    });
+
+    // iPhoneのhttp://LAN接続ではClipboard APIが使えない場合がある。
+    // 成功を確認できないときは、選択・手動コピーできる本文を表示する。
+    const fallback = () => {
+      setFeedbackManualCopy(text);
+      setFeedbackSavedMessage("自動コピーを確認できませんでした。下の本文を長押ししてコピーしてください。");
+    };
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      navigator.clipboard.writeText(text).then(() => {
+        setFeedbackManualCopy("");
+        setFeedbackSavedMessage("📋 コピーしました。貼り付け先で確認してください。");
+      }).catch(fallback);
+    } else {
+      fallback();
+    }
+  };
+
+  const exportFeedbackJSON = () => {
+    const targets = getTargetFeedbacksForExport();
+    if (targets.length === 0) {
+      setFeedbackSavedMessage("⚠️ 保存された感想がまだありません。");
+      setTimeout(() => setFeedbackSavedMessage(""), 3000);
+      return;
+    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(targets, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `riff_feedback_${exportScope}_${Date.now()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const exportFeedbackCSV = () => {
+    const targets = getTargetFeedbacksForExport();
+    if (targets.length === 0) {
+      setFeedbackSavedMessage("⚠️ 保存された感想がまだありません。");
+      setTimeout(() => setFeedbackSavedMessage(""), 3000);
+      return;
+    }
+
+    let csvContent = "\uFEFF"; // Excel用BOM (Byte Order Mark)
+    csvContent += "回答ID,回答日時,アプリバージョン,回答者,質問ID,質問文,星評価(5段階),コメント\n";
+
+    targets.forEach(fb => {
+      fb.answers.forEach(ans => {
+        const idSafe = `"${(fb.feedback_id || "").replace(/"/g, '""')}"`;
+        const dateSafe = `"${(fb.submitted_at_formatted || "").replace(/"/g, '""')}"`;
+        const verSafe = `"${(fb.app_version || "").replace(/"/g, '""')}"`;
+        const respSafe = `"${(fb.respondent || "").replace(/"/g, '""')}"`;
+        const qIdSafe = `"${(ans.question_id || "").replace(/"/g, '""')}"`;
+        const qTextSafe = `"${(ans.question_text || "").replace(/"/g, '""')}"`;
+        const rateSafe = ans.rating !== null ? ans.rating : "";
+        const commentSafe = `"${(ans.comment || "").replace(/"/g, '""')}"`;
+
+        csvContent += `${idSafe},${dateSafe},${verSafe},${respSafe},${qIdSafe},${qTextSafe},${rateSafe},${commentSafe}\n`;
+      });
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `riff_feedback_${exportScope}_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  /* 固定ヘッダーの実際の高さを差し引く。画面幅・折り返しで変わっても見切れない。 */
+  const scrollToRiffTarget = element => {
+    if (!element) return;
+    const header = document.querySelector(".fixed-header");
+    if (typeof window.scrollTo === "function" &&
+        typeof element.getBoundingClientRect === "function") {
+      const offset = (header ? header.getBoundingClientRect().height : 124) + 16;
+      const target = window.scrollY + element.getBoundingClientRect().top - offset;
+      window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+    } else if (typeof element.scrollIntoView === "function") {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+  /* Helper to jump to specific target tab */
+  const jumpToTask = (targetTab, taskId) => {
+    const task = ALL_TASKS_BY_ID[taskId];
+    const stepId = task ? task.stepId : taskId;
+    if (targetTab === "study") {
+      setStudyFilterRankS(false);
+      setStudyFilterWeak(false);
+      setStudyFilterSubjects({ math: false, eng: false, sci: false, soc: false, jpn: false });
+      const subject = studySubjectsData.find(s => s.units.some(u => u.id === stepId));
+      if (subject) setOpenStudySubjects(prev => ({ ...prev, [subject.id]: true }));
+      const group = STUDY_STAGE_BY_UNIT_ID[stepId];
+      if (group) setOpenGenreStages(prev => ({ ...prev,
+        ["study:" + group.subjectId + ":" + group.grade + ":" + group.number]: true }));
+    }
+    setTab(targetTab);
+    setExpandedDetailTasks({ [stepId]: true });
+    if (targetTab === "music" || targetTab === "python") {
+      const targetStep = task ? null :
+        (targetTab === "music" ? musicSteps : pythonSteps).find(step => step.id === stepId);
+      const stageKey = task?.stageKey || targetStep?.stage;
+      if (stageKey) setOpenGenreStages(prev => ({
+        ...prev, [targetTab + ":" + stageKey]: true }));
+    }
+    setHighlightedTaskId(taskId);
+    setTimeout(() => {
+      const el = document.getElementById(task ? "riff-task-" + taskId : stepId);
+      if (el) scrollToRiffTarget(el);
+    }, 160);
+  };
+  const jumpToStage = stageKey => {
+    setOpenStageCards(prev => ({ ...prev, [stageKey]: true }));
+    setTab("stage");
+    setTimeout(() => {
+      const el = document.getElementById("riff-stage-" + stageKey);
+      if (el) scrollToRiffTarget(el);
+    }, 160);
+  };
+
+  const renderStandardTaskTags = (u, subObj, targetTab = "study") => {
+    const stageObj = stageInfo[u.stage] || { label: "ステージ 1" };
+    
+    let levelBg = "#475569";
+    if (u.level === "得意") levelBg = "#059669";
+    else if (u.level === "少し苦手") levelBg = "#D97706";
+    else if (u.level === "苦手") levelBg = "#DC2626";
+
+    const subjectColor = subObj.color || C.study;
+
+    return h('div', {
+      onClick: () => toggleTaskDetail(u.id),
+      style: {
+        display: "flex", flexWrap: "wrap", alignItems: "center",
+        justifyContent: "space-between", gap: "6px", marginBottom: "4px", width: "100%",
+        cursor: "pointer"
+      }
+    },
+      h('div', { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "5px" } },
+        h('span', {
+          className: "badge-tag",
+          style: { color: "#FFFFFF", background: C.study, fontWeight: 600 }
+        }, `ステップ${u.stepNum}`),
+
+        h('span', {
+          className: "badge-tag",
+          style: { color: "#FFFFFF", background: "#475569", fontWeight: 600, border: "none" }
+        }, u.grade),
+
+        h('span', {
+          className: "badge-tag",
+          style: {
+            color: "#FFFFFF",
+            background: u.rank === "S" ? "#DC2626" : (u.rank === "A" ? C.study : "#64748B"),
+            border: "none",
+            fontWeight: 600
+          }
+        }, `${u.rank}ランク`),
+
+        h('span', {
+          className: "badge-tag",
+          style: { color: "#FFFFFF", background: subjectColor, fontWeight: 600, border: "none" }
+        }, `${subObj.icon || "📚"} ${subObj.name || "教科"}`),
+
+        h('span', {
+          className: "badge-tag",
+          style: { color: "#FFFFFF", background: subjectColor, fontWeight: 600, border: "none" }
+        }, u.unit),
+
+        h('span', {
+          className: "badge-tag",
+          style: { color: "#FFFFFF", background: levelBg, fontWeight: 600, border: "none" }
+        }, u.level)
+      ),
+
+      h('div', { style: { display: "flex", alignItems: "center", gap: "5px", marginLeft: "auto" } },
+        h('span', { className: "badge-tag",
+          style: { color: "#065F46", background: "#ECFDF5",
+            border: "1px solid #6EE7B7", fontWeight: 800 } },
+          stepTimeLabel(u)),
+
+        h('span', {
+          className: "badge-tag",
+          style: { color: C.muted, background: "transparent", border: `1px solid ${C.border}`, fontWeight: 600 }
+        }, `予定: ${studyMonthOverrides[u.id] || u.targetPeriod}`),
+        (u.taskKind === "current" || u.taskKind === "pastpaper") &&
+          h('label', { style: { fontSize: "12px", fontWeight: 700 } },
+            "学ぶ月を変更 ",
+            h('input', { type: "month", className: "time-input-inline",
+              "aria-label": u.item + "の学習月",
+              value: studyMonthOverrides[u.id] || u.targetPeriod,
+              onClick: e => e.stopPropagation(),
+              onChange: e => setStudyMonthOverride(u.id, e.target.value) })),
+        u.curriculumStatus === "tentative" &&
+          h('span', { className: "badge-tag", style: { color: "#92400E",
+            background: "#FFFBEB" } }, "学校の進度を要確認"),
+        h('select', { className: "time-input-inline",
+          "aria-label": u.item + "の計画上の扱い",
+          title: "学習計画の取捨選択。既存チェックは維持し、今日の固定済み割当は再割当するまで変わりません。",
+          value: getStudyUnitPlan(u.id),
+          style: { padding: "3px", fontSize: "11px", background: "#FFFFFF" },
+          onClick: e => e.stopPropagation(),
+          onChange: e => saveStudyUnitPlan(u.id, e.target.value) },
+          h('option', { value: "active" }, "計画に残す"),
+          h('option', { value: "review" }, "必要か考える"),
+          h('option', { value: "defer" }, "あとでやる")
+        ),
+
+        targetTab !== "study" && h('button', {
+          className: "btn-action",
+          onClick: (e) => { e.stopPropagation(); jumpToTask(targetTab, u.id); },
+          style: { color: "#FFFFFF", background: C.study, padding: "6px 9px", fontSize: "12px" }
+        }, "学習のステップへ ↗")
+      )
+    );
+  };
+
+  /* Render structured study task item */
+  const renderStudyTaskCard = (u, subObj, targetTab = "study") => {
+    const isChecked = !!checkedItems[u.id];
+    const isExpanded = !!expandedDetailTasks[u.id];
+    const completedTasks = u.subtasks.filter(task => checkedItems[task.id]).length;
+
+    return h('div', {
+      key: u.id,
+      id: u.id,
+      style: {
+        background: isChecked ? "#F8FAFC" : C.studyBg,
+        border: `1.5px solid ${isChecked ? "rgba(0,0,0,0.06)" : (u.rank === "S" ? "#FCA5A5" : C.studyBorder)}`,
+        borderRadius: "9px",
+        padding: "9px 12px",
+        marginBottom: "7px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+      }
+    },
+      h('div', { style: { display: "flex", gap: "10px", alignItems: "flex-start" } },
+        h('input', {
+          type: "checkbox",
+          className: "custom-checkbox-interactive",
+          checked: isChecked,
+          onChange: () => toggleCheck(u.id),
+          style: { marginTop: "3px" }
+        }),
+        h('div', { style: { flex: 1, minWidth: 0 } },
+          renderStandardTaskTags(u, subObj, targetTab),
+          h('div', { style: { fontSize: "11px", color: C.studyText,
+            fontWeight: 800, marginBottom: "4px" } },
+            "やること完了 " + completedTasks + "/" + u.subtasks.length),
+          h('div', { style: { display: "flex", alignItems: "flex-start",
+            justifyContent: "space-between", gap: "8px", marginBottom: "5px",
+            minWidth: 0, width: "100%" } },
+            h('button', { type: "button", onClick: () => toggleTaskDetail(u.id),
+              "aria-expanded": isExpanded,
+              style: { background: "transparent", border: "none", textAlign: "left",
+                flex: "1 1 0", minWidth: 0, fontSize: "14px", fontWeight: 800,
+                color: isChecked ? C.muted : C.text,
+                cursor: "pointer", lineHeight: 1.5, padding: "2px 0",
+                overflowWrap: "anywhere" } },
+              u.item, isExpanded ? " ▲" : " ▼"),
+            h('button', { type: "button", className: "btn-action",
+              "aria-expanded": !!openStudyMemos[u.id],
+              onClick: () => setOpenStudyMemos(prev =>
+                ({ ...prev, [u.id]: !prev[u.id] })),
+              style: { flex: "0 0 auto", marginLeft: "auto",
+                padding: "5px 7px", background: "#FFFFFF",
+                border: "1px solid #BFDBFE", color: C.studyText,
+                fontSize: "12px" } },
+              "学習メモ " + (openStudyMemos[u.id] ? "▲" : "▼"))
+          ),
+          !!openStudyMemos[u.id] && h('div', { style: {
+            margin: "6px 0 10px", borderLeft: "3px solid #64748B",
+            background: "#FFFFFF", padding: "10px 12px",
+            borderRadius: "5px", fontSize: "13px", lineHeight: 1.65,
+            overflowWrap: "anywhere" } }, u.memo),
+          isExpanded && h('div', {
+            style: {
+              marginTop: "6px",
+              paddingTop: "6px",
+              borderTop: "1px dashed rgba(0,0,0,0.1)",
+              fontSize: "12px",
+              color: C.sub,
+              lineHeight: 1.45
+            }
+          },
+            h('div', { style: { color: C.studyText, fontWeight: 900, margin: "6px 0" } },
+              "📚 やること（" + stepTimeLabel(u) + "）"),
+            u.subtasks.map(task => h(React.Fragment, { key: task.id }, h('div', {
+              id: "riff-task-" + task.id, className: "riff-task-row",
+              style: { display: "flex", alignItems: "center", gap: "7px",
+                flexWrap: "wrap", padding: "5px 0", borderTop: "1px solid #E5E7EB",
+                background: highlightedTaskId === task.id ? "#FEF08A" : "transparent",
+                outline: highlightedTaskId === task.id ? "2px solid #EAB308" : "none",
+                borderRadius: "4px" } },
+              h('input', { type: "checkbox", className: "custom-checkbox-interactive",
+                checked: !!checkedItems[task.id],
+                onChange: () => toggleCheck(task.id),
+                "aria-label": task.text + "の完了" }),
+              renderTaskTitle(task, { color: highlightedTaskId === task.id ? "#713F12" :
+                  checkedItems[task.id] ? C.muted : C.text,
+                textDecoration: checkedItems[task.id] ? "line-through" : "none" }),
+              renderTaskTimeMeta(task),
+              h('span', { className: "badge-tag", style: { color: "#1D4ED8",
+                background: "#EFF6FF", maxWidth: "150px", overflow: "hidden",
+                textOverflow: "ellipsis", whiteSpace: "nowrap" },
+                title: taskTextbookPages[task.id] || task.textbookPages ||
+                  "このやることの教科書ページは未確認です。" },
+                "📖 " + (taskTextbookPages[task.id] || task.textbookPages || "ページ未確認")),
+              renderTaskActions(task, u.textbookRef)
+              )
+            )),
+            h('div', { style: { marginTop: "5px", fontSize: "11px", color: C.muted } },
+              "単元の完了チェックと、細かいやることのチェックは別々に記録します。")
+          )
+        ),
+        h('button', {
+          onClick: () => toggleTaskDetail(u.id),
+          style: { background: "none", border: "none", color: C.muted, cursor: "pointer", padding: "4px", fontSize: "12px" }
+        }, isExpanded ? "▲" : "▼")
+      )
+    );
+  };
+
+  // 同じtask.idを使うため「今日・月別・ステージ・各ジャンル」のチェックが連動する。
+  const renderMiniTaskChecklist = (step, dark = false) => h('div', {
+    style: { display: "flex", flexDirection: "column", gap: "7px",
+      marginTop: "8px", width: "100%", fontSize: "14px" }
+  },
+    (step.subtasks || []).map(task => h(React.Fragment, { key: task.id },
+      h('div', { className: 'riff-task-row',
+        style: { display: "flex", gap: "8px", alignItems: "center",
+          flexWrap: "wrap", padding: "4px 0",
+          color: checkedItems[task.id] ? (dark ? "#CBD5E1" : C.muted) :
+            (dark ? "#FFFFFF" : C.text) } },
+        h('input', { type: "checkbox", className: "custom-checkbox-interactive",
+          checked: !!checkedItems[task.id], onChange: () => toggleCheck(task.id),
+          "aria-label": task.text + "の完了" }),
+        renderTaskTitle(task, { fontSize: "14px",
+          color: checkedItems[task.id] ? (dark ? "#CBD5E1" : C.muted) :
+            (dark ? "#FFFFFF" : C.text),
+          textDecoration: checkedItems[task.id] ? "line-through" : "none" }),
+        h('span', { style: { flexShrink: 0, fontSize: "12px",
+          color: dark ? "#A7F3D0" : C.codeText, fontWeight: 800 } },
+          taskEstimateLabel(task)),
+        renderTaskActions(task, "", false)
+      )
+    ))
+  );
+
+  const renderScheduleCategorySelect = (item, index) =>
+    h('select', { className: "time-input-inline", value: getScheduleCategory(item),
+      "aria-label": "時間割項目の分野", title: "今日の学習・音楽・開発の表示先",
+      style: { maxWidth: "88px", minWidth: "70px", fontSize: "11px" },
+      onChange: (e) => updateScheduleItemField(schedType, index, "category", e.target.value) },
+      h('option', { value: "study" }, "📚 学習"),
+      h('option', { value: "music" }, "🎸 音楽"),
+      h('option', { value: "python" }, "💻 開発"),
+      h('option', { value: "other" }, "他")
+    );
+
+  const renderScheduleStepSelect = (item, index) => {
+    const choices = scheduleStepChoices[getScheduleCategory(item)] || [];
+    if (!choices.length) return null;
+    const validValue = choices.some(step => step.id === item.linkedStepId) ? item.linkedStepId : "";
+    return h('select', {
+      className: "time-input-inline", value: validValue, title: "今日の予定と計画ステップを紐付け",
+      "aria-label": "紐付けるステージ・ステップ",
+      style: { width: "156px", maxWidth: "100%", minWidth: 0, fontSize: "11px" },
+      onChange: (e) => updateScheduleItemField(schedType, index, "linkedStepId", e.target.value)
+    },
+      h('option', { value: "" }, "ステージ／ステップ未設定"),
+      choices.map(step => h('option', { key: step.id, value: step.id },
+        stageInfo[step.stage].shortLabel + " ステップ" + step.stepNum + "｜" + step.taskTitle))
+    );
+  };
+
+  // All three sections use the same schedule rows and date-specific completion keys.
+  const todayActivities = { study: [], music: [], python: [] };
+  todaySched.items.forEach(item => {
+    const category = getScheduleCategory(item);
+    if (todayActivities[category]) todayActivities[category].push(item);
+  });
+  const scheduleCategoryInfo = {
+    study: { label: "学習", color: C.study, tab: "study" },
+    music: { label: "音楽", color: C.music, tab: "music" },
+    python: { label: "開発", color: C.code, tab: "python" }
+  };
+  // 時間割に現れた最初の活動の順に、今日の3カードを並べる。
+  // 予定のない分野も従来どおり末尾に表示する。
+  const orderedTodayCategories = [...new Set([
+    ...todaySched.items.map(getScheduleCategory).filter(key => scheduleCategoryInfo[key]),
+    "study", "music", "python"
+  ])];
+  const todaySectionDisplay = {
+    study: { title: "📚 今日の学習", open: openTodayStudy,
+      toggle: () => setOpenTodayStudy(!openTodayStudy), color: C.studyText },
+    music: { title: "🎸 今日の音楽", open: openTodayMusic,
+      toggle: () => setOpenTodayMusic(!openTodayMusic), color: C.musicText },
+    python: { title: "💻 今日の開発", open: openTodayCode,
+      toggle: () => setOpenTodayCode(!openTodayCode), color: C.codeText }
+  };
+  // 今日の枠はPCではステップ見出し＋作業行の2行。追加・入れ替えフォームは必要なときだけ開く。
+  const renderTodayCustomEditor = (slot, replacementId = null) =>
+    h('div', { className: "riff-today-form",
+      style: { padding: "10px", border: "1px solid #BFDBFE",
+        borderRadius: "8px", marginTop: "8px", background: "#EFF6FF",
+        display: "flex", flexDirection: "column", gap: "8px" } },
+      h('div', { style: { fontSize: "13px", fontWeight: 900, color: C.studyText } },
+        replacementId ? "自由入力で入れ替える" : "今日だけのやることを追加"),
+      h('input', { type: "text", className: "time-input-inline",
+        "aria-label": "今日だけのやることの名前", placeholder: "例：学校の数学ワークを終わらせる",
+        value: todayNewTaskDraft.text, style: { width: "100%", padding: "9px", minWidth: 0 },
+        onChange: e => setTodayDraftField("text", e.target.value) }),
+      h('div', { style: { display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" } },
+        h('label', { style: { display: "flex", gap: "5px", alignItems: "center" } }, "ジャンル",
+          h('select', { className: "time-input-inline", value: todayNewTaskDraft.genre,
+            onChange: e => setTodayDraftField("genre", e.target.value) },
+            Object.entries(RIFF_GENRES).map(([genre, info]) =>
+              h('option', { key: genre, value: genre }, info.icon + info.label)))),
+        h('label', { style: { display: "flex", gap: "5px", alignItems: "center" } }, "目安",
+          h('input', { type: "number", className: "time-input-inline", min: 1, max: 1440,
+            value: todayNewTaskDraft.minutes, style: { width: "64px", padding: "7px" },
+            onChange: e => setTodayDraftField("minutes", e.target.value) }), "分"),
+        h('button', { type: "button", className: "btn-action",
+          style: { background: C.study, color: "#FFFFFF" },
+          onClick: () => addTodayCustomTask(slot.id, replacementId) },
+          replacementId ? "この内容に入れ替え" : "今日だけ追加")),
+      h('div', { style: { fontSize: "12px", color: C.sub } },
+        replacementId ? "元の作業を外して、入力した作業に置き換えます。" :
+          "元の作業を残して追加します。時間枠に収まらない場合は追加しません。")
+    );
+  const renderTodayReplacement = (slot, oldTask) => {
+    const stages = Object.keys(stageInfo).filter(key =>
+      scheduleStepChoices[todayReplaceGenre]?.some(step => step.stage === key));
+    const steps = (scheduleStepChoices[todayReplaceGenre] || []).filter(step =>
+      !todayReplaceStage || step.stage === todayReplaceStage);
+    const query = todayReplaceQuery.trim().toLocaleLowerCase();
+    const choices = (TASK_CATALOG[todayReplaceGenre] || []).filter(task =>
+      (!todayReplaceStage || task.stageKey === todayReplaceStage) &&
+      (!todayReplaceStep || task.stepId === todayReplaceStep) &&
+      (!query || [task.text, taskShortTitle(task), task.stepTitle,
+        task.subject || ""].join(" ").toLocaleLowerCase().includes(query)));
+    const available = choices.filter(task =>
+      !checkedItems[task.id] && task.id !== oldTask.id &&
+      !Object.values(todaySlots).some(ids => ids.includes(task.id)));
+    return h('div', { key: "replacement-" + oldTask.id,
+      className: "riff-today-form", style: { background: "#F8FAFC",
+        border: "1px solid #BFDBFE", borderRadius: "8px",
+        padding: "10px", margin: "8px 0", minWidth: 0 } },
+      h('div', { style: { display: "flex", alignItems: "center",
+        justifyContent: "space-between", gap: "8px" } },
+        h('strong', { style: { fontSize: "14px" } }, "やることの入れ替え"),
+        h('button', { type: "button", className: "btn-action",
+          onClick: () => setOpenTodayLinkFor(null) }, "閉じる")),
+      h('div', { style: { fontSize: "12px", color: C.sub, margin: "5px 0 10px" } },
+        "現在：" + taskShortTitle(oldTask) +
+        "。他のジャンルからも選べます。入れ替え後は再調整から保護します。"),
+      h('div', { style: { display: "flex", flexWrap: "wrap", gap: "7px" } },
+        h('label', { style: { display: "flex", flexDirection: "column",
+          gap: "3px", flex: "1 1 110px", fontSize: "12px" } }, "ジャンル",
+          h('select', { className: "time-input-inline", value: todayReplaceGenre,
+            style: { minWidth: 0, maxWidth: "100%", padding: "8px" },
+            onChange: e => { setTodayReplaceGenre(e.target.value);
+              setTodayReplaceStage(""); setTodayReplaceStep(""); } },
+            Object.entries(RIFF_GENRES).map(([genre, info]) =>
+              h('option', { key: genre, value: genre }, info.icon + " " + info.label)))),
+        h('label', { style: { display: "flex", flexDirection: "column",
+          gap: "3px", flex: "1 1 125px", fontSize: "12px" } }, "ステージ",
+          h('select', { className: "time-input-inline", value: todayReplaceStage,
+            style: { minWidth: 0, maxWidth: "100%", padding: "8px" },
+            onChange: e => { setTodayReplaceStage(e.target.value); setTodayReplaceStep(""); } },
+            h('option', { value: "" }, "すべて"),
+            stages.map(key => h('option', { key, value: key }, stageInfo[key].label)))),
+        h('label', { style: { display: "flex", flexDirection: "column",
+          gap: "3px", flex: "2 1 210px", fontSize: "12px" } }, "ステップ",
+          h('select', { className: "time-input-inline", value: todayReplaceStep,
+            style: { minWidth: 0, maxWidth: "100%", padding: "8px" },
+            onChange: e => setTodayReplaceStep(e.target.value) },
+            h('option', { value: "" }, "すべてのステップ"),
+            steps.map(step => h('option', { key: step.id, value: step.id },
+              "ステップ" + step.stepNum + "｜" + step.taskTitle))))),
+      h('input', { type: "search", className: "time-input-inline",
+        "aria-label": "やることを検索",
+        placeholder: "やることを検索（例：Amber、方程式）",
+        style: { width: "100%", padding: "9px", margin: "9px 0" },
+        value: todayReplaceQuery, onChange: e => setTodayReplaceQuery(e.target.value) }),
+      h('div', { style: { display: "flex", flexDirection: "column",
+        gap: "6px", maxHeight: "300px", overflowY: "auto" } },
+        available.slice(0, 8).map(task => h('button', { type: "button",
+          key: task.id, className: "riff-today-choice",
+          style: { textAlign: "left", padding: "9px 10px", background: "#FFFFFF",
+            border: "1px solid #CBD5E1", borderRadius: "7px",
+            fontSize: "13px", lineHeight: 1.5, overflowWrap: "anywhere" },
+          onClick: () => updateDailyTask(slot.id, oldTask.id, task.id) },
+          h('span', { style: { fontWeight: 900, display: "block",
+            color: RIFF_GENRES[task.genre].color } },
+            RIFF_GENRES[task.genre].label + "｜ステップ" + task.stepNum),
+          taskShortTitle(task) + "｜" + formatTaskMinutes(effectiveTaskMinutes(task)))),
+        !available.length && h('p', { style: { fontSize: "12px",
+          color: C.muted, margin: "3px" } }, "該当する未完了の作業がありません。"),
+        available.length > 8 && h('p', { style: { fontSize: "12px",
+          color: C.muted, margin: "3px" } },
+          "ほかに" + (available.length - 8) +
+          "件あります。ステージ・ステップ・検索で絞り込んでください。")),
+      h('details', { style: { marginTop: "10px" } },
+        h('summary', { style: { fontWeight: 800, fontSize: "13px",
+          cursor: "pointer" } }, "一覧にない作業を入力して入れ替える"),
+        renderTodayCustomEditor(slot, oldTask.id))
+    );
+  };
+  const renderTodayScheduleDetail = item => {
+    const category = getScheduleCategory(item);
+    if (!TASK_CATALOG[category]) return null;
+    const catInfo = scheduleCategoryInfo[category];
+    const tasks = (todaySlots[item.id] || []).map(resolveTodayTask).filter(Boolean);
+    const budget = parseScheduleDuration(item.t);
+    const used = tasks.reduce((total, task) => total + effectiveTaskMinutes(task), 0);
+    const complete = tasks.filter(task => checkedItems[task.id]).length;
+    const legacyCustom = todayCustomTasks[scheduleCheckKey(item.id)] || "";
+    const stepIds = [...new Set(tasks.map(task => task.stepId))];
+    const addOpen = openTodayAddFor === item.id;
+    return h('div', { style: { background: "#FFFFFF", minWidth: 0,
+      border: "1px solid " + C.border, borderLeft: "4px solid " + catInfo.color,
+      borderRadius: "8px", padding: "10px", margin: "0 0 8px 0" } },
+      h('div', { style: { fontSize: "12px", fontWeight: 800, color: catInfo.color,
+        marginBottom: "8px", display: "flex", flexWrap: "wrap", gap: "5px" } },
+        "予定の目安 " + formatTaskMinutes(used) + " / " + formatTaskMinutes(budget) +
+        "（残り" + formatTaskMinutes(Math.max(0, budget - used)) + "）"),
+      used > budget && h('div', { style: { fontSize: "12px", fontWeight: 800,
+        marginBottom: "8px", color: "#B91C1C", padding: "8px",
+        background: "#FEF2F2", borderRadius: "5px" } },
+        "現在の目安では" + formatTaskMinutes(used - budget) +
+        "超過します。計測だけで今日の予定は変わりません。必要なら見出しの「今日の残りを再調整」から変更案を確認してください。"),
+      stepIds.map(stepId => {
+        const stepTasks = tasks.filter(task => task.stepId === stepId);
+        const first = stepTasks[0];
+        const stage = stageInfo[first.stageKey] || {};
+        const studyStage = STUDY_STAGE_BY_UNIT_ID[stepId];
+        const firstEditable = stepTasks.find(task => !checkedItems[task.id]);
+        const editKey = item.id + ":" + stepId;
+        const isCustom = !!first.custom;
+        return h('div', { key: stepId, style: { background: "#F8FAFC",
+          border: "1px solid " + C.border, borderRadius: "7px",
+          padding: "8px", marginBottom: "8px", minWidth: 0 } },
+          h('div', { className: "riff-today-step-head",
+            style: { display: "flex", gap: "6px", alignItems: "center",
+              flexWrap: "wrap", marginBottom: "5px" } },
+            h('span', { className: "badge-tag", style: {
+              background: stage.color || C.study, color: "#FFFFFF" } },
+              isCustom ? "今日だけ" :
+                "ステージ" + (studyStage ? studyStage.number : first.stageKey.slice(1))),
+            h('span', { className: "badge-tag", style: {
+              background: RIFF_GENRES[first.genre]?.color || C.study,
+              color: "#FFFFFF" } },
+              isCustom ? RIFF_GENRES[first.genre]?.label || "追加" :
+                "ステップ" + first.stepNum),
+            h('span', { className: "riff-today-step-title",
+              style: { flex: "1 1 150px", minWidth: 0,
+                fontWeight: 800, fontSize: "14px", overflowWrap: "anywhere" } },
+              isCustom ? "今日だけのやること" : first.stepTitle),
+            firstEditable && h('button', { type: "button", className: "btn-action",
+              "aria-expanded": openTodayLinkFor === editKey,
+              style: { background: "#EFF6FF", color: C.studyText,
+                padding: "6px 9px", fontSize: "12px" },
+              onClick: () => openTodayReplacement(item.id, stepId, firstEditable) },
+              "やることの入れ替え")),
+          stepTasks.map((task, index) => h(React.Fragment, { key: task.id },
+            h('div', { className: "riff-today-task-line",
+              style: { display: "flex", gap: "7px", alignItems: "center",
+                padding: "5px 0", minWidth: 0, flexWrap: "wrap",
+                borderTop: "1px dashed " + C.border } },
+              h('input', { type: "checkbox", className: "custom-checkbox-interactive",
+                checked: !!checkedItems[task.id], onChange: () => toggleCheck(task.id),
+                "aria-label": task.text + "の完了" }),
+              renderTaskTitle(task, { color: checkedItems[task.id] ? C.muted : C.text,
+                textDecoration: checkedItems[task.id] ? "line-through" : "none" }),
+              renderTaskTimeMeta(task),
+              index === stepTasks.length - 1 && h('button', {
+                type: "button", className: "btn-action",
+                "aria-expanded": addOpen,
+                style: { background: "#FFFFFF", color: C.studyText,
+                  border: "1px solid #BFDBFE", fontSize: "12px", padding: "7px 9px" },
+                onClick: () => {
+                  setOpenTodayLinkFor(null);
+                  setOpenTodayAddFor(prev => prev === item.id ? null : item.id);
+                  setTodayNewTaskDraft({ text: "", minutes: "5",
+                    genre: task.genre || category });
+                  setAssignmentWarning("");
+                } }, "＋今日だけ追加"),
+              stepTasks.length > 1 && index > 0 && !checkedItems[task.id] &&
+                h('button', { type: "button", className: "btn-action",
+                  style: { fontSize: "11px", padding: "5px 7px" },
+                  onClick: () => openTodayReplacement(item.id, stepId, task) },
+                  "入れ替え")),
+            renderTaskActions(task, "", true)
+          )),
+          openTodayLinkFor === editKey && firstEditable &&
+            renderTodayReplacement(item, resolveTodayTask(todayReplaceTarget) || firstEditable)
+        );
+      }),
+      tasks.length === 0 && h('div', { style: { fontSize: "12px", color: C.muted } },
+        "この枠に割り当てられた作業はありません。",
+        h('button', { type: "button", className: "btn-action",
+          style: { marginLeft: "8px", background: C.studyBg, color: C.studyText },
+          onClick: () => setOpenTodayAddFor(item.id) }, "＋今日だけ追加")),
+      openTodayAddFor === item.id && renderTodayCustomEditor(item),
+      legacyCustom && h('div', { style: { border: "1px solid #FCD34D",
+        background: "#FFFBEB", borderRadius: "7px",
+        padding: "9px", marginTop: "8px", fontSize: "12px" } },
+        h('strong', null, "以前の自由入力メモ："), legacyCustom,
+        h('div', { style: { marginTop: "6px", display: "flex",
+          gap: "7px", flexWrap: "wrap" } },
+          h('button', { type: "button", className: "btn-action",
+            onClick: () => {
+              setTodayNewTaskDraft({ text: legacyCustom, minutes: "5",
+                genre: category });
+              setOpenTodayAddFor(item.id);
+            } }, "今日だけの作業として追加"),
+          h('button', { type: "button", className: "btn-action",
+            onClick: () => setTodayCustomTask(item.id, "") },
+            "メモを消す"))),
+      assignmentWarning && h('div', { role: "alert", style: { color: "#B91C1C",
+        fontSize: "12px", fontWeight: 800, marginTop: "8px" } }, assignmentWarning),
+      h('div', { style: { fontSize: "12px", color: C.muted,
+        marginTop: "6px" } }, "完了 " + complete + "/" + tasks.length)
+    );
+  };
+
+  const toggleTaskExplanation = id => setOpenTaskDescriptions(prev =>
+    ({ ...prev, [id]: !prev[id] }));
+  const renderTaskTitle = (task, style = {}) =>
+    h('button', { type: "button", className: "riff-task-title-toggle",
+      title: task.text, "aria-expanded": !!openTaskDescriptions[task.id],
+      "aria-label": taskShortTitle(task) + "の説明を" +
+        (openTaskDescriptions[task.id] ? "閉じる" : "開く"),
+      onClick: () => toggleTaskExplanation(task.id),
+      style: { flex: "1 1 170px", minWidth: 0, ...style } },
+      taskShortTitle(task),
+      h('span', { className: "riff-title-arrow", "aria-hidden": true },
+        openTaskDescriptions[task.id] ? "▲" : "▼"));
+  const taskExplanation = (task, studyReference = "") => {
+    if (!openTaskDescriptions[task.id]) return null;
+    const hasReference = !!studyReference || ALL_TASKS_BY_ID[task.id]?.genre === "study";
+    return h('div', { className: "riff-task-panel",
+      style: { flex: "1 1 100%", minWidth: 0, width: "100%",
+        padding: "10px 12px", borderRadius: "7px",
+        background: "#F8FAFC", borderLeft: "3px solid #64748B",
+        color: "#1E293B", fontSize: "14px", lineHeight: 1.7 } },
+      h('div', null, task.text),
+      hasReference && h('div', { style: { marginTop: "8px", fontSize: "13px",
+        display: "flex", flexDirection: "column", gap: "6px" } },
+        h('div', null, (taskTextbookPages[task.id] || task.textbookPages)
+          ? "📖 このやることのページ：" +
+              (taskTextbookPages[task.id] || task.textbookPages)
+          : "📖 このやることのページ：未確認" +
+              (studyReference ? "（単元全体の参考：" + studyReference + "）" : "")),
+        h('label', { style: { display: "flex", flexWrap: "wrap",
+          gap: "6px", alignItems: "center" } }, "確認できたページを記録",
+          h('input', { type: "text", className: "time-input-inline",
+            value: taskTextbookPages[task.id] || "",
+            "aria-label": taskShortTitle(task) + "の教科書ページ",
+            placeholder: "例：p.14〜16（教材の版も確認）",
+            style: { flex: "1 1 190px", minWidth: 0, maxWidth: "100%", padding: "6px" },
+            onChange: e => updateTaskTextbookPage(task.id, e.target.value) })),
+        h('div', { style: { fontSize: "12px", color: "#64748B" } },
+          "ページは自動で調べていません。教材の版と実物を確認して入力してね。"))
+    );
+  };
+  // 目安時間と時計は一つの操作エリア。説明・計測パネルはその下に表示。
+  const renderTaskTimeMeta = task =>
+    h('div', { className: "riff-task-meta",
+      style: { flex: "0 1 auto", alignSelf: "flex-start" } },
+      h('span', { className: "badge-tag", style: { color: "#065F46",
+        background: "#ECFDF5", fontWeight: 800, whiteSpace: "normal" } },
+        taskEstimateLabel(task)),
+      renderTaskMeasurement(task, "button"));
+  const renderTaskActions = (task, studyReference = "", withMeasurement = true,
+      showClockHere = false) =>
+    h(React.Fragment, null,
+      showClockHere && withMeasurement && h('div', { className: "riff-task-toolbar",
+        style: { flex: "1 1 100%", width: "100%", minWidth: 0 } },
+        renderTaskMeasurement(task, "button")),
+      taskExplanation(task, studyReference),
+      withMeasurement && !!openTaskMeasurements[task.id] &&
+        renderTaskMeasurement(task, "panel")
+    );
+  const renderStepJumpBadge = (step, targetTab, color) =>
+    h('button', { type: "button", className: "riff-step-jump",
+      title: "ステップ" + step.stepNum + "を" +
+        (targetTab === "python" ? "開発" : targetTab === "music" ? "音楽" : "学習") +
+        "タブで開く",
+      "aria-label": "ステップ" + step.stepNum + "の詳細へ移動",
+      style: { background: color },
+      onClick: e => { e.stopPropagation(); jumpToTask(targetTab, step.id); } },
+      "ステップ" + step.stepNum + " ↗");
+
+  const helpSection = (heading, summary, details) =>
+    h('details', { className: "riff-help-section" },
+      h('summary', null, heading),
+      h('div', null,
+        h('p', null, summary),
+        details && h('p', { style: { color: "#475569" } }, details)
+      )
+    );
+
+  return h('div', { style: { minHeight: "100dvh", background: C.bg, color: C.text } },
+    helpPage && h('div', { className: "riff-help-backdrop",
+      role: "presentation",
+      onClick: () => setHelpPage(null) },
+      h('div', { className: "riff-help-dialog", role: "dialog",
+        "aria-modal": true, "aria-label": helpPage === "intro" ? "はじめに" : "ユーザーマニュアル",
+        onClick: e => e.stopPropagation() },
+        h('div', { style: { display: "flex", justifyContent: "space-between",
+          alignItems: "center", gap: "12px", borderBottom: "1px solid #CBD5E1",
+          paddingBottom: "10px" } },
+          h('h2', { style: { fontSize: "20px", fontWeight: 900 } },
+            helpPage === "intro" ? "👋 RIFF はじめに" : "📖 RIFFの使いかた"),
+          h('button', { type: "button", className: "btn-action",
+            style: { color: "#FFFFFF", background: "#334155" },
+            onClick: () => setHelpPage(null) }, "閉じる ✕")
+        ),
+        helpPage === "intro" ? h(React.Fragment, null,
+          h('p', null, "RIFFは、真くんの「やりたい！」を少しずつ形にするためのアプリです。"),
+          h('p', null, "勉強・ギター・音楽づくり・プログラミングを、一つの予定表で見られます。全部を一日にやる必要はありません。"),
+          helpSection("🎯 何のためのアプリ？",
+            "高校受験に向けて学びながら、ギターとMountain of Soundの制作も続けるためです。",
+            "予定どおり進まない日があっても大丈夫。残り時間を見て、次に何をするか選べます。"),
+          helpSection("🧩 3つの大切な言葉",
+            "「ステージ」は大きな目標。「ステップ」はその中のまとまり。「やること」は今日チェックできる小さな作業です。",
+            "音楽・開発・学習のどのタブでも同じ意味で使います。"),
+          helpSection("⏱ 「目安」と「実測」の違い",
+            "目安は、始める前に考えた時間。実測は、自分で計って記録した時間です。",
+            "同じ作業を3回計測すると、真ん中の時間を次の予定づくりに使います。今日の予定は勝手には入れ替わりません。"),
+          h('p', { style: { fontWeight: 800, color: "#1D4ED8" } },
+            "合言葉は「すべての学びは作品につながる」。")
+        ) : h(React.Fragment, null,
+          h('p', null, "使いたいところだけ開いて読んでね。最初は「今日」だけでもOKです。"),
+          helpSection("① 今日：今やることを見よう",
+            "時間割の予定名を押すと、その時間にやることが下に開きます。終わったら□にチェック！",
+            "やること名を押すと説明が開きます。目安時間の右の時計から作業時間を記録できます。ステップ見出しの「やることの入れ替え」は、別ジャンルの作業も選べます。"),
+          helpSection("② 音楽・開発・学習：くわしく見よう",
+            "色のついた「ステージ」を押すと、中のステップを開いたり閉じたりできます。",
+            "ステップの名前を押すと、やることが見えます。やること名を押すと説明が開き、目安時間の右にある時計から作業時間を記録できます。"),
+          helpSection("③ 実測しても今日の予定は勝手に変わらない",
+            "時計アイコンで「時間をはかる」→「止めて記録」。実際に使った時間を保存します。3回以上計ると中央値を次の目安に使います。",
+            "大切：計測や目安時間の変更だけでは今日の作業・時間割を自動変更しません。時間が足りない可能性を表示し、本人が「今日の残りを再調整」を押したときにだけ変更案を作ります。案を見て「この内容で変更」を押した場合だけ反映します。"), 
+          helpSection("④ 今日の残りを再調整する",
+            "今から先の未完了・未固定の作業だけを、空いている同ジャンルの時間枠に入れ直す案を作ります。",
+            "完了済み・開始済みの時間枠・本人が入れ替えた作業や今日だけの作業は保護します。入らない作業は今日の予定から外す候補として表示し、長期計画は消しません。内容を確認し、反映するかキャンセルするか本人が決めます。"), 
+          helpSection("⑤ 入れ替えと今日だけ追加の違い",
+            "「やることの入れ替え」は今の作業を外し、音楽・開発・学習から選んだ別の作業に替えます。一覧にない作業への入れ替えもできます。",
+            "「＋今日だけ追加」は元の作業を残し、別の作業を増やします。名前と目安時間を指定し、時間枠に収まる場合だけ追加します。以前の自由入力は消さずにメモとして残し、必要なら作業に変換できます。"),
+          helpSection("⑥ 予定が多すぎるとき",
+            "学習タブで、目標までに必要な時間と、使えそうな時間を比べられます。",
+            "「計画に残す」「必要か考える」「あとでやる」から選べます。どれを学ぶかは、真くんや家族が決めます。"),
+          helpSection("⑦ ほかのタブは何をするの？",
+            "計画＝長い予定。月別＝月ごとの予定。ステージ＝大きな目標。他＝休けいなど。時間割＝一日の予定のひな型。進路＝学校の候補。感想＝使ってみた意見。",
+            "「感想」は、送る前に内容と送り先を確認してね。"),
+          helpSection("⑧ タグ・ボタン・リンクの見分け方",
+            "丸い色のタグは名前や分類を表します。四角いボタンは押して操作できます。「↗」と下線があるものは別の場所へ移動します。",
+            "「▲／▼」があるタイトルは、その下に説明ややることが開きます。"),
+          h('p', { style: { color: "#64748B" } },
+            "このRIFFは作成中の暫定版です。うまく動かないところは「感想」タブから教えてね。")
+        )
+      )
+    ),
+    h('div', { className: 'fixed-header' },
+      h('div', { className: 'riff-header-inner', style: { maxWidth: 880, margin: "0 auto", padding: "10px 14px 4px" } },
+        h('div', { className: 'riff-header-card',
+          style: {
+            background: "linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%)",
+            borderRadius: "8px",
+            padding: "8px 12px",
+            marginBottom: "6px",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            flexWrap: "wrap",
+            gap: "8px"
+          }
+        },
+          h('div', { style: { display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" } },
+            h('span', {
+              style: {
+                display: "inline-block",
+                fontSize: "26px",
+                fontWeight: 700,
+                color: "#FFFFFF",
+                letterSpacing: "0.04em",
+                lineHeight: "1",
+                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+                transform: "scale(0.98, 1.22) skewX(-4deg)",
+                transformOrigin: "bottom left",
+                textShadow: "0 2px 8px rgba(0,0,0,0.5)"
+              }
+            }, "RIFF"),
+            h('span', { className: 'riff-header-subtitle',
+              style: {
+                fontSize: "14.5px",
+                fontWeight: 700,
+                color: "#E5E5EA",
+                letterSpacing: "0.02em"
+              }
+            }, "真のクリエイターロードマップ 2026～2031")
+          ),
+          h('div', { style: { display: "flex", alignItems: "center", gap: "8px",
+            position: "relative" } },
+            h('span', { className: 'riff-header-date', style: { fontSize: "13px", fontWeight: 700,
+              color: "#E5E5EA" } }, formattedDateStr),
+            h('button', { type: "button", className: "riff-help-gear",
+              "aria-label": "RIFFの説明と使いかた", "aria-haspopup": "menu",
+              "aria-expanded": openHelpMenu,
+              onClick: () => setOpenHelpMenu(prev => !prev) }, "⚙"),
+            openHelpMenu && h('div', { className: "riff-help-menu", role: "menu",
+              "aria-label": "RIFFヘルプ" },
+              h('button', { type: "button", role: "menuitem",
+                onClick: () => { setHelpPage("intro"); setOpenHelpMenu(false); } },
+                "👋 はじめに"),
+              h('button', { type: "button", role: "menuitem",
+                onClick: () => { setHelpPage("manual"); setOpenHelpMenu(false); } },
+                "📖 使いかた（ユーザーマニュアル）")
+            )
+          )
+        ),
+        h('div', { className: 'nav-tabs-container' },
+          [
+            { id: "today", label: "⚡今日" },
+            { id: "gantt", label: "📊計画" },
+            { id: "cal", label: "📅月別" },
+            { id: "stage", label: "🗺ステージ" },
+            { id: "music", label: "🎸音楽" },
+            { id: "python", label: "💻開発" },
+            { id: "study", label: "📚学習" },
+            { id: "other", label: "🧩他" },
+            { id: "sched", label: "⏰時間割" },
+            { id: "school", label: "🎯進路" },
+            { id: "feedback", label: "📝感想" },
+          ].map(t => h('button', {
+            key: t.id,
+            className: `nav-tab-btn ${tab === t.id ? "is-active" : ""}`,
+            onClick: () => setTab(t.id)
+          }, t.label))
+        )
+      )
+    ),
+
+    h('div', { style: { maxWidth: 880, margin: "0 auto", padding: "14px 14px 60px" } },
+
+      /* TODAY TAB */
+      tab === "today" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } },
+            h('div', null,
+              h('div', { style: { fontSize: "16px", fontWeight: 900, color: "#FFFFFF", marginBottom: "2px" } },
+                "🎯 都立武蔵丘高校を目標に、学習・音楽・開発を続ける"
+              ),
+              h('div', { style: { fontSize: "12px", color: "#D1D1D6" } },
+                "🛸 学習・音楽・開発の一歩を、今日の予定に合わせて選ぶ"
+              )
+            ),
+            h('span', {
+              style: {
+                fontSize: "12px", fontWeight: 900, color: "#FEF08A",
+                background: "rgba(254, 240, 138, 0.15)", padding: "4px 9px", borderRadius: "6px",
+                border: "1px solid rgba(254, 240, 138, 0.3)"
+              }
+            }, "現在地: " + stageInfo[currentStageKey].label + "（" + stageInfo[currentStageKey].period + "）")
+          )
+        ),
+
+        /* 1. 今日のスケジュール（アコーディオン） */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" } },
+          h('div', {
+            style: {
+              padding: "12px 14px", background: "#FFFFFF", display: "flex",
+              justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px"
+            }
+          },
+            h('button', { type: "button", className: "riff-fold",
+              "aria-expanded": openTodaySched,
+              onClick: () => setOpenTodaySched(prev => !prev),
+              style: { display: "flex", alignItems: "center", gap: "8px",
+                flex: 1, minWidth: "220px", background: "#FFFFFF", color: C.text } },
+              h('span', { style: { fontSize: "16px", fontWeight: 900, color: C.text } },
+                "⏰ 今日のスケジュール"),
+              h('span', { style: { fontSize: "13px", fontWeight: 800,
+                color: C.studyText, marginLeft: "auto" } },
+                `完了 ${completedSchedCount}/${todaySched.items.length}`),
+              h('span', { className: "riff-fold-arrow", style: { color: C.text } },
+                openTodaySched ? "▲" : "▼")
+            ),
+            h('div', { style: { display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" } },
+              !isEditingSchedule && h('button', { type: "button",
+                className: "btn-action", onClick: previewTodayReplan,
+                style: { background: "#EFF6FF", color: C.studyText,
+                  border: "1px solid #BFDBFE", fontSize: "12px",
+                  padding: "7px 10px" } }, "今日の残りを再調整"),
+              !isEditingSchedule
+                ? h('button', {
+                    className: "btn-action",
+                    style: { color: "#FFFFFF", background: C.study },
+                    onClick: startEditSchedule
+                  }, "✏️ 編集")
+                : h('div', { style: { display: "flex", gap: "4px" } },
+                    h('button', {
+                      className: "btn-action",
+                      style: { color: "#48484A", background: "#E5E5EA" },
+                      onClick: cancelEditSchedule
+                    }, "キャンセル"),
+                    h('button', {
+                      className: "btn-action",
+                      style: { color: "#FFFFFF", background: "#34C759" },
+                      onClick: finishEditSchedule
+                    }, "完了")
+                  )
+            )
+          ),
+          openTodaySched && h('div', { style: { padding: "0 14px 14px" } },
+            h('p', { style: { fontSize: "12px", color: C.sub,
+              margin: "3px 0 10px", lineHeight: 1.6 } },
+              "⏱ 作業時間を記録しても今日の予定は変わりません。変更する場合は「今日の残りを再調整」で案を確認してください。"),
+            todayReplanNotice && h('div', { role: "status", style: {
+              background: "#EFF6FF", color: C.studyText,
+              border: "1px solid #BFDBFE", borderRadius: "7px",
+              padding: "9px", fontSize: "13px", marginBottom: "9px" } },
+              todayReplanNotice),
+            todayReplanPreview && h('div', { className: "riff-replan-preview",
+              style: { border: "2px solid #60A5FA", background: "#FFFFFF",
+                borderRadius: "10px", padding: "12px", marginBottom: "12px" } },
+              h('h3', { style: { fontSize: "15px", fontWeight: 900,
+                margin: "0 0 8px" } }, "今日の残りの変更案"),
+              h('p', { style: { fontSize: "12px", color: C.sub,
+                lineHeight: 1.6, margin: "0 0 8px" } },
+                "過去・進行中の時間枠、完了した作業、本人が入れ替えた作業、今日だけの作業は保護します。時間割の開始・終了時刻は動かしません。"),
+              todayReplanPreview.moved.map((move,index) => {
+                const task = resolveTodayTask(move.id);
+                const fromSlot = todaySched.items.find(item => item.id === move.from);
+                const toSlot = todaySched.items.find(item => item.id === move.to);
+                return h('div', { key: "move-" + index,
+                  style: { fontSize: "13px", margin: "6px 0",
+                    padding: "7px", background: "#EFF6FF", borderRadius: "5px" } },
+                  "移動：" + (task ? taskShortTitle(task) : move.id) +
+                  "｜" + (fromSlot?.t || "") + " → " + (toSlot?.t || ""));
+              }),
+              todayReplanPreview.deferred.map((row,index) =>
+                h('div', { key: "defer-" + index,
+                  style: { fontSize: "13px", margin: "6px 0",
+                    padding: "7px", background: "#FFFBEB",
+                    borderRadius: "5px" } },
+                  "今日から外す候補：" +
+                  (resolveTodayTask(row.id) ?
+                    taskShortTitle(resolveTodayTask(row.id)) : row.id) +
+                  "（長期計画には残ります。別日への自動登録はしません）")),
+              todayReplanPreview.fixedOverflow.map((warning,index) =>
+                h('div', { key: "fixed-over-" + index,
+                  style: { fontSize: "12px", color: "#B91C1C",
+                    padding: "5px 0" } }, "固定済みの超過：" + warning)),
+              !todayReplanPreview.moved.length &&
+              !todayReplanPreview.deferred.length &&
+              !todayReplanPreview.fixedOverflow.length &&
+                h('p', { style: { fontSize: "13px", color: C.sub } },
+                  "作業の移動や除外はありません。割り当ての順序変更のみ、または変更不要です。"),
+              h('div', { style: { display: "flex", gap: "8px",
+                flexWrap: "wrap", marginTop: "10px" } },
+                h('button', { type: "button", className: "btn-action",
+                  disabled: !todayReplanPreview.changed,
+                  style: { background: C.study, color: "#FFFFFF" },
+                  onClick: confirmTodayReplan }, "この内容で変更"),
+                h('button', { type: "button", className: "btn-action",
+                  style: { background: "#F2F2F7", color: C.text },
+                  onClick: () => { setTodayReplanPreview(null);
+                    setTodayReplanNotice("変更案を取り消しました。元の予定はそのままです。"); } },
+                  "キャンセル"))
+            ),
+            h('div', { style: { display: "flex", flexDirection: "column", gap: "6px" } },
+              todaySched.items.map((item, idx) => {
+                const isChecked = !!checkedItems[scheduleCheckKey(item.id)];
+                const isCurrent = checkIsCurrentTimeSlot(item.t, currentTime);
+                const [startPart, endPart] = item.t.includes("〜") ? item.t.split("〜") : [item.t, ""];
+
+                return h(React.Fragment, { key: item.id }, h('div', {
+                  id: "today-schedule-" + item.id,
+                  style: {
+                    display: "flex", gap: "9px", alignItems: "center", flexWrap: "wrap", padding: "8px 10px",
+                    background: isCurrent ? "#FEF08A" : (item.hi ? todaySched.bg : "#F8FAFC"),
+                    border: `1px solid ${isCurrent ? "#EAB308" : (item.hi ? todaySched.border : C.border)}`,
+                    borderRadius: "8px"
+                  }
+                },
+                  h('input', {
+                    type: "checkbox",
+                    className: "custom-checkbox-interactive",
+                    checked: isChecked,
+                    onChange: () => toggleCheck(scheduleCheckKey(item.id))
+                  }),
+                  !isEditingSchedule
+                    ? h('div', { style: { fontSize: "12.5px", fontWeight: 800, color: isCurrent ? "#854D0E" : C.muted, minWidth: "90px" } }, item.t)
+                    : renderTimeRangeEditor(item.t, next =>
+                      updateScheduleItemField(schedType, idx, "t", next), "今日の予定"),
+                  !isEditingSchedule
+                    ? h('button', { type: "button",
+                        disabled: !TASK_CATALOG[getScheduleCategory(item)],
+                        "aria-expanded": !!openTodayScheduleDetails[item.id],
+                        onClick: () => setOpenTodayScheduleDetails(prev =>
+                          ({ ...prev, [item.id]: !prev[item.id] })),
+                        style: { flex: 1, fontSize: "13.5px",
+                          fontWeight: item.hi ? 800 : 500, textAlign: "left",
+                          border: "none", background: "transparent", padding: "4px 0",
+                          cursor: TASK_CATALOG[getScheduleCategory(item)] ? "pointer" : "default",
+                          color: isChecked ? C.muted : (isCurrent ? "#713F12" : C.text),
+                          textDecoration: isChecked ? "line-through" : "none" } },
+                      item.a, TASK_CATALOG[getScheduleCategory(item)] &&
+                        h('span', { style: { marginLeft: "8px", color: C.studyText } },
+                          openTodayScheduleDetails[item.id] ? "▲" : "▼"))
+                    : h('input', {
+                        type: "text",
+                        value: item.a,
+                        onChange: (e) => updateScheduleItemField(schedType, idx, "a", e.target.value),
+                        style: { flex: "1 1 210px", minWidth: 0, padding: "6px 8px", fontSize: "14px", border: "1px solid #CCC", borderRadius: "5px" }
+                      }),
+                  isEditingSchedule && h('div', { style: { display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 } },
+                    renderScheduleCategorySelect(item, idx)
+                  ),
+                  isEditingSchedule && h('div', { style: { display: "flex", gap: "3px" } },
+                    h('button', { onClick: () => moveScheduleItem(schedType, idx, -1), style: { padding: "2px 6px", fontSize: "11px" } }, "▲"),
+                    h('button', { onClick: () => moveScheduleItem(schedType, idx, 1), style: { padding: "2px 6px", fontSize: "11px" } }, "▼")
+                  )
+                ), !isEditingSchedule && !!openTodayScheduleDetails[item.id] &&
+                  renderTodayScheduleDetail(item));
+              })
+            ),
+            isEditingSchedule && h('button', {
+              className: "btn-action",
+              style: { marginTop: "10px", width: "100%", background: "#F2F2F7", color: C.text, border: `1px dashed ${C.border}` },
+              onClick: () => addScheduleItem(schedType)
+            }, "＋ スケジュール項目を追加")
+          )
+        ),
+
+          h('div', { style: { fontSize: "11px", color: C.muted } },
+            "時間割の予定名を押すと、割り当てたステップとやることが下に開きます。チェックはジャンル・月別・ステージと共通です。")
+      ),
+
+            /* OTHER TAB: use the same per-day schedule completion record. */
+      tab === "other" && h('div', { style: { display: "flex", flexDirection: "column", gap: "10px" } },
+        h('div', { className: "dark-card-banner" },
+          h('div', { style: { fontSize: "16px", fontWeight: 900 } }, "🧩 他の予定"),
+          h('div', { style: { fontSize: "13px", color: "#E5E5EA" } },
+            "着替えや休けいなど。ここで編集すると、今使っている時間割にも反映されます。")),
+        h('div', { style: { display: "flex", gap: "6px", flexWrap: "wrap" } },
+          Object.keys(schedules).map(key => h('button', { key, type:"button",
+            className:"chip-switch", disabled:isEditingSchedule,
+            style:{ background:schedType===key ? C.study : "#FFFFFF",
+              color:schedType===key ? "#FFFFFF" : C.sub },
+            onClick:()=>setSchedType(key) }, schedules[key].name))),
+        h('div', { style: { display: "flex", gap: "7px", flexWrap: "wrap", alignItems: "center" } },
+          h('span', { style: { fontWeight: 800, color: C.sub, marginRight: "auto" } },
+            "対象：" + todaySched.name),
+          !isEditingSchedule ? h('button', { type: "button", className: "btn-action",
+            style: { background: C.study, color: "#FFFFFF" }, onClick: startEditSchedule }, "✏️ 編集") :
+            h(React.Fragment, null,
+              h('button', { type: "button", className: "btn-action",
+                style: { background: "#E5E5EA", color: "#48484A" }, onClick: cancelEditSchedule }, "キャンセル"),
+              h('button', { type: "button", className: "btn-action",
+                style: { background: "#34C759", color: "#FFFFFF" }, onClick: finishEditSchedule }, "完了"))),
+        h('div', { style: { background: "#FFFFFF", padding: "12px",
+          border: "1px solid " + C.border, borderRadius: "9px",
+          display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" } },
+          h('input', { type: "text", className: "time-input-inline",
+            placeholder: "例：着替え・水分補給", "aria-label": "新しい他の予定",
+            value: newOtherTitle, style: { flex: "1 1 180px", padding: "8px" },
+            onChange: e => setNewOtherTitle(e.target.value) }),
+          renderTimeRangeEditor(newOtherTime, setNewOtherTime, "新しい他の予定"),
+          h('button', { type: "button", className: "btn-action",
+            style: { background: C.study, color: "#FFFFFF" },
+            onClick: () => {
+              const title = newOtherTitle.trim();
+              if (!title || parseScheduleDuration(newOtherTime) <= 0) {
+                setOtherMessage("予定名と時間を確認してね。例：17:00〜17:15"); return;
+              }
+              const next = { ...schedules, [schedType]: {
+                ...schedules[schedType], items: [...schedules[schedType].items,
+                  { id: "other-" + Date.now(), a: title, t: newOtherTime,
+                    category: "other", hi: false }] } };
+              saveSchedules(next);
+              setNewOtherTitle("");
+              setOtherMessage("追加しました。今日の時間割にも表示されます。");
+            } }, "＋ 追加"),
+          otherMessage && h('span', { style: { fontSize: "13px", color: C.studyText } },
+            otherMessage)
+        ),
+        todaySched.items.filter(item => getScheduleCategory(item) === "other").length === 0 &&
+          h('div', { style: { padding: "14px", color: C.muted } }, "今日の「他」の予定はありません。"),
+        todaySched.items.filter(item => getScheduleCategory(item) === "other").map(item => {
+          const index = todaySched.items.findIndex(row => row.id === item.id);
+          return h('div', { key: item.id, style: { display: "flex", gap: "8px",
+            alignItems: "center", padding: "10px", background: "#FFFFFF",
+            border: "1px solid " + C.border, borderRadius: "8px", flexWrap: "wrap" } },
+            h('input', { type: "checkbox", className: "custom-checkbox-interactive",
+              checked: !!checkedItems[scheduleCheckKey(item.id)],
+              onChange: () => toggleCheck(scheduleCheckKey(item.id)),
+              "aria-label": item.a + "の完了" }),
+            isEditingSchedule ? h(React.Fragment, null,
+              renderTimeRangeEditor(item.t, next =>
+                updateScheduleItemField(schedType, index, "t", next), "他の予定"),
+              h('input', { type: "text", className: "time-input-inline",
+                value: item.a, "aria-label": "予定名",
+                style: { flex: "1 1 160px", padding: "7px" },
+                onChange: e => updateScheduleItemField(schedType, index, "a", e.target.value) })
+            ) : h('span', { style: { flex: "1 1 180px",
+              color: checkedItems[scheduleCheckKey(item.id)] ? C.muted : C.text,
+              fontSize: "14px", fontWeight: 700 } }, item.t + "｜" + item.a),
+            isEditingSchedule && h('button', { type: "button", className: "btn-action",
+              style: { background: "#EFF6FF", color: C.studyText },
+              disabled: index === 0, onClick: () => moveScheduleItem(schedType, index, -1) }, "▲"),
+            isEditingSchedule && h('button', { type: "button", className: "btn-action",
+              style: { background: "#EFF6FF", color: C.studyText },
+              disabled: index === todaySched.items.length - 1,
+              onClick: () => moveScheduleItem(schedType, index, 1) }, "▼"),
+            isEditingSchedule && h('button', { type: "button", className: "btn-action",
+              style: { background: "#FEF2F2", color: "#991B1B" },
+              onClick: () => {
+                if (!window.confirm || window.confirm("「" + item.a + "」を時間割から削除する？")) {
+                  saveSchedules({ ...schedules, [schedType]: { ...schedules[schedType],
+                    items: schedules[schedType].items.filter(row => row.id !== item.id) } });
+                  setEditingOtherId(null);
+                }
+              } }, "削除")
+          );
+        })
+      ),
+
+      /* GANTT TAB: 27 + 28 months, proportional grid without horizontal scrolling. */
+      tab === "gantt" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('button', { type: "button", className: "dark-card-banner",
+          "aria-expanded": openGantt, onClick: () => setOpenGantt(prev => !prev),
+          style: { width: "100%", border: "none", cursor: "pointer",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            textAlign: "left" } },
+          h('span', { style: { fontSize: "16px", fontWeight: 900, color: "#FFFFFF" } },
+            "全体スケジュール（2026年10月〜2031年4月）"),
+          h('span', { style: { color: "#FFFFFF", fontWeight: 900 } }, openGantt ? "▲" : "▼")
+        ),
+        openGantt && GANTT_ROWS.map(row => {
+          const monthCount = row.months.length;
+          const inRow = (date) => row.start <= date && date <= row.end;
+          const rowOpen = openGanttRows[row.start] !== false;
+          return h('div', { key: row.start,
+            style: { background: "#FFFFFF", borderRadius: "10px",
+              border: "1px solid " + C.border, overflow: "hidden" } },
+            h('button', { type: "button", className: "riff-fold",
+              "aria-expanded": rowOpen,
+              onClick: () => setOpenGanttRows(prev =>
+                ({ ...prev, [row.start]: prev[row.start] === false })),
+              style: { background: "#EFF6FF", color: C.studyText, fontSize: "16px",
+                borderRadius: 0, padding: "12px 14px" } },
+              h('span', null, "📅 " + row.title),
+              h('span', { className: "riff-fold-arrow" }, rowOpen ? "▲" : "▼")
+            ),
+            rowOpen && h('div', { className: "riff-gantt-band",
+              style: { padding: "10px", minWidth: 0, overflowX: "auto" } },
+            h('div', { style: { display: "flex", gap: "5px", minWidth: 0, borderBottom: "2px solid #007AFF", paddingBottom: "5px" } },
+              h('div', { style: { width: "27%", minWidth: 0, fontSize: "12px", fontWeight: 900 } }, "プロジェクト"),
+              h('div', { style: { flex: 1, minWidth: 0, display: "grid",
+                gridTemplateColumns: "repeat(" + monthCount + ", minmax(0, 1fr))" } },
+                row.months.map((month, idx) =>
+                  h('div', { key: month.date, title: month.date,
+                    style: { gridColumn: String(idx + 1), textAlign: "left",
+                      overflow: "visible", whiteSpace: "nowrap", zIndex: 1, fontSize: "11px",
+                      color: month.m === 1 ? "#007AFF" : C.text, fontWeight: 800 } },
+                    month.m === 1 ? String(month.year).slice(2) + "/1" : String(month.m))
+                )
+              )
+            ),
+            ganttTasks.filter(task => task.start <= row.end && task.end >= row.start).map((task, idx) => {
+              const first = Math.max(0, getMonthOffset(task.start, row.start));
+              const last = Math.min(monthCount - 1, getMonthOffset(task.end, row.start));
+              const info = stageInfo[task.stage] || {};
+              return h('button', { key: task.nameLines.join("/") + row.start,
+                type: "button", className: "riff-gantt-link",
+                "aria-label": task.nameLines[0] + "の" + (info.label || "ステージ") + "へ移動",
+                title: (info.label || "") + "へ移動 ↗",
+                onClick: () => jumpToStage(task.stage) },
+                h('span', { style: { width: "27%", minWidth: 0, overflowWrap: "anywhere",
+                  fontSize: "13px", lineHeight: 1.5, fontWeight: 800, color: C.text } },
+                  task.nameLines[0] + " ↗"),
+                h('span', { style: { flex: 1, minWidth: 0, position: "relative", height: "22px",
+                  background: "#F2F2F7", borderRadius: "4px" } },
+                  h('span', { title: task.nameLines.join("／") + "：" + task.start + "〜" + task.end +
+                      "（" + (info.shortLabel || "") + "）",
+                    className: "riff-stage-bar",
+                    style: { position: "absolute", left: 100 * first / monthCount + "%",
+                      width: 100 * (last - first + 1) / monthCount + "%",
+                      top: "2px", bottom: "2px", borderRadius: "3px", background: info.color || C.study,
+                      minWidth: "32px", display: "flex", justifyContent: "center", alignItems: "center",
+                      color: "#FFFFFF", fontSize: "11px", fontWeight: 900, whiteSpace: "nowrap",
+                      textShadow: "0 1px 2px rgba(0,0,0,0.45)" } },
+                    (info.shortLabel || "") + " ↗")
+                )
+              );
+            }),
+            h('div', { style: { marginTop: "8px", borderTop: "1px solid #E5E7EB",
+              paddingTop: "7px", display: "flex", flexDirection: "column", gap: "5px" } },
+              EXAM_PLAN_MILESTONES.filter(x => inRow(x.date)).map(mark =>
+                h('div', { key: mark.date + mark.label, title: mark.full,
+                  style: { display: "flex", gap: "5px", alignItems: "center",
+                    minWidth: 0, flexWrap: "wrap" } },
+                  h('div', { style: { width: "27%", minWidth: 0, fontSize: "10px",
+                    color: mark.color, fontWeight: 900, overflowWrap: "anywhere" } }, mark.label),
+                  h('div', { style: { position: "relative", flex: 1, minWidth: 0,
+                    height: "22px", background: "#F8FAFC" } },
+                    h('div', { style: { position: "absolute", left: (100 * (getMonthOffset(mark.date,row.start) + 0.5) / monthCount) + "%",
+                      top: 0, bottom: 0, borderLeft: "2px dashed " + mark.color } }),
+                    h('button', { type: "button", title: mark.label + "｜説明を見る",
+                      onClick: e => {
+                        const key = mark.date + mark.label;
+                        if (activeExamMark === key) {
+                          setActiveExamMark(null);
+                          setExamPopupAnchor(null);
+                          return;
+                        }
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const width = Math.min(460, Math.max(280, window.innerWidth - 18));
+                        setExamPopupAnchor({ left: Math.max(8, Math.min(
+                          rect.left + rect.width / 2 - width / 2,
+                          window.innerWidth - width - 8)),
+                          bottom: rect.bottom, width });
+                        setExamPopupTop(null);
+                        setActiveExamMark(key);
+                      },
+                      "aria-expanded": activeExamMark === mark.date + mark.label,
+                      style: { position: "absolute",
+                        left: (100 * (getMonthOffset(mark.date,row.start) + 0.5) / monthCount) + "%",
+                        top: 0, border: "none", background: "transparent", cursor: "pointer",
+                        padding: 0, fontSize: "12px", fontWeight: 900, color: mark.color,
+                        transform: "translateX(-50%)" } }, "◆")
+                  ),
+                  activeExamMark === mark.date + mark.label && h(React.Fragment, null,
+                    h('div', { role: "presentation",
+                      onClick: () => setActiveExamMark(null),
+                      style: { position: "fixed", inset: 0, zIndex: 400,
+                        background: "rgba(15,23,42,0.12)" } }),
+                    h('div', { id: "riff-exam-popup", role: "dialog",
+                      "aria-label": mark.label + "の説明",
+                      style: { position: "fixed", zIndex: 401,
+                        left: examPopupAnchor ? examPopupAnchor.left + "px" : "8px",
+                        top: examPopupTop == null ?
+                          (examPopupAnchor ? examPopupAnchor.bottom + 6 : 8) + "px" :
+                          examPopupTop + "px",
+                        visibility: examPopupTop == null ? "hidden" : "visible",
+                        width: examPopupAnchor ? examPopupAnchor.width + "px" : "min(460px, 95vw)",
+                        maxHeight: "calc(100dvh - 16px)", overflowY: "auto",
+                        background: "#FFFFFF", color: C.text,
+                        border: "2px solid " + mark.color, borderRadius: "10px",
+                        boxShadow: "0 16px 38px rgba(0,0,0,0.27)",
+                        padding: "12px 14px", fontSize: "14px", lineHeight: 1.65 } },
+                    h('div', { style: { display: "flex", gap: "8px",
+                      justifyContent: "space-between", alignItems: "center" } },
+                      h('strong', null, mark.date + "｜" + mark.label),
+                      h('button', { type: "button", className: "btn-action",
+                        style: { color: "#FFFFFF", background: "#334155" },
+                        onClick: () => setActiveExamMark(null) }, "閉じる ✕")
+                    ),
+                    h('div', null, mark.full),
+                    EXAM_REFERENCE_NOTES.filter(note =>
+                      mark.label === "高校受験" ? note.label.includes("都立高校") :
+                      mark.label === "海外出願" ? note.label.includes("Goldsmiths") :
+                      note.label.includes("洗足")).map(note =>
+                      h('div', { key: note.label, style: { marginTop: "5px",
+                        borderTop: "1px solid #E5E7EB", paddingTop: "5px" } },
+                        h('div', { style: { fontWeight: 800 } }, note.label + "｜" + note.status),
+                        h('div', null, note.detail),
+                        note.url && h('a', { href: note.url, target: "_blank",
+                          rel: "noopener noreferrer" }, "公式資料 ↗")
+                      ))
+                    )
+                  )
+                )
+              )
+            )),
+            rowOpen && h('div', { className: "riff-gantt-mobile" },
+              h('div', { style: { fontWeight: 800, color: C.studyText,
+                fontSize: "12px" } }, "この期間の予定（タップでステージへ移動）"),
+              ganttTasks.filter(task => task.start <= row.end && task.end >= row.start).map(task => {
+                const info = stageInfo[task.stage] || {};
+                return h('button', { key: row.start + "-" + task.nameLines.join("/"),
+                  type: "button", className: "riff-gantt-mobile-item",
+                  onClick: () => jumpToStage(task.stage) },
+                  h('strong', null, task.nameLines.join("／") + " ↗"),
+                  h('span', { style: { fontSize: "12px", color: C.sub } },
+                    task.start + " ～ " + task.end + "｜" + (info.label || "ステージ")));
+              }),
+              EXAM_PLAN_MILESTONES.filter(mark => inRow(mark.date)).map(mark =>
+                h('details', { key: mark.date + mark.label,
+                  className: "riff-gantt-milestone" },
+                  h('summary', null, "◆ " + mark.date + "｜" + mark.label + "（説明を見る）"),
+                  h('p', null, mark.full)))
+            )
+          );
+        })
+      ),
+
+            /* CALENDAR TAB */
+      tab === "cal" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        calendarData.map((yr, yi) => h('div', { key: yi, style: { display: "flex", flexDirection: "column", gap: "10px" } },
+          h('div', { style: { fontSize: "14px", fontWeight: 900, color: C.studyText, padding: "4px 8px", background: "#EFF6FF", borderRadius: "6px" } },
+            `${yr.year}（${yr.grade}）`
+          ),
+          yr.months.map((mo, mi) => {
+            const isCur = mo.date === (currentMonthKey < PLAN_START ? PLAN_START : currentMonthKey > PLAN_END ? PLAN_END : currentMonthKey);
+            const moKey = `${yr.year}_${mo.m}`;
+            const isMoOpen = openMonths[moKey] !== false;
+            const stageNum = mo.stage ? mo.stage.replace("p", "") : "1";
+            const sInfo = stageInfo[mo.stage] || {};
+
+            const moMusSteps = musicSteps.filter(s => mo.musSteps && mo.musSteps.includes(s.id));
+            const moPySteps = pythonSteps.filter(s => mo.pySteps && mo.pySteps.includes(s.id));
+            const yrNum = parseInt(yr.year.replace("年", ""), 10);
+            const moNum = parseInt(mo.m.replace("月", ""), 10);
+            const periodKey = `${yrNum}-${String(moNum).padStart(2, '0')}`;
+            const moStudyUnits = allStudyUnits.filter(u => u.targetPeriod === periodKey);
+
+            return h('div', {
+              key: mi,
+              style: {
+                background: isCur ? "#1C1C1E" : "#FFFFFF",
+                color: isCur ? "#FFFFFF" : C.text,
+                borderRadius: "10px",
+                border: isCur ? "2px solid #007AFF" : `1px solid ${C.border}`,
+                padding: "12px 14px",
+                boxShadow: isCur ? "0 4px 12px rgba(0,0,0,0.25)" : "none"
+              }
+            },
+              h('div', {
+                onClick: () => toggleMonth(moKey),
+                style: { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px", cursor: "pointer", marginBottom: isMoOpen ? "8px" : "0" }
+              },
+                h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                  h('span', { style: { fontSize: "16px", fontWeight: 900, color: isCur ? "#60A5FA" : "#007AFF" } }, mo.m),
+                  h('span', { className: "badge-tag",
+                    style: { color: "#FFFFFF", background: sInfo.color || C.study,
+                      fontWeight: 900 } }, sInfo.label || "ステージ" + stageNum),
+                  h('span', { style: { fontSize: "13px", fontWeight: 800, color: isCur ? "#FEF08A" : "#B45309" } }, `🎯 ${mo.target}`)
+                ),
+                h('div', { style: { display: "flex", alignItems: "center", gap: "6px" } },
+                  isCur && h('span', { style: { fontSize: "10.5px", fontWeight: 900, color: "#1C1C1E", background: "#FEF08A", padding: "2px 6px", borderRadius: "4px" } }, "⚡ 今月"),
+                  h('span', { style: { fontSize: "12px", color: isCur ? "#E5E5EA" : C.muted } }, isMoOpen ? "▲" : "▼")
+                )
+              ),
+
+              isMoOpen && h('div', null,
+                mo.events && mo.events.length > 0 && h('div', { style: { marginBottom: "8px", fontSize: "12px", color: isCur ? "#D1D1D6" : C.sub } },
+                  mo.events.map((ev, ei) => h('div', { key: ei, style: { display: "flex", alignItems: "center", gap: "5px" } },
+                    h('span', null, "•"), h('span', null, ev)
+                  ))
+                ),
+
+                h('div', { style: { display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px" } },
+                  moMusSteps.length > 0 && h('div', { style: { borderRadius: "6px", overflow: "hidden", border: isCur ? "1px solid rgba(255,255,255,0.15)" : "1px solid #E5E7EB" } },
+                    h('button', {
+                      className: "accordion-trigger riff-genre-stage-card",
+                      onClick: () => toggleMonthSubGroup(`${moKey}_mus`),
+                      style: {
+                        padding: "6px 10px", background: isCur ? "rgba(124, 58, 237, 0.2)" : C.musicBg,
+                        color: isCur ? "#C4B5FD" : C.musicText, fontSize: "12px", fontWeight: 800, display: "flex", justifyContent: "space-between"
+                      }
+                    },
+                      h('span', null, `🎸 音楽ステージ${stageNum}（${moMusSteps.length}件）`),
+                      h('span', null, openMonthSubGroups[`${moKey}_mus`] ? "▲" : "▼")
+                    ),
+                    openMonthSubGroups[`${moKey}_mus`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      moMusSteps.map(s => h('div', { key: s.id,
+                      className: "riff-mini-step",
+                      style: { fontSize: "14px", marginBottom: "8px", minWidth: 0,
+                        background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      h('div', { style: { display: "flex", alignItems: "center",
+                        flexWrap: "wrap", gap: "7px", marginBottom: "5px" } },
+                        renderStepJumpBadge(s, "music", C.music),
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text,
+                          fontWeight: 700, minWidth: 0, overflowWrap: "anywhere" } }, s.title)),
+                      renderMiniTaskChecklist(s, isCur)
+                    ))
+                    )
+                  ),
+
+                  moPySteps.length > 0 && h('div', { style: { borderRadius: "6px", overflow: "hidden", border: isCur ? "1px solid rgba(255,255,255,0.15)" : "1px solid #E5E7EB" } },
+                    h('button', {
+                      className: "accordion-trigger riff-genre-stage-card",
+                      onClick: () => toggleMonthSubGroup(`${moKey}_py`),
+                      style: {
+                        padding: "6px 10px", background: isCur ? "rgba(5, 150, 105, 0.2)" : C.codeBg,
+                        color: isCur ? "#6EE7B7" : C.codeText, fontSize: "12px", fontWeight: 800, display: "flex", justifyContent: "space-between"
+                      }
+                    },
+                      h('span', null, `💻 開発ステージ${stageNum}（${moPySteps.length}件）`),
+                      h('span', null, openMonthSubGroups[`${moKey}_py`] ? "▲" : "▼")
+                    ),
+                    openMonthSubGroups[`${moKey}_py`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      moPySteps.map(s => h('div', { key: s.id,
+                      className: "riff-mini-step",
+                      style: { fontSize: "14px", marginBottom: "8px", minWidth: 0,
+                        background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      h('div', { style: { display: "flex", alignItems: "center",
+                        flexWrap: "wrap", gap: "7px", marginBottom: "5px" } },
+                        renderStepJumpBadge(s, "python", C.code),
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text,
+                          fontWeight: 700, minWidth: 0, overflowWrap: "anywhere" } }, s.title)),
+                      renderMiniTaskChecklist(s, isCur)
+                    ))
+                    )
+                  ),
+
+                  moStudyUnits.length > 0 && h('div', { style: { borderRadius: "6px", overflow: "hidden", border: isCur ? "1px solid rgba(255,255,255,0.15)" : "1px solid #E5E7EB" } },
+                    h('button', {
+                      className: "accordion-trigger riff-genre-stage-card",
+                      onClick: () => toggleMonthSubGroup(`${moKey}_study`),
+                      style: {
+                        padding: "6px 10px", background: isCur ? "rgba(0, 122, 255, 0.2)" : C.studyBg,
+                        color: isCur ? "#93C5FD" : C.studyText, fontSize: "12px", fontWeight: 800, display: "flex", justifyContent: "space-between"
+                      }
+                    },
+                      h('span', null, `📚 学習ステージ${stageNum}（${moStudyUnits.length}単元）`),
+                      h('span', null, openMonthSubGroups[`${moKey}_study`] ? "▲" : "▼")
+                    ),
+                    openMonthSubGroups[`${moKey}_study`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      moStudyUnits.map(u => {
+                        const subObj = studySubjectsData.find(subject =>
+                          subject.units.some(x => x.id === u.id)) || {};
+                        return h('div', { key: u.id, className: "riff-mini-step",
+                          style: { fontSize: "14px", marginBottom: "8px",
+                            background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                          h('div', { style: { display: "flex", gap: "6px", flexWrap: "wrap",
+                            alignItems: "center", marginBottom: "5px" } },
+                            renderStepJumpBadge(u, "study", C.study),
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF",
+                              background: "#475569" } }, u.grade),
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF",
+                              background: u.rank === "S" ? "#DC2626" : C.study } },
+                              u.rank + "ランク"),
+                            h('span', { className: "badge-tag", style: { color: "#FFFFFF",
+                              background: subObj.color || C.study } }, subObj.name || "教科")),
+                          h('div', { style: { color: isCur ? "#E5E5EA" : C.text,
+                            fontWeight: 700, lineHeight: 1.5, marginBottom: "6px",
+                            overflowWrap: "anywhere" } }, u.item),
+                          renderMiniTaskChecklist(u, isCur)
+                        );
+                      })                    )
+                  )
+                )
+              )
+            );
+          })
+        ))
+      ),
+
+      /* STAGE TAB */
+      tab === "stage" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        Object.keys(stageInfo).map(sKey => {
+          const s = stageInfo[sKey];
+          const isCur = sKey === currentStageKey;
+          const isStageOpen = openStageCards[sKey] !== false;
+          const isMsOpen = openStageMilestone[sKey] !== false;
+
+          const sMusSteps = musicSteps.filter(x => x.stage === sKey);
+          const sPySteps = pythonSteps.filter(x => x.stage === sKey);
+          const sStudyUnits = allStudyUnits.filter(x => x.stage === sKey);
+          const stageEstimatedMinutes = [...sMusSteps, ...sPySteps, ...sStudyUnits]
+            .reduce((total, step) => total + effectiveStepMinutes(step), 0);
+
+          return h('div', {
+            key: sKey, id: "riff-stage-" + sKey,
+            style: {
+              background: isCur ? "#1C1C1E" : "#FFFFFF",
+              color: isCur ? "#FFFFFF" : C.text,
+              borderRadius: "10px",
+              border: isCur ? "2px solid #007AFF" : `1px solid ${C.border}`,
+              padding: "14px",
+              boxShadow: isCur ? "0 4px 14px rgba(0,0,0,0.3)" : "none"
+            }
+          },
+            h('div', {
+              onClick: () => toggleStageCard(sKey),
+              style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px", cursor: "pointer", marginBottom: isStageOpen ? "10px" : "0" }
+            },
+              h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                h('span', {
+                  style: {
+                    fontSize: "14px", fontWeight: 900,
+                    color: "#FFFFFF", background: s.color,
+                     padding: "2px 8px", borderRadius: "6px", border: "1px solid " + s.color
+                  }
+                }, s.label),
+                h('span', { style: { fontSize: "15px", fontWeight: 900 } }, s.title)
+              ),
+              h('div', { style: { display: "flex", alignItems: "center", gap: "6px" } },
+                h('span', { className: "badge-tag", style: { color: isCur ? "#E5E5EA" : C.sub, background: isCur ? "rgba(255,255,255,0.12)" : "#F2F2F7" } }, s.period),
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: s.color,
+                  fontWeight: 800 } }, "全作業目安" + formatTaskMinutes(stageEstimatedMinutes) + "（仮）"),
+                h('span', { style: { fontSize: "12px", color: isCur ? "#E5E5EA" : C.muted } }, isStageOpen ? "▲" : "▼")
+              )
+            ),
+
+            isStageOpen && h('div', null,
+              h('div', {
+                style: {
+                  background: isCur ? "rgba(255,255,255,0.06)" : "#F8FAFC",
+                  border: isCur ? "1px solid rgba(255,255,255,0.12)" : "1px solid #E5E7EB",
+                  borderRadius: "8px", overflow: "hidden", marginBottom: "12px"
+                }
+              },
+                h('button', {
+                  className: "accordion-trigger",
+                  onClick: () => toggleStageMilestone(sKey),
+                  style: { padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }
+                },
+                  h('span', { style: { fontWeight: 800, fontSize: "12.5px", color: isCur ? "#FEF08A" : "#B45309" } }, "🏁 マイルストーン & 決戦イベント"),
+                  h('span', { style: { fontSize: "11px", color: isCur ? "#E5E5EA" : C.muted } }, isMsOpen ? "▲" : "▼")
+                ),
+                isMsOpen && h('div', { style: { padding: "0 12px 10px", fontSize: "12.5px", color: isCur ? "#E5E5EA" : C.sub } },
+                  `このステージの目標：${s.title}（完了期日: ${s.period}）`
+                )
+              ),
+
+              h('div', { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+                sMusSteps.length > 0 && h('div', { style: { borderRadius: "8px", border: isCur ? "1px solid rgba(196,181,253,0.3)" : `1px solid ${C.musicBorder}`, overflow: "hidden" } },
+                  h('button', {
+                    className: "accordion-trigger riff-genre-stage-card",
+                    onClick: () => toggleStageCategory(`${sKey}_mus`),
+                    style: { padding: "8px 10px", background: isCur ? "rgba(124,58,237,0.25)" : C.musicBg, display: "flex", justifyContent: "space-between", alignItems: "center" }
+                  },
+                    h('span', { style: { fontWeight: 800, color: isCur ? "#C4B5FD" : C.musicText } }, `🎸 音楽（${sMusSteps.length}ステップ）`),
+                    h('span', { style: { fontSize: "11px", color: isCur ? "#C4B5FD" : C.musicText } }, openStageCategory[`${sKey}_mus`] ? "▲" : "▼")
+                  ),
+                  openStageCategory[`${sKey}_mus`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                    sMusSteps.map(st => h('div', { key: st.id,
+                      className: "riff-mini-step",
+                      style: { fontSize: "14px", marginBottom: "8px", minWidth: 0,
+                        background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      h('div', { style: { display: "flex", alignItems: "center",
+                        flexWrap: "wrap", gap: "7px", marginBottom: "5px" } },
+                        renderStepJumpBadge(st, "music", C.music),
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text,
+                          fontWeight: 700, minWidth: 0, overflowWrap: "anywhere" } }, st.title)),
+                      renderMiniTaskChecklist(st, isCur)
+                    ))
+                  )
+                ),
+
+                sPySteps.length > 0 && h('div', { style: { borderRadius: "8px", border: isCur ? "1px solid rgba(110,231,183,0.3)" : `1px solid ${C.codeBorder}`, overflow: "hidden" } },
+                  h('button', {
+                    className: "accordion-trigger riff-genre-stage-card",
+                    onClick: () => toggleStageCategory(`${sKey}_py`),
+                    style: { padding: "8px 10px", background: isCur ? "rgba(5,150,105,0.25)" : C.codeBg, display: "flex", justifyContent: "space-between", alignItems: "center" }
+                  },
+                    h('span', { style: { fontWeight: 800, color: isCur ? "#6EE7B7" : C.codeText } }, `💻 開発（${sPySteps.length}ステップ）`),
+                    h('span', { style: { fontSize: "11px", color: isCur ? "#6EE7B7" : C.codeText } }, openStageCategory[`${sKey}_py`] ? "▲" : "▼")
+                  ),
+                  openStageCategory[`${sKey}_py`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                    sPySteps.map(st => h('div', { key: st.id,
+                      className: "riff-mini-step",
+                      style: { fontSize: "14px", marginBottom: "8px", minWidth: 0,
+                        background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                      h('div', { style: { display: "flex", alignItems: "center",
+                        flexWrap: "wrap", gap: "7px", marginBottom: "5px" } },
+                        renderStepJumpBadge(st, "python", C.code),
+                        h('span', { style: { color: isCur ? "#E5E5EA" : C.text,
+                          fontWeight: 700, minWidth: 0, overflowWrap: "anywhere" } }, st.title)),
+                      renderMiniTaskChecklist(st, isCur)
+                    ))
+                  )
+                ),
+
+                sStudyUnits.length > 0 && h('div', { style: { borderRadius: "8px", border: isCur ? "1px solid rgba(147,197,253,0.3)" : `1px solid ${C.studyBorder}`, overflow: "hidden" } },
+                  h('button', {
+                    className: "accordion-trigger riff-genre-stage-card",
+                    onClick: () => toggleStageCategory(`${sKey}_study`),
+                    style: { padding: "8px 10px", background: isCur ? "rgba(0,122,255,0.25)" : C.studyBg, display: "flex", justifyContent: "space-between", alignItems: "center" }
+                  },
+                    h('span', { style: { fontWeight: 800, color: isCur ? "#93C5FD" : C.studyText } }, `📚 学習（${sStudyUnits.length}単元）`),
+                    h('span', { style: { fontSize: "11px", color: isCur ? "#93C5FD" : C.studyText } }, openStageCategory[`${sKey}_study`] ? "▲" : "▼")
+                  ),
+                  openStageCategory[`${sKey}_study`] && h('div', { style: { padding: "8px 10px", background: isCur ? "#2C2C2E" : "#FFFFFF" } },
+                    sStudyUnits.map(u => {
+                      const subObj = studySubjectsData.find(s => s.units.some(x => x.id === u.id)) || {};
+                      return renderStudyTaskCard(u, subObj, "study");
+                    })
+                  )
+                )
+              )
+            )
+          );
+        })
+      ),
+
+      /* MUSIC TAB */
+      tab === "music" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "14.5px", fontWeight: 900 } },
+            "🎸【音楽のビジョン】Les Paul ＋ RAT2 ＋ Mac（MainStage/Logic）を自在に操り、高校軽音・世界水準のサウンドを創造する"
+          )
+        ),
+
+        /* 統合された音楽タブの進み具合カード（ダークテーマ） */
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" } },
+            h('div', { style: { fontSize: "15px", fontWeight: 900, color: "#FFFFFF" } }, "🎸 音楽タブの進み具合"),
+            h('button', { type: "button", className: "btn-action",
+              onClick: () => setOpenMusicProgress(prev => !prev),
+              style: { color: "#FFFFFF", background: "rgba(255,255,255,0.18)",
+                marginLeft: "auto" } }, openMusicProgress ? "▲ 閉じる" : "▼ 開く"),
+            openMusicProgress && h('button', {
+              className: "btn-action",
+              onClick: () => setIsEditingTracks(!isEditingTracks),
+              style: { color: "#FFFFFF", background: isEditingTracks ? "#10B981" : "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.25)" }
+            }, isEditingTracks ? "完了" : "✏️ 編集")
+          ),
+          /* 音楽ステップ棒グラフ */
+          openMusicProgress && h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "10px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)", marginBottom: "12px" } },
+            h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" } },
+              h('span', { style: { fontSize: "13px", fontWeight: 800, color: "#C4B5FD" } }, "音楽ステップ進捗"),
+              h('div', { style: { display: "flex", gap: "8px", alignItems: "baseline" } },
+                h('span', { style: { fontSize: "18px", fontWeight: 900, color: "#C4B5FD" } }, `${musPct}%`),
+                h('span', { style: { fontSize: "12px", color: "#E5E5EA" } }, `${checkedMusSubtasks} / ${totalMusSubtasks}`)
+              )
+            ),
+            h('div', { style: { height: "7px", background: "rgba(255,255,255,0.14)", borderRadius: "4px", overflow: "hidden" } },
+              h('div', { style: { width: `${musPct}%`, height: "100%", background: "#A855F7", transition: "width 0.3s" } })
+            )
+          ),
+          /* オリジナル曲進捗 */
+          openMusicProgress && h('div', null,
+            h('div', { style: { fontSize: "12.5px", fontWeight: 800, color: "#E5E5EA", marginBottom: "8px" } }, "🎵 オリジナル曲 制作進捗"),
+            h('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px" } },
+              musicTracks.map((trk) => h('div', {
+                key: trk.id,
+                style: { background: "rgba(255,255,255,0.08)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" }
+              },
+                h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" } },
+                  h('span', { style: { fontSize: "12.5px", fontWeight: 900, color: trackColor(trk.id) } }, trk.name),
+                  !isEditingTracks
+                    ? h('span', { style: { fontSize: "14px", fontWeight: 900, color: trackColor(trk.id) } }, `${trk.pct}%`)
+                    : h('select', {
+                        value: trk.pct,
+                        onChange: (e) => updateTrackPct(trk.id, e.target.value),
+                        className: "time-input-inline",
+                        style: { padding: "1px 4px", fontSize: "11px", fontWeight: 800 }
+                      },
+                        Array.from({ length: 21 }, (_, i) => i * 5).map(val => h('option', { key: val, value: val }, `${val}%`))
+                      )
+                ),
+                h('div', { style: { height: "6px", background: "rgba(255,255,255,0.14)", borderRadius: "3px", overflow: "hidden" } },
+                  h('div', { style: { width: `${trk.pct}%`, height: "100%", background: trackColor(trk.id) } })
+                )
+              ))
+            )
+          )
+        ),
+
+        musicSteps.map((s, index) => {
+          const isExpanded = !!expandedDetailTasks[s.id];
+          return h(React.Fragment, { key: s.id },
+            (index === 0 || musicSteps[index - 1].stage !== s.stage) &&
+              h('button', { type: "button", className: "riff-fold",
+                "aria-expanded": openGenreStages["music:" + s.stage] !== false,
+                onClick: () => setOpenGenreStages(prev => ({
+                  ...prev, ["music:" + s.stage]: prev["music:" + s.stage] === false
+                })),
+                style: { width: "100%", textAlign: "left",
+                  background: stageInfo[s.stage].color, color: "#FFFFFF",
+                  border: "none", cursor: "pointer", borderRadius: "8px",
+                  padding: "9px 12px", fontSize: "15px", fontWeight: 900, marginTop: "6px" } },
+                stageInfo[s.stage].label + "｜音楽｜" + stageInfo[s.stage].title +
+                (openGenreStages["music:" + s.stage] === false ? " ▼" : " ▲")),
+            openGenreStages["music:" + s.stage] !== false && h('div', {
+            key: s.id,
+            id: s.id,
+            style: { background: C.musicBg, borderRadius: "8px", border: `1px solid ${C.musicBorder}`,
+              padding: "7px 9px", marginLeft: "6px", borderLeft: "3px solid " + stageInfo[s.stage].color }
+          },
+            h('button', { type: "button", className: "riff-fold",
+              "aria-expanded": isExpanded,
+              onClick: () => toggleTaskDetail(s.id),
+              style: { display: "flex", justifyContent: "space-between", alignItems: "center",
+                flexWrap: "wrap", gap: "6px", padding: "5px 6px",
+                color: C.text, background: "transparent" }
+            },
+              h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.music } }, `ステップ${s.stepNum}`),
+                h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.musicText } }, s.title),
+                h('span', { className: "badge-tag",
+                  style: { color: "#065F46", background: "#ECFDF5", fontWeight: 800 } },
+                  stepTimeLabel(s))
+              ),
+              h('span', { style: { fontSize: "12px", color: C.musicText } }, isExpanded ? "▲" : "▼")
+            ),
+            isExpanded && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: `1px dashed ${C.musicBorder}` } },
+              s.subtasks.map(st => h('div', {
+                key: st.id, id: "riff-task-" + st.id, className: "riff-task-row",
+                style: { display: "flex", gap: "8px", alignItems: "flex-start",
+                  flexWrap: "wrap", marginBottom: "6px", padding: "3px",
+                  background: highlightedTaskId === st.id ? "#FEF08A" : "transparent",
+                  outline: highlightedTaskId === st.id ? "2px solid #EAB308" : "none",
+                  borderRadius: "5px" }
+              },
+                h('input', {
+                  type: "checkbox", className: "custom-checkbox-interactive",
+                  checked: !!checkedItems[st.id], onChange: () => toggleCheck(st.id)
+                }),
+                renderTaskTitle(st, { color: highlightedTaskId === st.id ? "#713F12" :
+                    checkedItems[st.id] ? C.muted : C.text,
+                  textDecoration: checkedItems[st.id] ? "line-through" : "none" }),
+                renderTaskTimeMeta(st),
+                renderTaskActions(st)
+              ))
+            )
+          ));
+        })
+      ),
+
+      /* PYTHON TAB */
+      tab === "python" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "14.5px", fontWeight: 900 } },
+            "💻【開発のビジョン】Mountain of Soundを完成させ、ギター×MIDI×Pythonの独自プロダクトとしてGitHub世界公開＆大学入試の最強武器にする"
+          )
+        ),
+
+        /* 統合された開発タブの進み具合カード（ダークテーマ） */
+        h('div', { className: 'dark-card-banner' },
+          h('button', { type: "button", className: "accordion-trigger",
+            onClick: () => setOpenPythonProgress(prev => !prev),
+            "aria-expanded": openPythonProgress,
+            style: { color: "#FFFFFF", fontSize: "15px", fontWeight: 900,
+              marginBottom: openPythonProgress ? "8px" : 0,
+              display: "flex", justifyContent: "space-between" } },
+            h('span', null, "💻 開発タブの進み具合"),
+            h('span', null, openPythonProgress ? "▲" : "▼")),
+          openPythonProgress && h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "10px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+            h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" } },
+              h('span', { style: { fontSize: "13px", fontWeight: 800, color: "#6EE7B7" } }, "Mountain of Sound 開発進捗"),
+              h('div', { style: { display: "flex", gap: "8px", alignItems: "baseline" } },
+                h('span', { style: { fontSize: "18px", fontWeight: 900, color: "#6EE7B7" } }, `${pyPct}%`),
+                h('span', { style: { fontSize: "12px", color: "#E5E5EA" } }, `${checkedPySubtasks} / ${totalPySubtasks}`)
+              )
+            ),
+            h('div', { style: { height: "7px", background: "rgba(255,255,255,0.14)", borderRadius: "4px", overflow: "hidden" } },
+              h('div', { style: { width: `${pyPct}%`, height: "100%", background: "#10B981", transition: "width 0.3s" } })
+            )
+          )
+        ),
+
+        pythonSteps.map((s, index) => {
+          const isExpanded = !!expandedDetailTasks[s.id];
+          return h(React.Fragment, { key: s.id },
+            (index === 0 || pythonSteps[index - 1].stage !== s.stage) &&
+              h('button', { type: "button", className: "riff-fold",
+                "aria-expanded": openGenreStages["python:" + s.stage] !== false,
+                onClick: () => setOpenGenreStages(prev => ({
+                  ...prev, ["python:" + s.stage]: prev["python:" + s.stage] === false
+                })),
+                style: { width: "100%", textAlign: "left",
+                  background: stageInfo[s.stage].color, color: "#FFFFFF",
+                  border: "none", cursor: "pointer", borderRadius: "8px",
+                  padding: "9px 12px", fontSize: "15px", fontWeight: 900, marginTop: "6px" } },
+                stageInfo[s.stage].label + "｜開発｜" + stageInfo[s.stage].title +
+                (openGenreStages["python:" + s.stage] === false ? " ▼" : " ▲")),
+            openGenreStages["python:" + s.stage] !== false && h('div', {
+            key: s.id,
+            id: s.id,
+            style: { background: C.codeBg, borderRadius: "8px", border: `1px solid ${C.codeBorder}`,
+              padding: "7px 9px", marginLeft: "6px", borderLeft: "3px solid " + stageInfo[s.stage].color }
+          },
+            h('button', { type: "button", className: "riff-fold",
+              "aria-expanded": isExpanded,
+              onClick: () => toggleTaskDetail(s.id),
+              style: { display: "flex", justifyContent: "space-between", alignItems: "center",
+                flexWrap: "wrap", gap: "6px", padding: "5px 6px",
+                color: C.text, background: "transparent" }
+            },
+              h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: C.code } }, `ステップ${s.stepNum}`),
+                h('span', { style: { fontSize: "14px", fontWeight: 800, color: C.codeText } }, s.title),
+                h('span', { className: "badge-tag",
+                  style: { color: "#065F46", background: "#ECFDF5", fontWeight: 800 } },
+                  stepTimeLabel(s))
+              ),
+              h('span', { style: { fontSize: "12px", color: C.codeText } }, isExpanded ? "▲" : "▼")
+            ),
+            isExpanded && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: `1px dashed ${C.codeBorder}` } },
+              s.subtasks.map(st => h('div', {
+                key: st.id, id: "riff-task-" + st.id, className: "riff-task-row",
+                style: { display: "flex", gap: "8px", alignItems: "flex-start",
+                  flexWrap: "wrap", marginBottom: "6px", padding: "3px",
+                  background: highlightedTaskId === st.id ? "#FEF08A" : "transparent",
+                  outline: highlightedTaskId === st.id ? "2px solid #EAB308" : "none",
+                  borderRadius: "5px" }
+              },
+                h('input', {
+                  type: "checkbox", className: "custom-checkbox-interactive",
+                  checked: !!checkedItems[st.id], onChange: () => toggleCheck(st.id)
+                }),
+                renderTaskTitle(st, { color: highlightedTaskId === st.id ? "#713F12" :
+                    checkedItems[st.id] ? C.muted : C.text,
+                  textDecoration: checkedItems[st.id] ? "line-through" : "none" }),
+                renderTaskTimeMeta(st),
+                renderTaskActions(st)
+              ))
+            )
+          ));
+        })
+      ),
+
+      /* STUDY TAB */
+      tab === "study" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner', style: { order: 0 } },
+          h('button', { type: "button", className: "riff-fold",
+            "aria-expanded": openStudyVisionCard,
+            onClick: () => setOpenStudyVisionCard(prev => !prev),
+            style: { color: "#FFFFFF", background: "transparent" } },
+            h('span', { style: { fontSize: "15px", fontWeight: 900 } },
+              "📚 学習の目標・くわしい計画"
+            ),
+            h('span', { className: "riff-fold-arrow" }, openStudyVisionCard ? "▲" : "▼")
+          ),
+          openStudyVisionCard && h('div', { style: { marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.15)" } },
+            h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" } },
+              h('div', { style: { fontSize: "14px", fontWeight: 900, color: "#FEF08A" } }, "🎯 都立武蔵丘高校 合格目標・マイルストーン計画"),
+              h('span', { style: { fontSize: "11px", fontWeight: 900, background: "#475569", color: "#FFF", padding: "2px 8px", borderRadius: "10px" } }, "連続学習: 実績記録の導入後に集計")
+            ),
+            h('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "8px" } },
+              h('div', { style: { background: "rgba(255,255,255,0.08)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+                h('div', { style: { fontSize: "11px", color: "#93C5FD", fontWeight: 800, marginBottom: "2px" } }, "🏁 年間ゴール (2028年2月本番)"),
+                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } }, "合格安全圏: 685〜700点 / 1020点"),
+                h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } }, "換算内申44 (5科オール3+実技4) + 当日360点 (72%)")
+              ),
+              h('div', { style: { background: "rgba(255,255,255,0.08)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+                h('div', { style: { fontSize: "11px", color: "#FDE047", fontWeight: 800, marginBottom: "2px" } }, "📅 今月の重点テーマ (" + (currentTime.getMonth() + 1) + "月)"),
+                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } }, "学校の予定と苦手項目を確認して今週の学習を選ぶ"),
+                h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } }, "数英の基本計算・文法を毎日ルーティン化して内申点UP")
+              ),
+              h('div', { style: { background: "rgba(255,255,255,0.08)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+                h('div', { style: { fontSize: "11px", color: "#86EFAC", fontWeight: 800, marginBottom: "2px" } }, "⚡ 今週のスプリント (週間目標 300分)"),
+                h('div', { style: { fontSize: "13.5px", fontWeight: 900 } },
+                  "直近7日間の実測学習時間: " +
+                  (studyWeekSeconds > 0 ? formatTaskMinutes(Math.round(studyWeekSeconds/60)) :
+                    "まだ記録がありません")),
+                h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginTop: "2px" } },
+                  "各「やること」の計測終了時に保存された時間だけを合計。時間割の予定時間は実績へ加えません。")
+              )
+            )
+          )
+        ),
+
+        /* 進捗は学習タブの上部、目標・時間カードと同じ場所に置く。 */
+        h('div', { className: 'dark-card-banner', style: { order: 1 } },
+          h('div', { style: { display: "flex", alignItems: "center",
+            justifyContent: "space-between", gap: "8px", minHeight: "42px",
+            marginBottom: openStudyProgress ? "8px" : 0 } },
+            h('span', { className: "riff-selectable-heading", style: { fontSize: "15px", fontWeight: 900,
+              display: "inline-block", userSelect: "text", WebkitUserSelect: "text",
+              WebkitTouchCallout: "default", cursor: "text", color: "#FFFFFF" } },
+              "📚 学習タブの進み具合"),
+            h('button', { type: "button", className: "btn-action",
+              "aria-label": "学習タブの進み具合を" + (openStudyProgress ? "閉じる" : "開く"),
+              "aria-expanded": openStudyProgress,
+              style: { flexShrink: 0, minWidth: "48px", color: "#FFFFFF",
+                background: "#475569", border: "1px solid #CBD5E1" },
+              onClick: () => setOpenStudyProgress(prev => !prev) },
+              openStudyProgress ? "▲" : "▼")
+          ),
+          openStudyProgress && h(React.Fragment, null,
+          h('div', { style: { fontSize: "11.5px", color: "#D1D1D6", marginBottom: "8px" } },
+            "基本学習に加えて1・4・14日後の確認を設定。時間は研究で有効性が示された学習方法を参考にした初期予算で、本人の習得時間や実績ではありません。"),
+          /* 上段: 5教科全単元 & Sランク即効 */
+          h('div', { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" } },
+            h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+              h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" } },
+                h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#93C5FD" } }, "5教科・全やること"),
+                h('div', { style: { display: "flex", gap: "6px", alignItems: "baseline" } },
+                  h('span', { style: { fontSize: "16px", fontWeight: 900, color: "#60A5FA" } }, `${studyPct}%`),
+                  h('span', { style: { fontSize: "11px", color: "#E5E5EA" } }, `${checkedStudyUnits}/${totalStudyUnits}`)
+                )
+              ),
+              h('div', { style: { height: "6px", background: "rgba(255,255,255,0.14)", borderRadius: "3px", overflow: "hidden" } },
+                h('div', { style: { width: `${studyPct}%`, height: "100%", background: "#3B82F6" } })
+              )
+            ),
+            h('div', { style: { background: "rgba(255,255,255,0.06)", padding: "8px 10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)" } },
+              h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px" } },
+                h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#FCA5A5" } }, "🔥 Sランクのやること"),
+                h('div', { style: { display: "flex", gap: "6px", alignItems: "baseline" } },
+                  h('span', { style: { fontSize: "16px", fontWeight: 900, color: "#EF4444" } }, `${sRankPct}%`),
+                  h('span', { style: { fontSize: "11px", color: "#E5E5EA" } }, `${checkedSRankUnits}/${totalSRankUnits}`)
+                )
+              ),
+              h('div', { style: { height: "6px", background: "rgba(255,255,255,0.14)", borderRadius: "3px", overflow: "hidden" } },
+                h('div', { style: { width: `${sRankPct}%`, height: "100%", background: "#EF4444" } })
+              )
+            )
+          ),
+          /* 下段: 数・英・理・社・国の各教科進捗 */
+          h('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "6px" } },
+            studySubjectsData.map((sub) => {
+              const subjectTasks = sub.units.flatMap(u => u.subtasks);
+              const subDone = subjectTasks.filter(task => checkedItems[task.id]).length;
+              const subTotal = subjectTasks.length;
+              const subPct = Math.round((subDone / subTotal) * 100);
+              return h('div', {
+                key: sub.id,
+                style: { background: "rgba(255,255,255,0.06)", padding: "6px 8px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)" }
+              },
+                h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "3px" } },
+                  h('span', { style: { fontSize: "11.5px", fontWeight: 800, color: sub.text === C.musicText ? "#C4B5FD" : (sub.text === C.codeText ? "#6EE7B7" : "#93C5FD") } }, `${sub.icon} ${sub.name.slice(0, 1)}`),
+                  h('span', { style: { fontSize: "12px", fontWeight: 900, color: "#FFFFFF" } }, `${subPct}% (${subDone}/${subTotal})`)
+                ),
+                h('div', { style: { height: "5px", background: "rgba(255,255,255,0.12)", borderRadius: "3px", overflow: "hidden" } },
+                  h('div', { style: { width: `${subPct}%`, height: "100%", background: sub.color } })
+                )
+              );
+            })
+          ))
+        ),
+
+        h('div', { style: { order: 2, background: "#FFFFFF", border: "1px solid " + C.border,
+          borderRadius: "10px", padding: "12px", display: "flex",
+          flexDirection: "column", gap: "8px" } },
+          h('button', { type: "button", className: "riff-fold",
+            "aria-expanded": openStudyCapacity,
+            onClick: () => setOpenStudyCapacity(prev => !prev),
+            style: { background: "#EFF6FF", color: C.studyText } },
+            h('span', null, "📅 受験までの勉強時間は足りる？"),
+            h('span', { className: "riff-fold-arrow" }, openStudyCapacity ? "▲" : "▼")
+          ),
+          openStudyCapacity && h(React.Fragment, null,
+          h('div', { style: { fontSize: "12px", color: C.sub } },
+            "目標の日・毎週使える時間・RIFFにまだ入れていない学校の宿題時間を入れてね。授業の予習・復習、間違い直し、間隔をあけた再確認を含めて比べます。過去問7年分は候補として残し、追加5回は最初から必須にせず「必要か考える」に置きます。1・4・14日の復習間隔や300分/週・180分/週などの初期値は研究で確定した最適値ではなく、実測と理解度で調整します。高校入学後の課題は数えず、合否も予想しません。"),
+          h('div', { style: { display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" } },
+            h('label', { style: { fontSize: "12px", fontWeight: 800 } }, "目標管理日（仮） ",
+              h('input', { type: "date", className: "time-input-inline",
+                value: studyTargetDate,
+                onChange: e => {
+                  setStudyTargetDate(e.target.value);
+                  try { localStorage.setItem("riff_study_planning_date_v1", e.target.value); } catch (err) {}
+                } })),
+            h('label', { style: { fontSize: "12px", fontWeight: 800 } },
+              "1週間に確保できる学習時間（分） ",
+              h('input', { type: "number", min: 0, max: 10080, step: 30,
+                className: "time-input-inline", style: { width: "95px" },
+                value: weeklyStudyMinutes,
+                onChange: e => {
+                  const value = Math.min(10080, Math.max(0, Number(e.target.value) || 0));
+                  setWeeklyStudyMinutes(value);
+                  try { localStorage.setItem("riff_weekly_study_budget_v1", String(value)); } catch (err) {}
+                } })),
+            h('label', { style: { fontSize: "12px", fontWeight: 800 } },
+              "未登録の学校宿題・定期テスト対策（毎週・分） ",
+              h('input', { type: "number", min: 0, max: 10080, step: 30,
+                className: "time-input-inline", style: { width: "95px" },
+                value: weeklyUnlistedSchoolMinutes,
+                onChange: e => {
+                  const value = Math.min(10080, Math.max(0, Number(e.target.value)||0));
+                  setWeeklyUnlistedSchoolMinutes(value);
+                  try { localStorage.setItem("riff_unlisted_school_minutes_v1", String(value)); }
+                  catch(err) {}
+                } }))
+          ),
+          h('div', { style: { display: "flex", flexWrap: "wrap", gap: "7px" } },
+            studyRemainingByRank.map(row => h('span', { key: row.rank,
+              className: "badge-tag", style: { color: "#FFFFFF",
+                background: row.rank === "S" ? "#B91C1C" :
+                  row.rank === "A" ? "#1D4ED8" : "#475569" } },
+              row.rank + "：未完了" + row.tasks + "件／" + formatTaskMinutes(row.minutes))),
+            h('span', { className: "badge-tag",
+              style: { color: C.sub, background: "#F1F5F9" } },
+              "見直し待ち " + formatTaskMinutes(studyReviewMinutes)),
+            h('span', { className: "badge-tag",
+              style: { color: C.sub, background: "#F1F5F9" } },
+              "延期 " + formatTaskMinutes(studyDeferredMinutes))
+          ),
+          h('div', { style: { padding: "10px", background:
+              studyCapacityGap > 0 ? "#FEF2F2" : "#ECFDF5", borderRadius: "7px",
+              fontSize: "13px", fontWeight: 800, lineHeight: 1.5,
+              color: studyCapacityGap > 0 ? "#991B1B" : "#065F46" } },
+            "残り" + remainingDays + "日｜登録済み課題と反復 " +
+            formatTaskMinutes(studyRemainingMinutes) + "｜未登録の学校宿題など " +
+            formatTaskMinutes(studySchoolReserveMinutes) +
+            "｜必要な時間の合計 " + formatTaskMinutes(studyFullBudgetMinutes) +
+            "｜確保できる想定 " + formatTaskMinutes(studyAvailableMinutes) +
+            (studyCapacityGap > 0 ? "｜不足 " + formatTaskMinutes(studyCapacityGap) :
+              "｜想定上の余裕 " + formatTaskMinutes(-studyCapacityGap))),
+          h('div', { style: { fontSize: "12px", color: C.sub, lineHeight: 1.5 } },
+            "時間が足りないときは、各科目のステップで「必要か考える」や「あとでやる」を選べます。大事な勉強まで勝手に消さないので、真くんと家族で相談して決めてね。")
+          )
+        ),
+
+        h('div', { style: { order: 3, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } },
+          h('div', { style: { display: "flex", gap: "6px", flexWrap: "wrap" } },
+            h('button', {
+              className: "chip-switch",
+              style: { color: studyFilterRankS ? "#FFFFFF" : "#DC2626", background: studyFilterRankS ? "#DC2626" : "#FFFFFF" },
+              onClick: () => setStudyFilterRankS(!studyFilterRankS)
+            }, "🔥 Sランク最優先"),
+            h('button', {
+              className: "chip-switch",
+              style: { color: studyFilterWeak ? "#FFFFFF" : "#D97706", background: studyFilterWeak ? "#D97706" : "#FFFFFF" },
+              onClick: () => setStudyFilterWeak(!studyFilterWeak)
+            }, "⚠️ 苦手単元のみ"),
+            [
+              { key: "math", label: "📐 数学" },
+              { key: "eng",  label: "🇬🇧 英語" },
+              { key: "sci",  label: "🧪 理科" },
+              { key: "soc",  label: "🌍 社会" },
+              { key: "jpn",  label: "📖 国語" }
+            ].map(sb => h('button', {
+              key: sb.key,
+              className: "chip-switch",
+              style: {
+                color: studyFilterSubjects[sb.key] ? "#FFFFFF" : C.sub,
+                background: studyFilterSubjects[sb.key] ? C.study : "#FFFFFF"
+              },
+              onClick: () => toggleSubjectFilter(sb.key)
+            }, sb.label))
+          ),
+          h('a', {
+            href: "https://docs.google.com/spreadsheets/d/1Cby5FhS95wd-C8ekgEPfI8WgUqdh-RloY5vku6-GosY/edit?gid=351847494#gid=351847494",
+            target: "_blank", rel: "noopener noreferrer",
+            className: "btn-action",
+            style: { color: "#0369A1", background: "#F0F9FF", border: "1px solid #7DD3FC", padding: "4px 9px" }
+          }, "📑 スプレッドシート原本 ↗")
+        ),
+
+        studySubjectsData.map(subject => {
+          const hasSelectedSub = Object.values(studyFilterSubjects).some(Boolean);
+          if (hasSelectedSub && !studyFilterSubjects[subject.id]) return null;
+
+          let uList = subject.units;
+          if (studyFilterRankS) uList = uList.filter(u => u.rank === "S");
+          if (studyFilterWeak) uList = uList.filter(u => u.level.includes("苦手"));
+          if (uList.length === 0) return null;
+
+          const isSubOpen = !!openStudySubjects[subject.id];
+          const groupedStudyStages = [];
+          uList.forEach(u => {
+            const meta = STUDY_STAGE_BY_UNIT_ID[u.id];
+            const id = subject.id + ":" + meta.grade + ":" + meta.number;
+            let group = groupedStudyStages.find(entry => entry.id === id);
+            if (!group) {
+              group = { id, ...meta, units: [] };
+              groupedStudyStages.push(group);
+            }
+            group.units.push(u);
+          });
+
+          return h('div', {
+            key: subject.id,
+            style: { order: 4, background: subject.bg, borderRadius: "10px",
+              border: `2px solid ${subject.border}`, overflow: "hidden" }
+          },
+            h('div', {
+              onClick: () => toggleStudySubject(subject.id),
+              style: {
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "10px 14px", background: subject.bg, cursor: "pointer",
+                borderBottom: isSubOpen ? `1px solid ${subject.border}` : "none"
+              }
+            },
+              h('div', { style: { display: "flex", alignItems: "center", gap: "8px" } },
+                h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: subject.color } }, `${subject.icon} ${subject.name}`),
+                h('span', { style: { fontSize: "14px", fontWeight: 900, color: subject.text } }, subject.name),
+                h('span', { style: { fontSize: "12px", color: C.muted } }, `(${uList.length}単元)`)
+              ),
+              h('span', { style: { fontSize: "12px", color: subject.text } }, isSubOpen ? "▲" : "▼")
+            ),
+            isSubOpen && h('div', { style: { padding: "10px 14px", background: subject.bg } },
+              groupedStudyStages.map(group => {
+                const badge = stageInfo["p" + ((group.number - 1) % 8 + 1)] || stageInfo.p1;
+                const key = "study:" + group.id;
+                const open = openGenreStages[key] !== false;
+                return h('div', { key, style: { background: "#FFFFFF",
+                  border: "1px solid " + subject.border, borderLeft: "4px solid " + badge.color,
+                  borderRadius: "8px", overflow: "hidden", marginBottom: "9px" } },
+                  h('button', { type: "button", className: "riff-fold",
+                    "aria-expanded": open,
+                    onClick: () => setOpenGenreStages(prev =>
+                      ({ ...prev, [key]: prev[key] === false })),
+                    style: { padding: "9px 10px", display: "flex", alignItems: "center",
+                      flexWrap: "wrap", gap: "7px", background: "#FFFFFF",
+                      color: C.text, textAlign: "left", fontSize: "12px" } },
+                    h('span', { className: "badge-tag", style: {
+                      background: badge.color, color: "#FFFFFF", fontWeight: 900 } },
+                      "ステージ" + group.number),
+                    h('span', { className: "badge-tag", style: {
+                      background: "#475569", color: "#FFFFFF" } }, group.grade),
+                    h('span', { style: { fontWeight: 900, fontSize: "13px",
+                      flex: 1 } }, group.title),
+                    h('span', { style: { fontWeight: 800, color: C.muted } },
+                      group.units.length + "ステップ " + (open ? "▲" : "▼"))
+                  ),
+                  open && h('div', { style: { padding: "8px 10px 8px 15px",
+                    borderTop: "1px solid " + subject.border, background: subject.bg } },
+                    group.units.map(u => renderStudyTaskCard(u, subject, "study")))
+                );
+              })
+            )
+          );
+        })
+      ),
+
+      /* SCHEDULE TAB */
+      tab === "sched" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "15px", fontWeight: 900, marginBottom: "4px" } }, "⏰ 時間割・ルーティンマネージャー"),
+          h('div', { style: { fontSize: "12px", color: "#D1D1D6" } },
+            "部活やテスト期間に合わせた最適な生活リズムを管理・編集できます。"
+          )
+        ),
+        h('div', { style: { display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" } },
+          Object.keys(schedules).map(k => h('button', {
+            key: k,
+            className: "chip-switch",
+            style: {
+              color: schedType === k ? "#FFFFFF" : C.sub,
+              background: schedType === k ? C.study : "#FFFFFF"
+            },
+            onClick: () => setSchedType(k)
+          }, schedules[k].name)),
+          isEditingSchedule && h('div', { style: { display: "flex", gap: "4px", alignItems: "center" } },
+            h('button', {
+              className: "btn-action",
+              style: { color: C.studyText, background: "#EFF6FF", border: `1px solid ${C.studyBorder}` },
+              onClick: () => duplicateScheduleTemplate(schedType)
+            }, "＋ 複製してテンプレ追加"),
+            Object.keys(schedules).length > 1 && h('button', {
+              className: "btn-action",
+              style: { color: "#DC2626", background: "#FEF2F2", border: "1px solid #FECACA" },
+              onClick: () => deleteScheduleTemplate(schedType)
+            }, "🗑 テンプレを削除")
+          )
+        ),
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "14px" } },
+          h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" } },
+            h('span', { style: { fontSize: "15px", fontWeight: 900 } }, `${schedules[schedType].name} のスケジュール`),
+            !isEditingSchedule
+              ? h('button', { className: "btn-action", style: { color: "#FFFFFF", background: C.study }, onClick: startEditSchedule }, "✏️ 編集")
+              : h('div', { style: { display: "flex", gap: "4px" } },
+                  h('button', { className: "btn-action", style: { color: "#48484A", background: "#E5E5EA" }, onClick: cancelEditSchedule }, "キャンセル"),
+                  h('button', { className: "btn-action", style: { color: "#FFFFFF", background: "#34C759" }, onClick: finishEditSchedule }, "完了")
+                )
+          ),
+          h('div', { style: { display: "flex", flexDirection: "column", gap: "6px" } },
+            schedules[schedType].items.map((item, idx) => {
+              const [startPart, endPart] = item.t.includes("〜") ? item.t.split("〜") : [item.t, ""];
+              return h('div', {
+                key: item.id,
+                style: {
+                  display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", padding: "8px 10px",
+                  background: "#F8FAFC", border: `1px solid ${C.border}`, borderRadius: "8px"
+                }
+              },
+                h('input', {
+                  type: "checkbox", className: "custom-checkbox-interactive",
+                  checked: !!checkedItems[scheduleCheckKey(item.id)], onChange: () => toggleCheck(scheduleCheckKey(item.id))
+                }),
+                !isEditingSchedule
+                  ? h('div', { style: { minWidth: "90px", fontSize: "12.5px", fontWeight: 800, color: C.muted } }, item.t)
+                  : renderTimeRangeEditor(item.t, next =>
+                      updateScheduleItemField(schedType, idx, "t", next), "時間割"),
+                !isEditingSchedule
+                  ? h('div', { style: { flex: 1, fontSize: "13.5px", fontWeight: item.hi ? 800 : 500 } }, item.a)
+                  : h('input', {
+                      type: "text", value: item.a,
+                      onChange: (e) => updateScheduleItemField(schedType, idx, "a", e.target.value),
+                      style: { flex: "1 1 210px", minWidth: 0, padding: "6px 8px", fontSize: "14px", border: "1px solid #CCC", borderRadius: "5px" }
+                    }),
+                isEditingSchedule && h('div', { style: { display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 } },
+                    renderScheduleCategorySelect(item, idx)
+                  ),
+                isEditingSchedule && h('div', { style: { display: "flex", gap: "3px" } },
+                  h('button', { onClick: () => moveScheduleItem(schedType, idx, -1), style: { padding: "2px 6px", fontSize: "11px" } }, "▲"),
+                  h('button', { onClick: () => moveScheduleItem(schedType, idx, 1), style: { padding: "2px 6px", fontSize: "11px" } }, "▼")
+                )
+              );
+            })
+          ),
+          isEditingSchedule && h('button', {
+            className: "btn-action",
+            style: { marginTop: "10px", width: "100%", background: "#F2F2F7", color: C.text, border: `1px dashed ${C.border}` },
+            onClick: () => addScheduleItem(schedType)
+          }, "＋ スケジュール項目を追加")
+        )
+      ),
+
+      /* SCHOOL TAB */
+      tab === "school" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "15px", fontWeight: 900, marginBottom: "4px" } },
+            "🎯【進路のビジョン】中学〜大学院まで一貫した「音楽×プログラミング」のクリエイター進路ロードマップ"
+          ),
+          h('div', { style: { fontSize: "12px", color: "#D1D1D6" } },
+            "武蔵丘高校を目標に、洗足学園音楽大学とGoldsmiths学士課程への進学可能性を並行して検討。ほかの候補も比較する。"
+          )
+        ),
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px",
+          border: "1px solid " + C.border, padding: "12px 14px" } },
+          h('button', { type: "button", className: "riff-fold",
+            "aria-expanded": openSchoolAddCard,
+            onClick: () => setOpenSchoolAddCard(prev => !prev),
+            style: { color: C.text, background: "#FFFFFF", display: "flex",
+              alignItems: "center", justifyContent: "space-between",
+              width: "100%", padding: "8px 2px", fontSize: "15px", fontWeight: 900 } },
+            h('span', null, "＋ 教育機関を追加"),
+            h('span', { "aria-hidden": true }, openSchoolAddCard ? "▲" : "▼")),
+          openSchoolAddCard && h(React.Fragment, null,
+          h('div', { style: { fontSize: "11.5px", color: C.muted, marginBottom: "9px" } },
+            "現在できること：学校名・所在地・公式URLを登録して、候補を追加・非表示にできます。学校の詳しい情報を公式サイトから自動で集める機能は、まだ作成中です。追加した学校は「調査待ち」と表示され、未確認の情報は勝手に書き込みません。"),
+          h('div', { style: { display: "flex", flexWrap: "wrap", gap: "7px" } },
+            h('select', { className: "time-input-inline",
+              value: newSchool.section,
+              onChange: e => setNewSchool(prev => ({ ...prev, section: e.target.value })),
+              style: { flex: "1 1 210px", padding: "7px" } },
+              schoolCardsData.map(sec => h('option', { key: sec.key, value: sec.key }, sec.title))),
+            [{ key: "name", label: "教育機関名（必須）" },
+             { key: "location", label: "所在地・通学メモ" },
+             { key: "url", label: "公式サイトURL（確認できているもの）" }].map(field =>
+              h('input', { key: field.key, type: "text",
+                className: "time-input-inline", style: { flex: "1 1 210px", padding: "7px" },
+                value: newSchool[field.key], placeholder: field.label,
+                onChange: e => setNewSchool(prev =>
+                  ({ ...prev, [field.key]: e.target.value })) }))
+          ),
+          h('div', { style: { display: "flex", gap: "8px", marginTop: "10px",
+            alignItems: "center", flexWrap: "wrap" } },
+            h('button', { type: "button", className: "btn-action",
+              style: { background: C.study, color: "#FFFFFF", padding: "7px 12px" },
+              onClick: addSchool }, "＋ 候補に追加"),
+            h('button', { type: "button", className: "btn-action",
+              style: { background: "#F2F2F7", color: C.sub },
+              onClick: () => setShowArchivedSchools(prev => !prev) },
+              showArchivedSchools ? "削除済みを隠す" : "削除済みも表示"),
+            schoolEditorMessage && h('span', { style: { fontSize: "12px", color: C.sub } },
+              schoolEditorMessage)
+          )
+          )
+        ),
+        schoolCardsData.map(sec => {
+          const isOpen = openSchoolCards[sec.key] === true;
+          return h('div', {
+            key: sec.key,
+            style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" }
+          },
+            h('div', {
+              onClick: () => toggleSchoolCard(sec.key),
+              style: { padding: "12px 14px", background: "#F8FAFC", borderBottom: isOpen ? `1px solid ${C.border}` : "none", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
+            },
+              h('div', { style: { display: "flex", alignItems: "center", gap: "8px" } },
+                h('span', { style: { fontSize: "14.5px", fontWeight: 900 } }, sec.title),
+                h('span', { className: "badge-tag", style: { color: sec.color, background: "#FFFFFF", border: `1px solid ${C.border}` } }, sec.badge)
+              ),
+              h('span', { style: { fontSize: "12px", color: C.muted } }, isOpen ? "▲" : "▼")
+            ),
+            isOpen && h('div', { style: { padding: "12px 14px", display: "flex", flexDirection: "column", gap: "12px" } },
+              [...sec.group.map(sch => ({ ...sch,
+                  id: "original:" + sec.key + ":" + sch.name })),
+                 ...customSchools.filter(sch => sch.section === sec.key)]
+                .filter(sch => showArchivedSchools || !hiddenSchools.includes(sch.id))
+                .map((sch, si) => h('div', {
+                key: sch.id,
+                style: { background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 14px" }
+              },
+                h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexWrap: "wrap", gap: "6px" } },
+                  h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                    h('span', { style: { fontSize: "15px", fontWeight: 900, color: sec.color } }, sch.name),
+                    sch.badge && h('span', { className: "badge-tag", style: { color: "#FFFFFF", background: sec.color } }, sch.badge)
+                  ),
+                  sch.url && h('a', {
+                    href: sch.url, target: "_blank", rel: "noopener noreferrer",
+                    className: "btn-action", style: { color: "#007AFF", background: "#EFF6FF", border: "1px solid #BFDBFE" }
+                  }, sch.sourceStatus ? "🌐 入力URL ↗" : "🌐 公式サイト ↗"),
+                  h('button', { type: "button", className: "btn-action",
+                    style: { color: hiddenSchools.includes(sch.id) ? C.codeText : "#B91C1C",
+                      background: hiddenSchools.includes(sch.id) ? C.codeBg : "#FEF2F2" },
+                    onClick: () => saveHiddenSchools(hiddenSchools.includes(sch.id)
+                      ? hiddenSchools.filter(id => id !== sch.id)
+                      : [...hiddenSchools, sch.id]) },
+                    hiddenSchools.includes(sch.id) ? "復元" : "削除")
+                ),
+                sch.sourceStatus && h('div', { style: { fontSize: "11px",
+                  color: "#B45309", padding: "5px 0" } }, sch.sourceStatus),
+                sch.location && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "6px" } },
+                  h('strong', null, "📍 所在地・通学時間: "), sch.location
+                ),
+                sch.learn && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "6px" } },
+                  h('strong', null, "🌟 学べること: "),
+                  h('ul', { style: { paddingLeft: "18px", marginTop: "3px" } },
+                    sch.learn.map((l, li) => h('li', { key: li, style: { marginBottom: "2px" } }, l))
+                  )
+                ),
+                sch.advantages && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "6px", lineHeight: 1.45 } },
+                  h('strong', null, "💡 学習利点: "), sch.advantages
+                ),
+                sch.teachers && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "6px" } },
+                  h('strong', null, "👨‍🏫 教員・指導陣: "), sch.teachers.join(" / ")
+                ),
+                sch.alumni && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "6px" } },
+                  h('strong', null, "✨ 著名な卒業生: "), sch.alumni
+                ),
+                sch.otherPoints && h('div', { style: { fontSize: "12px", color: C.sub, marginBottom: "4px" } },
+                  h('strong', null, "📌 他のポイント: "), sch.otherPoints
+                )
+              ))
+            )
+          );
+        }),
+
+        /* 6. 最新総合推薦ランキング */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, overflow: "hidden" } },
+          h('div', {
+            onClick: () => toggleSchoolCard("rank"),
+            style: { padding: "12px 14px", background: "#F8FAFC", borderBottom: openSchoolCards["rank"] ? `1px solid ${C.border}` : "none", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }
+          },
+            h('span', { style: { fontSize: "14.5px", fontWeight: 900 } }, "🏆 6. 最新総合推薦ランキング（メリット＆デメリット比較）"),
+            h('span', { style: { fontSize: "12px", color: C.muted } }, openSchoolCards["rank"] ? "▲" : "▼")
+          ),
+          openSchoolCards["rank"] && h('div', { style: { padding: "14px", display: "flex", flexDirection: "column", gap: "14px" } },
+            /* 中高生部門 TOP3 */
+            h('div', null,
+              h('div', { style: { fontSize: "13.5px", fontWeight: 900, color: "#DC2626", marginBottom: "8px" } }, "【中高生部門】今すぐ〜高校時代に目指したい TOP3"),
+              h('div', { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+                recommendationRankingData.junior.map((item, idx) => h('div', {
+                  key: idx, style: { background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "10px 12px" }
+                },
+                  h('div', { style: { fontSize: "13px", fontWeight: 900, color: "#1C1C1E", marginBottom: "4px" } }, `🥇 ${item.rank}：${item.name}`),
+                  h('div', { style: { fontSize: "12px", color: "#065F46", lineHeight: 1.4 } }, `🟢 メリット: ${item.merit}`),
+                  h('div', { style: { fontSize: "12px", color: "#991B1B", lineHeight: 1.4 } }, `🔴 デメリット: ${item.demerit}`)
+                ))
+              )
+            ),
+            /* 高校卒業後部門 TOP5 */
+            h('div', null,
+              h('div', { style: { fontSize: "13.5px", fontWeight: 900, color: "#7C3AED", marginBottom: "8px" } }, "【高校卒業後の進路部門】ベストマッチ TOP5"),
+              h('div', { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+                recommendationRankingData.higher.map((item, idx) => h('div', {
+                  key: idx, style: { background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "10px 12px" }
+                },
+                  h('div', { style: { fontSize: "13px", fontWeight: 900, color: "#1C1C1E", marginBottom: "4px" } }, `🎖️ ${item.rank}：${item.name}`),
+                  h('div', { style: { fontSize: "12px", color: "#065F46", lineHeight: 1.4 } }, `🟢 メリット: ${item.merit}`)
+                ))
+              )
+            )
+          )
+        )
+      ),
+
+      /* FEEDBACK TAB */
+      tab === "feedback" && h('div', { style: { display: "flex", flexDirection: "column", gap: "14px" } },
+        h('div', { className: 'dark-card-banner' },
+          h('div', { style: { fontSize: "16px", fontWeight: 900, marginBottom: "4px" } }, "📝 使ってみた感想（フィードバック）"),
+          h('div', { style: { fontSize: "12px", color: "#D1D1D6" } },
+            "真・パパのリアルな声をもとに、アプリをどんどん進化させよう！回答者ごとに独立して下書き保存されます。"
+          )
+        ),
+
+        /* 入力フォームカード */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "16px" } },
+          /* 回答者選択バー（ピル形状・色分け） */
+          h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "8px", paddingBottom: "12px", borderBottom: `1px solid ${C.border}` } },
+            h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+              h('span', { style: { fontSize: "13px", fontWeight: 800, color: "#48484A" } }, "回答者:"),
+              [
+                { id: "真", label: "真", activeBg: "#4F46E5", activeColor: "#FFFFFF", inactiveBg: "#EEF2FF", inactiveColor: "#4338CA" },
+                { id: "パパ", label: "パパ", activeBg: "#059669", activeColor: "#FFFFFF", inactiveBg: "#ECFDF5", inactiveColor: "#065F46" },
+                { id: "その他", label: "その他", activeBg: "#4B5563", activeColor: "#FFFFFF", inactiveBg: "#F3F4F6", inactiveColor: "#374151" }
+              ].map(resp => {
+                const isSelected = currentRespondent === resp.id;
+                return h('button', {
+                  key: resp.id,
+                  type: "button",
+                  className: "respondent-pill",
+                  onClick: () => handleRespondentSwitch(resp.id),
+                  style: {
+                    background: isSelected ? resp.activeBg : resp.inactiveBg,
+                    color: isSelected ? resp.activeColor : resp.inactiveColor,
+                    borderColor: isSelected ? resp.activeBg : "transparent",
+                    boxShadow: isSelected ? "0 2px 5px rgba(0,0,0,0.15)" : "none"
+                  }
+                },
+                  isSelected ? "● " : "○ ",
+                  resp.label
+                );
+              })
+            ),
+            h('div', { style: { display: "flex", alignItems: "center", gap: "8px" } },
+              currentForm.editingFeedbackId && h('span', {
+                className: "badge-tag",
+                style: { background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A", fontWeight: 800 }
+              }, "✏️ 過去の回答を編集中"),
+              h('button', {
+                type: "button",
+                className: "btn-action",
+                onClick: handleResetCurrentForm,
+                style: { background: "#F3F4F6", color: "#4B5563", border: "1px solid #D1D5DB", padding: "4px 8px" }
+              }, "🔄 入力をリセット")
+            )
+          ),
+
+          /* 質問項目一覧 */
+          h('div', { style: { display: "flex", flexDirection: "column", gap: "16px" } },
+            FEEDBACK_QUESTIONS.map((q) => {
+              const rating = currentForm.ratings[q.id];
+              const comment = currentForm.comments[q.id] || "";
+              const hasRating = q.id !== "q6_requests";
+
+              return h('div', {
+                key: q.id,
+                style: { background: "#F8FAFC", border: `1px solid ${C.border}`, borderRadius: "8px", padding: "12px" }
+              },
+                h('div', { style: { fontSize: "13.5px", fontWeight: 900, color: "#1C1C1E", marginBottom: "8px" } }, q.text),
+                hasRating && h('div', { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" } },
+                  h('span', { style: { fontSize: "12px", color: C.muted, fontWeight: 700 } }, "評価:"),
+                  [1, 2, 3, 4, 5].map(starVal => h('button', {
+                    key: starVal,
+                    type: "button",
+                    className: "star-rating-btn",
+                    onClick: () => handleRatingChange(q.id, starVal),
+                    style: { color: starVal <= rating ? "#F59E0B" : "#D1D5DB" }
+                  }, "★")),
+                  h('span', { style: { fontSize: "12.5px", fontWeight: 900, color: "#D97706", marginLeft: "4px" } },
+                    rating ? `${rating} / 5` : "未評価"
+                  )
+                ),
+                h('textarea', {
+                  rows: 2,
+                  value: comment,
+                  placeholder: q.placeholder,
+                  onChange: (e) => handleCommentChange(q.id, e.target.value),
+                  style: {
+                    width: "100%", padding: "8px 10px", fontSize: "13px",
+                    border: "1px solid #D1D5DB", borderRadius: "6px",
+                    background: "#FFFFFF", color: "#1C1C1E", resize: "vertical"
+                  }
+                })
+              );
+            })
+          ),
+
+          /* 保存ボタン */
+          h('div', { style: { marginTop: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" } },
+            h('div', { style: { display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" } },
+              h('button', {
+                type: "button",
+                className: "btn-action",
+                onClick: handleSaveFeedback,
+                style: {
+                  background: currentRespondent === "パパ" ? "#059669" : "#4F46E5",
+                  color: "#FFFFFF", padding: "8px 18px",
+                  fontSize: "14px", fontWeight: 900, borderRadius: "8px",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.2)"
+                }
+              }, currentForm.editingFeedbackId
+                  ? `💾 【${currentRespondent}】の編集内容を更新保存`
+                  : `💾 【${currentRespondent}】の感想を保存する`
+              ),
+              h('button', {
+                type: "button",
+                className: "btn-action",
+                onClick: handleResetCurrentForm,
+                style: {
+                  background: "#F3F4F6", color: "#4B5563", border: "1px solid #D1D5DB",
+                  padding: "8px 14px", fontSize: "13px", fontWeight: 800, borderRadius: "8px"
+                }
+              }, "🔄 入力をリセット")
+            ),
+            feedbackSavedMessage && h('span', { style: { fontSize: "13px", fontWeight: 800, color: "#059669" } }, feedbackSavedMessage)
+          )
+        ),
+
+        /* クラウド共有: 自動投稿ではなくPrivate GitHub Issueの確認画面へ引き継ぐ。 */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px",
+          border: "1px solid " + C.border, padding: "16px",
+          display: "flex", flexDirection: "column", gap: "9px" } },
+          h('div', { style: { fontSize: "15px", fontWeight: 900 } },
+            "☁️ RIFF開発へ感想を共有（GitHub Private）"),
+          h('div', { style: { fontSize: "12px", color: C.sub, lineHeight: 1.5 } },
+            "現在できること：感想をこのブラウザに保存し、CSV/JSONで書き出せます。GitHubへ自動保存する機能はまだありません。下のボタンはPrivateリポジトリの投稿下書きを開くだけです。GitHubで内容と公開範囲を確認し、自分で「投稿」を押す必要があります。投稿後も、このチャットが自動で読めるわけではありません。読み取り権限が必要です。"),
+          h('input', { type: "text", className: "time-input-inline",
+            "aria-label": "共有先のGitHub Privateリポジトリ",
+            placeholder: "Privateリポジトリ（owner/repo）",
+            value: feedbackPrivateRepo, style: { padding: "8px" },
+            onChange: e => {
+              setFeedbackPrivateRepo(e.target.value);
+              setConfirmPrivateRepo(false);
+              try { localStorage.setItem("riff_feedback_private_repo_v1", e.target.value); }
+              catch (err) {}
+            } }),
+          h('label', { style: { display: "flex", alignItems: "flex-start", gap: "8px",
+            fontSize: "12px", color: C.sub, cursor: "pointer" } },
+            h('input', { type: "checkbox", checked: confirmPrivateRepo,
+              onChange: e => setConfirmPrivateRepo(e.target.checked) }),
+            "GitHub側でこのリポジトリがPrivateであり、共有範囲・本文を確認することに同意します。"),
+          h('button', { type: "button", className: "btn-action",
+            style: { alignSelf: "flex-start", background: C.study, color: "#FFFFFF",
+              padding: "8px 12px" },
+            onClick: openPrivateGithubFeedbackDraft },
+            "GitHub Private Issueの下書きを開く ↗"),
+          h('div', { style: { fontSize: "11px", color: C.muted } },
+            "GitHubのアクセストークンやパスワードはRIFFに入力・保存しません。完全自動同期は認証付きバックエンドの整備後に実装します。")
+        ),
+
+        /* 入力内容のエクスポートカード */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "16px" } },
+          h('div', { style: { fontSize: "14.5px", fontWeight: 900, marginBottom: "12px", display: "flex", alignItems: "center" } },
+            h('span', null, "感想のエクスポート")
+          ),
+          h('div', { style: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px", padding: "8px 12px", background: "#F8FAFC", borderRadius: "6px", flexWrap: "wrap" } },
+            h('span', { style: { fontSize: "12.5px", fontWeight: 800, color: "#48484A" } }, "出力対象:"),
+            h('label', {
+              onClick: () => setExportScope("latest"),
+              style: {
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12.5px",
+                fontWeight: exportScope === "latest" ? 800 : 600,
+                cursor: "pointer",
+                padding: "4px 10px",
+                borderRadius: "6px",
+                background: exportScope === "latest" ? "#EFF6FF" : "transparent",
+                border: exportScope === "latest" ? "1.5px solid #007AFF" : "1.5px solid transparent",
+                color: exportScope === "latest" ? "#007AFF" : "#1C1C1E",
+                transition: "all 0.15s ease"
+              }
+            },
+              h('input', {
+                type: "radio",
+                name: "exportScope",
+                checked: exportScope === "latest",
+                onChange: () => setExportScope("latest"),
+                style: {
+                  WebkitAppearance: "radio",
+                  appearance: "radio",
+                  width: "16px",
+                  height: "16px",
+                  cursor: "pointer",
+                  accentColor: "#007AFF",
+                  margin: 0
+                }
+              }),
+              "最新の1件のみ"
+            ),
+            h('label', {
+              onClick: () => setExportScope("all"),
+              style: {
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12.5px",
+                fontWeight: exportScope === "all" ? 800 : 600,
+                cursor: "pointer",
+                padding: "4px 10px",
+                borderRadius: "6px",
+                background: exportScope === "all" ? "#EFF6FF" : "transparent",
+                border: exportScope === "all" ? "1.5px solid #007AFF" : "1.5px solid transparent",
+                color: exportScope === "all" ? "#007AFF" : "#1C1C1E",
+                transition: "all 0.15s ease"
+              }
+            },
+              h('input', {
+                type: "radio",
+                name: "exportScope",
+                checked: exportScope === "all",
+                onChange: () => setExportScope("all"),
+                style: {
+                  WebkitAppearance: "radio",
+                  appearance: "radio",
+                  width: "16px",
+                  height: "16px",
+                  cursor: "pointer",
+                  accentColor: "#007AFF",
+                  margin: 0
+                }
+              }),
+              `過去すべての回答履歴（${feedbacks.length}件）`
+            )
+          ),
+          h('div', { className: "riff-feedback-export-actions", style: { display: "flex", gap: "8px", width: "100%" } },
+            h('button', {
+              type: "button",
+              className: "btn-action",
+              onClick: copyFeedbackText,
+              style: {
+                flex: "1 1 0",
+                minWidth: "0",
+                background: "#007AFF",
+                color: "#FFFFFF",
+                padding: "9px 4px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "3px",
+                borderRadius: "8px"
+              }
+            },
+              h('span', { style: { fontSize: "13px", fontWeight: 900, whiteSpace: "nowrap", color: "#FFFFFF" } }, "感想をコピー"),
+              h('span', { style: { fontSize: "11.5px", fontWeight: 700, whiteSpace: "nowrap", color: "#FFFFFF", letterSpacing: "0.01em" } }, "(他のAIにコピペ用)")
+            ),
+            h('button', {
+              type: "button",
+              className: "btn-action",
+              onClick: exportFeedbackCSV,
+              style: {
+                flex: "1 1 0",
+                minWidth: "0",
+                background: "#059669",
+                color: "#FFFFFF",
+                padding: "9px 4px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "3px",
+                borderRadius: "8px"
+              }
+            },
+              h('span', { style: { fontSize: "13px", fontWeight: 900, whiteSpace: "nowrap", color: "#FFFFFF" } }, ".csvで書き出し"),
+              h('span', { style: { fontSize: "11.5px", fontWeight: 700, whiteSpace: "nowrap", color: "#FFFFFF", letterSpacing: "0.01em" } }, "(表計算ソフトに渡す時用)")
+            ),
+            h('button', {
+              type: "button",
+              className: "btn-action",
+              onClick: exportFeedbackJSON,
+              style: {
+                flex: "1 1 0",
+                minWidth: "0",
+                background: "#6366F1",
+                color: "#FFFFFF",
+                padding: "9px 4px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "3px",
+                borderRadius: "8px"
+              }
+            },
+              h('span', { style: { fontSize: "13px", fontWeight: 900, whiteSpace: "nowrap", color: "#FFFFFF" } }, ".jsonで書き出し"),
+              h('span', { style: { fontSize: "11.5px", fontWeight: 700, whiteSpace: "nowrap", color: "#FFFFFF", letterSpacing: "0.01em" } }, "(他のソフトに渡すとき用)")
+            )
+          ),
+          feedbackManualCopy && h('div', { style: { marginTop: "12px", padding: "10px",
+            background: "#EFF6FF", border: "1px solid #93C5FD", borderRadius: "8px" } },
+            h('label', { htmlFor: "riff-feedback-manual-copy",
+              style: { display: "block", fontSize: "13px", fontWeight: 800,
+                color: "#1D4ED8", marginBottom: "7px" } },
+              "コピー用の本文（長押し・すべて選択・コピー）"),
+            h('textarea', { id: "riff-feedback-manual-copy", readOnly: true,
+              value: feedbackManualCopy, onFocus: e => e.currentTarget.select(),
+              style: { width: "100%", minHeight: "180px", fontSize: "14px",
+                padding: "10px", border: "1px solid #CBD5E1",
+                borderRadius: "7px", color: "#1E293B", background: "#FFFFFF" } }),
+            h('button', { type: "button", className: "btn-action",
+              style: { marginTop: "8px", color: "#1D4ED8", background: "#FFFFFF",
+                border: "1px solid #BFDBFE" },
+              onClick: () => setFeedbackManualCopy("") }, "本文を閉じる")
+          )
+        ),
+
+        /* 過去の回答履歴カード */
+        h('div', { style: { background: "#FFFFFF", borderRadius: "10px", border: `1px solid ${C.border}`, padding: "16px" } },
+          h('div', { style: { fontSize: "14.5px", fontWeight: 900, marginBottom: "10px" } },
+            `📜 過去の回答履歴（${feedbacks.length}件）`
+          ),
+          feedbacks.length === 0
+            ? h('div', { style: { fontSize: "12.5px", color: C.muted, padding: "12px 0", textAlign: "center" } }, "まだ保存された感想はありません。")
+            : h('div', { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+                feedbacks.map((fb) => {
+                  const ratedAnswers = fb.answers.filter(a => a.rating !== null);
+                  const avgRating = ratedAnswers.length > 0
+                    ? (ratedAnswers.reduce((acc, a) => acc + a.rating, 0) / ratedAnswers.length).toFixed(1)
+                    : null;
+
+                  const isDad = fb.respondent === "パパ" || fb.respondent === "お父様";
+                  const isShin = fb.respondent === "真" || fb.respondent === "真くん";
+
+                  return h('div', {
+                    key: fb.feedback_id,
+                    style: { background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "10px 12px" }
+                  },
+                    h('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" } },
+                      h('div', { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" } },
+                        h('span', { style: { fontSize: "13px", fontWeight: 800 } }, `▼ ${fb.submitted_at_formatted}`),
+                        h('span', {
+                          className: "badge-tag",
+                          style: {
+                            background: isDad ? "#ECFDF5" : (isShin ? "#EEF2FF" : "#F3F4F6"),
+                            color: isDad ? "#065F46" : (isShin ? "#4338CA" : "#374151"),
+                            fontWeight: 800
+                          }
+                        }, fb.respondent === "お父様" ? "パパ" : (fb.respondent === "真くん" ? "真" : fb.respondent)),
+                        h('span', { className: "badge-tag", style: { background: "#F3F4F6", color: "#374151" } }, fb.app_version),
+                        avgRating && h('span', { style: { fontSize: "12px", fontWeight: 800, color: "#D97706" } }, `総合 ★${avgRating}`)
+                      ),
+                      h('div', { style: { display: "flex", gap: "4px" } },
+                        h('button', {
+                          type: "button",
+                          className: "btn-action",
+                          onClick: () => startEditExistingFeedback(fb),
+                          style: { background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", padding: "2px 8px", fontSize: "11px" }
+                        }, "編集"),
+                        h('button', {
+                          type: "button",
+                          className: "btn-action",
+                          onClick: () => deleteFeedback(fb.feedback_id),
+                          style: { background: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA", padding: "2px 8px", fontSize: "11px" }
+                        }, "削除")
+                      )
+                    )
+                  );
+                })
+              )
+        )
+      )
+    )
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(h(App));
