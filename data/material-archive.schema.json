@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RIFF material archive item",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "domain",
+    "category",
+    "format",
+    "availability",
+    "usageStatus",
+    "sourceStatus"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "domain": {
+      "enum": [
+        "music",
+        "development",
+        "study"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "format": {
+      "enum": [
+        "book",
+        "pdf",
+        "video",
+        "web",
+        "audio",
+        "file",
+        "equipment"
+      ]
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fileRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "availability": {
+      "enum": [
+        "owned",
+        "available",
+        "planned",
+        "candidate",
+        "unavailable"
+      ]
+    },
+    "usageStatus": {
+      "enum": [
+        "active",
+        "reference",
+        "paused",
+        "archived"
+      ]
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "difficulty": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "source": {
+          "enum": [
+            "unrated",
+            "ai_suggested",
+            "observed",
+            "user"
+          ]
+        }
+      },
+      "required": [
+        "value",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "checkedAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sourceStatus": {
+      "enum": [
+        "user_confirmed",
+        "official_verified",
+        "candidate",
+        "unverified"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}
