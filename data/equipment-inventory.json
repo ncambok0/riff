@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-01",
-  "note": "初期シード。タスク自動提案へ接続する前に利用者確認を行う。Pocket Ampは所有機材として登録しない。",
+  "updatedAt": "2026-10-03",
+  "note": "初期候補。所有・受領を事実確認できたものだけタスク自動推薦へ接続。Chocolate Plusは発送情報のみ確認・受領未確認。Moog EP-3は会話上の設定対象だが台帳上の所有確認待ち。Pocket Ampは未所有につき登録しない。",
   "items": [
     {
       "id": "eq-epiphone-les-paul-standard",
@@ -128,9 +128,9 @@
       "manufacturer": "M-VAVE",
       "model": "Chocolate Plus",
       "equipmentType": "midi_foot_controller",
-      "ownership": "owned",
-      "usageStatus": "active",
-      "sourceStatus": "user_confirmed",
+      "ownership": "pending_confirmation",
+      "usageStatus": "pending_confirmation",
+      "sourceStatus": "shipment_confirmed_receipt_unverified",
       "manualMaterialIds": [],
       "relatedSkillIds": [],
       "relatedTaskIds": []
@@ -142,7 +142,7 @@
       "equipmentType": "expression_pedal",
       "ownership": "owned",
       "usageStatus": "active",
-      "sourceStatus": "user_confirmed",
+      "sourceStatus": "configuration_discussed_user_confirmation_pending",
       "manualMaterialIds": [],
       "relatedSkillIds": [],
       "relatedTaskIds": []
