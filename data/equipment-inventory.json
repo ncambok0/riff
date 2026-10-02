@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "updatedAt": "2026-10-03",
+  "note": "初期候補。所有・受領を事実確認できたものだけタスク自動推薦へ接続。Chocolate Plusは発送情報のみ確認・受領未確認。Moog EP-3は会話上の設定対象だが台帳上の所有確認待ち。Pocket Ampは未所有につき登録しない。",
+  "items": [
+    {
+      "id": "eq-epiphone-les-paul-standard",
+      "manufacturer": "Epiphone",
+      "model": "Les Paul Standard",
+      "equipmentType": "electric_guitar",
+      "ownership": "owned",
+      "usageStatus": "active",
+      "sourceStatus": "user_confirmed",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    },
+    {
+      "id": "eq-recording-king-ro318",
+      "manufacturer": "Recording King",
+      "model": "RO-318",
+      "equipmentType": "acoustic_guitar",
+      "ownership": "owned",
+      "usageStatus": "active",
+      "sourceStatus": "user_confirmed",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    },
+    {
+      "id": "eq-boss-katana-mini",
+      "manufacturer": "BOSS",
+      "model": "KATANA MINI",
+      "equipmentType": "guitar_amp",
+      "ownership": "owned",
+      "usageStatus": "active",
+      "sourceStatus": "user_confirmed",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    },
+    {
+      "id": "eq-proco-rat2",
+      "manufacturer": "ProCo",
+      "model": "RAT2",
+      "equipmentType": "effect_pedal",
+      "ownership": "owned",
+      "usageStatus": "active",
+      "sourceStatus": "user_confirmed",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    },
+    {
+      "id": "eq-arturia-minilab3",
+      "manufacturer": "Arturia",
+      "model": "MiniLab 3",
+      "equipmentType": "midi_controller",
+      "ownership": "owned",
+      "usageStatus": "active",
+      "sourceStatus": "user_confirmed",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    },
+    {
+      "id": "eq-esi-amber-i2",
+      "manufacturer": "ESI",
+      "model": "Amber i2",
+      "equipmentType": "audio_interface",
+      "ownership": "owned",
+      "usageStatus": "active",
+      "sourceStatus": "user_confirmed",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    },
+    {
+      "id": "eq-maudio-bx5",
+      "manufacturer": "M-AUDIO",
+      "model": "BX5",
+      "equipmentType": "monitor_speaker",
+      "ownership": "owned",
+      "usageStatus": "active",
+      "sourceStatus": "user_confirmed",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    },
+    {
+      "id": "eq-sony-mdr-cd900st",
+      "manufacturer": "SONY",
+      "model": "MDR-CD900ST",
+      "equipmentType": "headphones",
+      "ownership": "owned",
+      "usageStatus": "active",
+      "sourceStatus": "user_confirmed",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    },
+    {
+      "id": "eq-shure-sm58",
+      "manufacturer": "SHURE",
+      "model": "SM58",
+      "equipmentType": "microphone",
+      "ownership": "owned",
+      "usageStatus": "active",
+      "sourceStatus": "user_confirmed",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    },
+    {
+      "id": "eq-behringer-mx602a",
+      "manufacturer": "BEHRINGER",
+      "model": "MX602A",
+      "equipmentType": "mixer",
+      "ownership": "owned",
+      "usageStatus": "active",
+      "sourceStatus": "user_confirmed",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    },
+    {
+      "id": "eq-mvave-chocolate-plus",
+      "manufacturer": "M-VAVE",
+      "model": "Chocolate Plus",
+      "equipmentType": "midi_foot_controller",
+      "ownership": "pending_confirmation",
+      "usageStatus": "pending_confirmation",
+      "sourceStatus": "shipment_confirmed_receipt_unverified",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    },
+    {
+      "id": "eq-moog-ep3",
+      "manufacturer": "Moog",
+      "model": "EP-3",
+      "equipmentType": "expression_pedal",
+      "ownership": "pending_confirmation",
+      "usageStatus": "pending_confirmation",
+      "sourceStatus": "configuration_discussed_user_confirmation_pending",
+      "manualMaterialIds": [],
+      "relatedSkillIds": [],
+      "relatedTaskIds": []
+    }
+  ]
+}
